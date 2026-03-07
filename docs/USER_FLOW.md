@@ -12,16 +12,39 @@
 Developer sees AgentXL on GitHub / Hacker News / Reddit
   → README says: npm install -g agentxl
   → They run: agentxl start
-  → Terminal shows:
-      🚀 AgentXL running at https://localhost:3001
-      📎 First time? Sideload the add-in in Excel:
-         Excel → Insert → My Add-ins → Upload My Add-in
-         Select: C:\Users\you\.agentxl\manifest.xml
-  → They sideload the manifest once
-  → Done
+  → CLI walks through setup:
+
+  ┌──────────────────────────────────────┐
+  │         AgentXL v1.0.0              │
+  │      AI agent for Microsoft Excel    │
+  └──────────────────────────────────────┘
+
+  ✅ Auth ready
+  ✅ HTTPS certificate ready (trusted by OS)
+  ✅ Server running at https://localhost:3001
+
+  ─────────────────────────────────────────────────
+  All systems go. Here's what to do next:
+  ─────────────────────────────────────────────────
+
+  🌐 Test in browser (confirm everything works):
+     https://localhost:3001/taskpane/
+
+  📎 Load in Excel (one-time setup):
+     1. Excel → File → Options → Trust Center → Trust Center Settings
+     2. Trusted Add-in Catalogs → add path: [manifest folder]
+     3. Check "Show in Menu" → OK → OK
+     4. Restart Excel
+     5. Insert → My Add-ins → SHARED FOLDER → AgentXL → Add
+
+  After setup, just run 'agentxl start' and click
+  AgentXL on the Home ribbon. No re-sideloading needed.
+
+  💬 Try your first message:
+     "What can you help me with in this workbook?"
 ```
 
-### 1b. Auditor Path (Windows Installer)
+### 1b. Auditor Path (Windows Installer) — Future
 
 ```
 Auditor receives link from IT or visits agentxl.com
@@ -34,14 +57,14 @@ Auditor receives link from IT or visits agentxl.com
   → Installer does:
       1. Installs AgentXL files to Program Files
       2. Generates HTTPS certificate for localhost
-      3. Registers Office add-in manifest (no manual sideloading)
+      3. Registers Office add-in manifest (no manual setup)
       4. Adds AgentXL to Windows startup (auto-start on boot)
       5. Starts the background service immediately
   → System tray icon appears: "AgentXL ✓ Running"
   → Done. No terminal. No commands. No manual steps.
 ```
 
-### 1c. Enterprise Path (IT Deployment)
+### 1c. Enterprise Path (IT Deployment) — Future
 
 ```
 IT admin deploys AgentXL via:
@@ -58,198 +81,103 @@ IT admin deploys AgentXL via:
 
 ## 2. First Launch — Onboarding
 
-### 2a. Opening AgentXL in Excel
+### 2a. Auth Setup (CLI — Current Implementation)
+
+Auth is handled entirely in the CLI. On first run, `agentxl start` prompts:
+
+```
+  No API credentials found. Let's get you set up.
+
+  How would you like to connect?
+
+    Use an existing subscription (no API key needed):
+      1. Claude Pro/Max — sign in with your Anthropic account
+      2. ChatGPT Plus/Pro — sign in with your OpenAI account
+      3. GitHub Copilot — sign in with your GitHub account
+      4. Gemini — sign in with your Google account
+
+    Use an API key:
+      5. Paste an API key (Anthropic, OpenRouter, or OpenAI)
+
+    No account yet?
+      → Create a free OpenRouter account at https://openrouter.ai
+        Get an API key instantly. Free models available.
+```
+
+- OAuth: opens browser for sign-in, saves token automatically
+- API key: auto-detects provider from prefix (`sk-ant-` → Anthropic, `sk-or-` → OpenRouter, `sk-` → OpenAI)
+- Credentials stored in `~/.pi/agent/auth.json` (shared with Pi)
+- Subsequent runs skip auth if credentials exist
+- `agentxl login` to change providers anytime
+
+### 2b. Opening AgentXL in Excel
 
 ```
 User opens Excel
   → Home tab on the ribbon shows "AgentXL" button
   → User clicks it
   → Taskpane opens on the right side of Excel
-  → First time: Onboarding screen appears
+  → Welcome screen appears with quick actions
 ```
 
-### 2b. Onboarding Screen 1 — Welcome
+### 2c. Welcome Screen
 
 ```
 ┌─────────────────────────────────┐
 │                                 │
 │       ┌──────────┐              │
-│       │  AgentXL │              │
-│       │   logo   │              │
+│       │    AX    │              │
 │       └──────────┘              │
 │                                 │
+│         AgentXL                 │
 │  Your AI assistant for Excel    │
 │                                 │
-│  AgentXL reads your data,       │
-│  writes formulas, creates       │
-│  charts, and formats your       │
-│  spreadsheets — all from a      │
-│  simple chat.                   │
+│  ┌───────────────────────────┐  │
+│  │ 📊 Summarize data         │  │
+│  └───────────────────────────┘  │
+│  ┌───────────────────────────┐  │
+│  │ 📈 Create chart            │  │
+│  └───────────────────────────┘  │
+│  ┌───────────────────────────┐  │
+│  │ ✍️  Write formula          │  │
+│  └───────────────────────────┘  │
 │                                 │
-│  Everything runs on your        │
-│  machine. Your data stays       │
-│  private.                       │
+│  Claude • v1.0.0                │
 │                                 │
-│  [Get Started →]                │
+│ ┌─────────────────────────┬──┐  │
+│ │ Ask about your data...  │ →│  │
+│ └─────────────────────────┴──┘  │
 │                                 │
 └─────────────────────────────────┘
 ```
 
-### 2c. Onboarding Screen 2 — Connect to AI
+### 2d. Unauthenticated State
+
+If the server is running but no auth is configured:
 
 ```
 ┌─────────────────────────────────┐
 │                                 │
-│  🔐 Connect to AI              │
+│           🔑                    │
 │                                 │
-│  ┌───────────────────────────┐  │
-│  │ 🔑 I have a subscription  │  │
-│  │ Claude Pro/Max, ChatGPT+, │  │
-│  │ GitHub Copilot             │  │
-│  └───────────────────────────┘  │
+│  Authentication required        │
 │                                 │
-│  ┌───────────────────────────┐  │
-│  │ 🔧 I have an API key      │  │
-│  │ Anthropic, OpenAI,        │  │
-│  │ OpenRouter, Azure         │  │
-│  └───────────────────────────┘  │
+│  Run `agentxl login` in your    │
+│  terminal to set up credentials.│
 │                                 │
-│  ┌───────────────────────────┐  │
-│  │ 🚀 Get started free       │  │
-│  │ No account? Start here    │  │
-│  └───────────────────────────┘  │
+│  🔄 Waiting for credentials…   │
 │                                 │
 └─────────────────────────────────┘
 ```
 
-### 2d. Path A — Subscription (OAuth)
+The taskpane polls for auth changes — when the user runs `agentxl login` in another terminal, the UI updates automatically.
 
-```
-┌─────────────────────────────────┐
-│                                 │
-│  ← Back                        │
-│                                 │
-│  Select your provider:          │
-│                                 │
-│  ┌───────────────────────────┐  │
-│  │ ◉ Claude Pro / Max        │  │
-│  └───────────────────────────┘  │
-│  ┌───────────────────────────┐  │
-│  │ ○ ChatGPT Plus / Pro      │  │
-│  └───────────────────────────┘  │
-│  ┌───────────────────────────┐  │
-│  │ ○ GitHub Copilot          │  │
-│  └───────────────────────────┘  │
-│                                 │
-│  [Sign in →]                    │
-│                                 │
-│  Your browser will open for     │
-│  sign-in. Come back here        │
-│  when done.                     │
-│                                 │
-└─────────────────────────────────┘
+### 2e. Future: Taskpane-Based Onboarding
 
-User clicks "Sign in"
-  → Browser opens → OAuth flow with selected provider
-  → Token saved automatically
-  → Taskpane updates: "✅ Connected!"
-  → [Start chatting →]
-```
-
-### 2e. Path B — API Key
-
-```
-┌─────────────────────────────────┐
-│                                 │
-│  ← Back                        │
-│                                 │
-│  Select your provider:          │
-│                                 │
-│  ○ Anthropic                    │
-│  ○ OpenAI                       │
-│  ○ OpenRouter                   │
-│  ○ Azure                        │
-│                                 │
-│  Paste your API key:            │
-│  ┌───────────────────────────┐  │
-│  │                           │  │
-│  └───────────────────────────┘  │
-│                                 │
-│  [Connect →]                    │
-│                                 │
-│  🔒 Your key is stored locally  │
-│  on your machine only.          │
-│                                 │
-└─────────────────────────────────┘
-
-User pastes key → clicks Connect
-  → Taskpane sends to server: POST /api/config/auth
-  → Server validates key (quick test call)
-  → Success: "✅ Connected!" → [Start chatting →]
-  → Failure: "❌ Invalid key. Please check and try again."
-```
-
-### 2f. Path C — Get Started Free (OpenRouter)
-
-```
-┌─────────────────────────────────┐
-│                                 │
-│  ← Back                        │
-│                                 │
-│  🚀 Free in 3 easy steps       │
-│                                 │
-│  ❶ Create an OpenRouter account │
-│     Sign in with Google —       │
-│     takes 30 seconds.           │
-│                                 │
-│     [Open OpenRouter →]         │
-│                                 │
-│  ❷ Create an API key            │
-│     Go to the Keys page and     │
-│     click "Create Key"          │
-│                                 │
-│     [Open Keys Page →]          │
-│                                 │
-│  ❸ Paste your key here          │
-│  ┌───────────────────────────┐  │
-│  │ sk-or-...                 │  │
-│  └───────────────────────────┘  │
-│                                 │
-│  [Connect →]                    │
-│                                 │
-│  ✨ Free models available       │
-│     immediately.                │
-│     No credit card needed.      │
-│                                 │
-└─────────────────────────────────┘
-
-User follows steps → pastes key → Connect
-  → Same flow as Path B
-  → Provider auto-detected as OpenRouter from key prefix "sk-or-"
-```
-
-### 2g. Onboarding Complete
-
-```
-┌─────────────────────────────────┐
-│                                 │
-│  ✅ You're all set!             │
-│                                 │
-│  Try asking:                    │
-│                                 │
-│  "Summarize the data in my      │
-│   spreadsheet"                  │
-│                                 │
-│  "Make the headers bold and     │
-│   add a total row"              │
-│                                 │
-│  "Create a chart from the       │
-│   sales data"                   │
-│                                 │
-│  [Start chatting →]             │
-│                                 │
-└─────────────────────────────────┘
-```
+Full onboarding UI within the taskpane is planned for a future module:
+- Welcome screen → Connect to AI → Choose path
+- Subscription (OAuth) / API Key / Free (OpenRouter)
+- Settings panel for changing providers
 
 ---
 
@@ -258,12 +186,16 @@ User follows steps → pastes key → Connect
 ### 3a. Opening AgentXL (Day 2+)
 
 ```
-User turns on laptop
-  → AgentXL service auto-starts (tray icon appears)
-  → User opens Excel
-  → Clicks "AgentXL" on ribbon (or it's already open from last time)
+Developer path (current):
+  → Run `agentxl start` in terminal
+  → Open Excel → Click "AgentXL" on ribbon
   → Taskpane opens → Chat UI ready immediately
   → No login. No setup. Just chat.
+
+Auditor path (future):
+  → Boot laptop → AgentXL auto-starts (tray icon appears)
+  → Open Excel → Click "AgentXL" on ribbon
+  → Taskpane opens → Chat UI ready immediately
 ```
 
 ### 3b. The Chat Interface
@@ -272,7 +204,7 @@ User turns on laptop
 ┌─────────────────────────────────┐
 │                                 │
 │       ┌──────────┐              │
-│       │  AgentXL │              │
+│       │    AX    │              │
 │       └──────────┘              │
 │                                 │
 │  Your AI assistant for Excel    │
@@ -367,35 +299,37 @@ AGENT: "Done! I've created a 'Regional Summary'
 ### 3e. Error States
 
 ```
-CONNECTION LOST (server restarted for update):
+SERVER DISCONNECTED:
 ┌─────────────────────────────────┐
-│ ⟳ Reconnecting...              │
-│   (1-2 seconds, auto-resolves)  │
+│ ⚠️ Server disconnected —        │
+│    reconnecting…                │
+│   (auto-retries every 2s)       │
 └─────────────────────────────────┘
 
-API KEY EXPIRED:
+NOT AUTHENTICATED:
 ┌─────────────────────────────────┐
-│ ⚠️ Your API key is no longer    │
-│ valid. Please update it.        │
-│ [Update key →]                  │
-└─────────────────────────────────┘
-
-RATE LIMITED:
-┌─────────────────────────────────┐
-│ ⏳ Too many requests. Please    │
-│ wait a moment and try again.    │
-│ (Auto-retries in 30 seconds)    │
+│ 🔑 Authentication required      │
+│                                 │
+│ Run `agentxl login` in your     │
+│ terminal to set up credentials. │
+│                                 │
+│ 🔄 Waiting for credentials…    │
 └─────────────────────────────────┘
 
 SERVER NOT RUNNING:
 ┌─────────────────────────────────┐
-│ ❌ Cannot connect to AgentXL    │
+│ ❌ Can't connect to server      │
 │                                 │
-│ The AgentXL service isn't       │
-│ running. Check the system tray  │
-│ or restart AgentXL.             │
+│ Make sure `agentxl start` is    │
+│ running in your terminal.       │
 │                                 │
-│ [Troubleshoot →]                │
+│ ● Reconnecting…                 │
+└─────────────────────────────────┘
+
+API ERROR:
+┌─────────────────────────────────┐
+│ ⚠️ An error occurred            │
+│ [error message from provider]   │
 └─────────────────────────────────┘
 ```
 
@@ -403,14 +337,19 @@ SERVER NOT RUNNING:
 
 ## 4. Settings & Configuration
 
-### 4a. Accessing Settings
+### Current (Module 1)
 
-```
-Gear icon (⚙️) in the chat input area or top-right corner
-  → Opens settings panel within the taskpane
+Settings are managed via CLI:
+
+```bash
+agentxl login          # Change auth provider
+agentxl start --port   # Change port
+agentxl start --verbose # Enable request logging
 ```
 
-### 4b. Settings Screen
+### Future (Module 4)
+
+Settings panel within the taskpane:
 
 ```
 ┌─────────────────────────────────┐
@@ -420,7 +359,7 @@ Gear icon (⚙️) in the chat input area or top-right corner
 │ ┌───────────────────────────┐   │
 │ │ Provider: Anthropic     ▼ │   │
 │ │ Status:  ✅ Connected     │   │
-│ │ [Change API key]          │   │
+│ │ [Change provider]         │   │
 │ └───────────────────────────┘   │
 │                                 │
 │ ABOUT                           │
@@ -429,14 +368,6 @@ Gear icon (⚙️) in the chat input area or top-right corner
 │ │ [Check for updates]       │   │
 │ └───────────────────────────┘   │
 │                                 │
-│ SUPPORT                         │
-│ ┌───────────────────────────┐   │
-│ │ [Documentation →]         │   │
-│ │ [Report an issue →]       │   │
-│ └───────────────────────────┘   │
-│                                 │
-│ [Reset AgentXL]                 │
-│                                 │
 └─────────────────────────────────┘
 ```
 
@@ -444,11 +375,21 @@ Gear icon (⚙️) in the chat input area or top-right corner
 
 ## 5. Updates
 
-### 5a. Silent Update (User Sees Nothing)
+### Current (Module 1)
+
+Manual — user updates via npm:
+
+```bash
+npm install -g agentxl@latest
+```
+
+### Future (Module 4)
+
+Auto-update system:
 
 ```
 AgentXL service running in background
-  → Every 4 hours (later 24h): checks update endpoint
+  → Every 4 hours: checks update endpoint
   → New version found → downloads silently
   → Waits for idle (no active chat)
   → Restarts server (1-2 seconds)
@@ -456,41 +397,11 @@ AgentXL service running in background
   → User never noticed
 ```
 
-### 5b. Post-Update Banner (Optional)
-
-```
-User opens taskpane after an update:
-
-┌─────────────────────────────────┐
-│ ✨ AgentXL updated to v1.3.0   │
-│ New: Better chart formatting    │
-│                          [ OK ] │
-└─────────────────────────────────┘
-```
-
-### 5c. Urgent Update (Critical Fix)
-
-```
-Update endpoint returns: { urgent: true }
-  → Server applies update immediately
-  → Taskpane briefly shows "Reconnecting..."
-  → Back to normal in 1-2 seconds
-```
-
-### 5d. Update Check Intervals
-
-```
-v1.x (early, iterating fast):  Every 4 hours
-v2.x (stable):                 Every 24 hours
-Server-controlled:             Update endpoint returns checkIntervalHours
-                               No client update needed to change frequency
-```
-
 ---
 
-## 6. System Tray (Background Service)
+## 6. System Tray (Future — Module 4)
 
-### 6a. Normal State
+Lightweight tray app for the auditor/installer path:
 
 ```
 System tray icon: AgentXL icon (small, unobtrusive)
@@ -507,35 +418,6 @@ Right-click menu:
   Quit AgentXL
 ```
 
-### 6b. Update Available
-
-```
-Tray icon: small badge/dot indicating update
-
-Right-click menu:
-  ✓ Running
-  ✨ Update available (v1.3.0)
-  ─────────────
-  Open Excel
-  Settings
-  ─────────────
-  Quit AgentXL
-```
-
-### 6c. Error State
-
-```
-Tray icon: warning indicator
-
-Right-click menu:
-  ⚠️ API key expired
-  ─────────────
-  Open Excel
-  Settings
-  ─────────────
-  Quit AgentXL
-```
-
 ---
 
 ## 7. Uninstall
@@ -545,13 +427,13 @@ Right-click menu:
 npm uninstall -g agentxl
 ```
 
-### Auditor Path
+### Auditor Path (Future)
 ```
 Windows Settings → Apps → AgentXL → Uninstall
   → Removes all files
   → Removes startup entry
   → Removes Office add-in registration
-  → Optionally removes config (~/.agentxl/)
+  → Optionally removes config (~/.pi/agent/)
   → Clean uninstall
 ```
 
@@ -561,26 +443,26 @@ Windows Settings → Apps → AgentXL → Uninstall
 
 ```
 Install (once)
-  → npm install OR Windows installer
+  → npm install -g agentxl
 
-First open (once)
-  → Welcome screen → Connect to AI → Choose path
-  → Paste key or OAuth → Connected → Start chatting
+First run (once)
+  → agentxl start
+  → CLI guides: auth → cert → server → next steps
+  → Test in browser: https://localhost:3001/taskpane/
+  → Add to Excel via Trusted Add-in Catalog (one-time)
+  → Click AgentXL on ribbon → chat
 
 Daily use (forever)
-  → Boot laptop → AgentXL auto-starts
-  → Open Excel → Click AgentXL button
-  → Chat → Agent reads/writes/charts/formats
-  → Close Excel → AgentXL stays in tray
+  → agentxl start
+  → Open Excel → click AgentXL
+  → Chat
+  → Close Excel → Ctrl+C in terminal
 
-Updates (automatic)
-  → Check every 4h → Download → Apply when idle
-  → User never notices
-
-Settings (rarely)
-  → Gear icon → Change key / Check version
+Switch providers (anytime)
+  → agentxl login
 ```
 
 ---
 
 *Created: March 7, 2026*
+*Updated: March 7, 2026 — Synced with implemented CLI flow, auth via CLI, Trusted Add-in Catalog setup*

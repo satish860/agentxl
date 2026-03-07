@@ -282,7 +282,7 @@ async function start() {
   // ── Step 3: HTTPS certificates ─────────────────────────────────────────
   try {
     const certPair = await ensureCerts();
-    step("✅", "HTTPS certificate ready (trusted by OS)");
+    step("✅", "HTTPS certificate ready");
 
     // ── Step 4: Start server ───────────────────────────────────────────────
     if (hasFlag("verbose")) setVerbose(true);

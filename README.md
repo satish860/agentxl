@@ -28,7 +28,7 @@
 
 ## Quick Start
 
-6 steps from install to first message. Takes about 3 minutes.
+6 steps from install to first message.
 
 ### 1. Install
 

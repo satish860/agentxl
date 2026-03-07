@@ -38,7 +38,7 @@ Excel loads taskpane from https://localhost:3001/taskpane
 - **LLM:** Claude via Anthropic API (or Azure Claude for enterprise)
 - **Excel integration:** Office.js (Microsoft Office Add-in API)
 - **Taskpane UI:** React (pre-built, served as static files)
-- **HTTPS:** Self-signed cert for localhost (Office add-ins require HTTPS)
+- **HTTPS:** OS-trusted localhost cert via office-addin-dev-certs (Office add-ins require HTTPS)
 
 ### No Next.js. No Vercel. No CDN. One npm package. One process.
 
@@ -137,7 +137,7 @@ C:\Code\AgentXL\
 ### Manifest (`manifest/manifest.xml`)
 - Tells Excel where to load the taskpane from: `https://localhost:3001/taskpane`
 - Adds "AgentXL" button to the Home ribbon tab
-- User sideloads this once: Excel → Insert → My Add-ins → Upload My Add-in
+- User registers via Trusted Add-in Catalog (one-time setup)
 
 ---
 
@@ -147,12 +147,12 @@ C:\Code\AgentXL\
 agentxl start [--port 3001]
   1. Check for API key (ANTHROPIC_API_KEY env var or Pi SDK auth)
      → If missing: prompt user to enter it, save via Pi SDK AuthStorage
-  2. Generate/check self-signed HTTPS cert for localhost
+  2. Generate/check HTTPS cert for localhost (office-addin-dev-certs)
   3. Start HTTPS server on specified port
   4. Print:
      "🚀 AgentXL running at https://localhost:3001"
      "📎 First time? Sideload the add-in in Excel:"
-     "   Excel → Insert → My Add-ins → Upload My Add-in"
+     "   Add to Excel via Trusted Add-in Catalog (one-time)"
      "   Select: [path to manifest.xml]"
 ```
 

@@ -38,7 +38,6 @@ AgentXL is a local-first AI agent that runs inside Microsoft Excel as a taskpane
 │  │  ┌───────────┐ │     │                           │    │
 │  │  │ Taskpane  │◄├─────┤► GET  /taskpane/*         │    │
 │  │  │ (WebView) │ │HTTPS│  POST /api/agent          │    │
-│  │  │           │◄├─────┤► POST /api/config/auth    │    │
 │  │  │ Office.js │ │ SSE │  GET  /api/config/status  │    │
 │  │  │    ↕      │ │     │  GET  /api/version        │    │
 │  │  └───────────┘ │     │                           │    │
@@ -91,9 +90,8 @@ AgentXL is a local-first AI agent that runs inside Microsoft Excel as a taskpane
 │  • Serve static files (taskpane HTML/JS/CSS)          │
 │  • Manage Pi SDK agent session                        │
 │  • Stream LLM responses via SSE                       │
-│  • Store and validate API keys                        │
 │  • Check for and apply updates                        │
-│  • HTTPS with self-signed certificate                 │
+│  • HTTPS with OS-trusted localhost certificate        │
 │                                                       │
 │  CANNOT do:                                           │
 │  • Access Excel spreadsheet (no Office.js in Node)    │
@@ -108,7 +106,6 @@ AgentXL is a local-first AI agent that runs inside Microsoft Excel as a taskpane
 │  • Send user messages to server                       │
 │  • Read SSE event stream from server                  │
 │  • Execute Excel operations via Office.js             │
-│  • Handle onboarding (API key setup)                  │
 │  • Auto-reconnect on server restart                   │
 │                                                       │
 │  CANNOT do:                                           │
@@ -133,7 +130,6 @@ AgentXL is a local-first AI agent that runs inside Microsoft Excel as a taskpane
 |--------|------|---------|
 | `GET` | `/taskpane/*` | Serve static files (HTML, JS, CSS, assets) |
 | `POST` | `/api/agent` | Send message to agent, stream SSE response |
-| `POST` | `/api/config/auth` | Set API key or trigger OAuth |
 | `GET` | `/api/config/status` | Check authentication status |
 | `GET` | `/api/version` | Return current version |
 
@@ -149,11 +145,12 @@ MIME types handled: `.html`, `.js`, `.css`, `.png`, `.svg`, `.json`
 
 **HTTPS Certificate:**
 
-Office Add-ins require HTTPS, even for localhost. On first run:
-- Generate self-signed CA + localhost certificate
-- Store in `~/.agentxl/certs/`
-- Reuse on subsequent runs
-- Certificate valid for localhost and 127.0.0.1
+Office Add-ins require HTTPS, even for localhost. Uses Microsoft's `office-addin-dev-certs`:
+- Generates localhost certificate AND installs CA into OS trust store
+- Certs stored at `~/.office-addin-dev-certs/` (Microsoft's default location)
+- Chrome, Edge, and Excel all trust localhost automatically
+- First run may prompt for admin/keychain access (one-time)
+- Reuses existing certs on subsequent runs
 
 ### 3b. Agent Endpoint (`POST /api/agent`)
 
@@ -203,34 +200,7 @@ data: {"type":"agent_end"}
 | `agent_end` | Agent finished | - |
 | `error` | Error occurred | error message |
 
-### 3c. Config Endpoint (`POST /api/config/auth`)
-
-**Set API Key:**
-```json
-// Request
-{ "type": "api_key", "provider": "anthropic", "key": "sk-ant-..." }
-
-// Response
-{ "success": true, "provider": "anthropic" }
-```
-
-**Trigger OAuth:**
-```json
-// Request
-{ "type": "oauth", "provider": "claude-pro" }
-
-// Response
-{ "success": true, "authUrl": "https://..." }
-```
-
-**Auto-detect provider from key prefix:**
-```
-sk-ant-*    → anthropic
-sk-or-*     → openrouter
-sk-*        → openai
-```
-
-### 3d. Status Endpoint (`GET /api/config/status`)
+### 3c. Status Endpoint (`GET /api/config/status`)
 
 ```json
 // Response
@@ -241,7 +211,7 @@ sk-*        → openai
 }
 ```
 
-### 3e. Version Endpoint (`GET /api/version`)
+### 3d. Version Endpoint (`GET /api/version`)
 
 ```json
 {
@@ -471,19 +441,19 @@ await Excel.run(async (context) => {
 | `add_worksheet` | `workbook.worksheets.add(name)` |
 | `run_formula` | Write to temp cell → read value → clear |
 
-### 5e. Onboarding Component (`taskpane/src/components/Onboarding.tsx`)
+### 5e. Auth State in Taskpane
 
-Multi-step setup flow rendered when no auth is configured:
+Auth is handled by the CLI (`agentxl login`), not the taskpane. The taskpane checks auth status and displays the appropriate screen:
 
 ```
-Screen flow:
-  Welcome → Choose path → [Subscription | API Key | Free (OpenRouter)] → Connected → Chat
-```
+GET /api/config/status → { authenticated: true/false, provider, version }
 
-Communication with server:
-```
-GET  /api/config/status     → Check if already authenticated
-POST /api/config/auth       → Submit API key or trigger OAuth
+If not authenticated:
+  → Show "Run agentxl login in your terminal"
+  → Poll every 2s for auth changes (auto-detects when user runs agentxl login)
+
+If authenticated:
+  → Show chat UI with provider label
 ```
 
 ### 5f. Office.js Initialization
@@ -561,12 +531,12 @@ Icons:     https://localhost:3001/taskpane/assets/icon-*.png
 
 | Method | User Type | How |
 |--------|-----------|-----|
-| **Manual sideload** | Developers | Excel → Insert → My Add-ins → Upload My Add-in → select XML |
-| **Windows Registry** | Installer | Write registry key to auto-register manifest |
+| **Trusted Add-in Catalog** | Developers | Excel → Trust Center → add catalog folder → restart → Insert → My Add-ins → SHARED FOLDER |
+| **Windows Registry** | Installer (future) | Write registry key to auto-register manifest |
 | **Network share** | Enterprise IT | Place manifest on trusted network share |
 | **Microsoft 365 Admin** | Enterprise IT | Deploy via admin center |
 
-The Windows installer uses registry-based registration — no manual sideloading needed.
+For developers: Trusted Add-in Catalog is a one-time setup. After that, just run `agentxl start` and click the ribbon button. The Windows installer (future) uses registry-based registration — no manual setup needed.
 
 ### 6c. Permissions
 
@@ -578,65 +548,61 @@ Manifest requests `ReadWriteDocument` — the minimum needed to read data and wr
 
 ### 7a. Architecture
 
+Auth is handled by the CLI (`agentxl login` / `agentxl start`), not the taskpane.
+
 ```
+┌─ CLI ──────────┐     ┌─ Server ──────────────────────┐
+│                 │     │                                │
+│ agentxl login   │────►│ Pi SDK AuthStorage             │
+│ agentxl start   │     │   └─► ~/.pi/agent/auth.json    │
+│                 │     │                                │
+└─────────────────┘     └────────────────────────────────┘
+
 ┌─ Taskpane ─────┐     ┌─ Server ──────────────────────┐
 │                 │     │                                │
-│ Onboarding UI   │────►│ POST /api/config/auth          │
-│ Settings UI     │     │   │                            │
-│                 │     │   ├─► AuthStorage.setRuntimeKey │
-│                 │     │   ├─► Persist to config file    │
-│                 │     │   └─► Validate key (test call)  │
-│                 │     │                                │
-│                 │◄────│ GET /api/config/status          │
-│                 │     │   └─► Check if auth exists      │
+│ Status check    │◄────│ GET /api/config/status          │
+│ Auth polling    │     │   └─► Check if auth exists      │
 │                 │     │                                │
 └─────────────────┘     └────────────────────────────────┘
 ```
 
 ### 7b. Storage
 
+Credentials are stored via Pi SDK's `AuthStorage`:
+
 ```
-~/.agentxl/
-├── config.json          ← Provider, preferences
-├── auth.json            ← API keys (file permissions: 0600)
-└── certs/
-    ├── ca.key
-    ├── ca.crt
-    ├── localhost.key
-    └── localhost.crt
+~/.pi/agent/
+└── auth.json            ← API keys + OAuth tokens (shared with Pi)
+
+~/.office-addin-dev-certs/
+├── localhost.key         ← HTTPS private key
+└── localhost.crt         ← HTTPS certificate (OS-trusted)
 ```
 
-**config.json:**
-```json
-{
-  "provider": "anthropic",
-  "version": "1.2.0",
-  "lastUpdateCheck": "2026-03-07T09:00:00Z",
-  "updateCheckIntervalHours": 4
-}
-```
-
-**auth.json** (Pi SDK compatible format):
+**auth.json** (Pi SDK format):
 ```json
 {
   "anthropic": { "type": "api_key", "key": "sk-ant-..." }
 }
 ```
 
-### 7c. Auth Resolution Order (via Pi SDK)
+Falls back to `~/.agentxl/auth.json` if Pi auth doesn't exist.
 
-1. Runtime override (`authStorage.setRuntimeApiKey()`)
-2. `~/.agentxl/auth.json`
+### 7c. Auth Resolution Order
+
+1. `~/.agentxl/auth.json` (AgentXL-specific)
+2. `~/.pi/agent/auth.json` (shared with Pi — most common)
 3. Environment variables (`ANTHROPIC_API_KEY`, etc.)
 
-### 7d. Key Validation
+### 7d. Auth Flow
 
-On `POST /api/config/auth`:
-1. Receive key from taskpane
-2. Make a minimal test API call (e.g., tiny prompt)
-3. If success → store key, return `{ success: true }`
-4. If failure → return `{ success: false, error: "Invalid key" }`
-5. User never gets stuck with a bad key
+Auth is handled by the CLI, not the server:
+
+1. `agentxl start` or `agentxl login` checks for existing credentials
+2. If none found: presents outcome-focused auth menu (subscriptions, API key, free tier)
+3. OAuth: opens browser → token saved automatically
+4. API key: auto-detects provider from prefix (`sk-ant-` → Anthropic, etc.)
+5. Credentials saved via Pi SDK `AuthStorage`
 
 ### 7e. Supported Auth Methods
 
@@ -840,7 +806,7 @@ AgentXL-Setup.exe
   ├── Manifest XML
   └── Installer script:
         1. Copy files to Program Files\AgentXL\
-        2. Generate HTTPS certificates → ~/.agentxl/certs/
+        2. Generate HTTPS certificates (office-addin-dev-certs)
         3. Register Office add-in manifest (Windows Registry)
         4. Add to Windows startup (Registry: HKCU\...\Run)
         5. Start background service
@@ -867,25 +833,25 @@ Responsibilities:
 
 ## 11. Module Breakdown
 
-### Module 1: "Chat with Claude in Excel"
+### Module 1: "Chat with Claude in Excel" ✅
 
 **Goal:** Complete pipeline working. User chats with AI inside Excel.
 
 **Delivers:**
-- `bin/agentxl.js` — CLI entry point
-- `src/server/index.ts` — HTTPS server with cert generation
+- `bin/agentxl.js` — CLI entry point with guided setup wizard
+- `src/server/index.ts` — HTTPS server with OS-trusted certs (office-addin-dev-certs)
 - `src/agent/session.ts` — Pi SDK session (no Excel tools yet)
-- `taskpane/` — React chat UI with onboarding flow
+- `taskpane/` — React chat UI (modularized: hooks, components, stream handler)
 - `manifest/manifest.xml` — Office add-in manifest for localhost
 - `POST /api/agent` — SSE streaming
-- `POST /api/config/auth` — API key submission
 - `GET /api/config/status` — Auth check
-- Onboarding screens (welcome, auth setup, all 3 paths)
-- Auto-reconnect on connection loss
+- Auth via CLI (`agentxl login`) with outcome-focused menu
+- Auto-reconnect on connection loss, auth polling
+- 64 tests (certs, server, session, E2E via Playwright)
 
-**No Excel tools.** Just chatting with Claude inside Excel.
+**No Excel tools.** Just chatting with AI inside Excel.
 
-**Demo:** Install → start → sideload → enter API key → "What's the capital of France?" → Claude responds inside Excel.
+**Demo:** `npm install -g agentxl` → `agentxl start` → add to Excel (one-time) → "What can you help me with?"
 
 ---
 
@@ -944,15 +910,14 @@ Responsibilities:
 ```
 C:\Code\AgentXL\
 ├── bin/
-│   └── agentxl.js                    ← CLI entry point
+│   └── agentxl.js                    ← CLI entry point (guided setup wizard)
 ├── src/
 │   ├── server/
-│   │   ├── index.ts                  ← HTTPS server (~150 lines)
-│   │   ├── certs.ts                  ← Certificate generation
-│   │   └── updater.ts                ← Auto-update checker
+│   │   ├── index.ts                  ← HTTPS server (~200 lines)
+│   │   └── certs.ts                  ← Certificate generation (office-addin-dev-certs)
 │   ├── agent/
 │   │   ├── session.ts                ← Pi SDK session management
-│   │   ├── models.ts                 ← Default model selection per provider
+│   │   ├── models.ts                 ← Model selection (OAuth > API key)
 │   │   ├── tools/
 │   │   │   └── excel-tools.ts        ← 10 Excel tool definitions
 │   │   └── provider/
@@ -962,25 +927,36 @@ C:\Code\AgentXL\
 ├── taskpane/
 │   ├── index.html                    ← Entry point (loads Office.js + app bundle)
 │   ├── src/
-│   │   ├── app.tsx                   ← Main chat UI component
+│   │   ├── app.tsx                   ← Chat UI orchestrator (~100 lines)
+│   │   ├── hooks/
+│   │   │   ├── useAgentStatus.ts     ← Status fetch, reconnect, auth polling
+│   │   │   └── useChatStream.ts      ← Send, abort, streaming, error handling
 │   │   ├── components/
-│   │   │   ├── Onboarding.tsx        ← Welcome + auth setup flow
-│   │   │   ├── ThinkingBlock.tsx     ← Agent reasoning display
-│   │   │   ├── ToolCard.tsx          ← Tool execution card
-│   │   │   └── Settings.tsx          ← Settings panel
+│   │   │   ├── WelcomeScreen.tsx     ← Logo + quick actions
+│   │   │   ├── MessageBubble.tsx     ← User/assistant/system messages
+│   │   │   ├── ChatInput.tsx         ← Textarea + send/stop buttons
+│   │   │   ├── ThinkingBlock.tsx     ← Collapsible thinking display
+│   │   │   ├── ConnectionError.tsx   ← "Can't connect" screen
+│   │   │   └── AuthRequired.tsx      ← "Run agentxl login" screen
 │   │   ├── lib/
-│   │   │   └── excel-executor.ts     ← Office.js operation executor
+│   │   │   ├── api.ts                ← API client, provider labels
+│   │   │   ├── types.ts              ← Typed Message, SSE events
+│   │   │   ├── stream-handler.ts     ← SSE event → message updates
+│   │   │   └── excel-executor.ts     ← Office.js operation executor (Module 2+)
 │   │   └── styles/
-│   │       └── globals.css           ← Tailwind CSS styles
+│   │       └── globals.css           ← Tailwind CSS v4
 │   └── dist/                         ← Pre-built static files (git-ignored)
 ├── manifest/
 │   └── manifest.xml                  ← Office add-in manifest
-├── installer/                        ← Windows installer config (Module 4)
-│   └── setup.iss                     ← Inno Setup script
+├── tests/
+│   ├── certs.test.ts                 ← Certificate tests (3)
+│   ├── server.test.ts                ← Server acceptance tests (32)
+│   ├── session.test.ts               ← Session + SSE tests (19)
+│   └── e2e.test.ts                   ← Playwright E2E tests (10)
 ├── docs/
-│   ├── USER_FLOW.md                  ← This document
+│   ├── USER_FLOW.md                  ← User experience flows
+│   ├── TASKS.md                      ← Module 1 task tracker
 │   └── TECHNICAL_ARCHITECTURE.md     ← This document
-├── .env.example
 ├── .gitignore
 ├── package.json
 ├── tsconfig.json
@@ -998,7 +974,7 @@ C:\Code\AgentXL\
 | **Runtime** | Node.js 20+ | Pi SDK requirement, cross-platform |
 | **Agent Framework** | Pi SDK (`@mariozechner/pi-coding-agent`) | Session management, tool calling, streaming, auth |
 | **LLM** | Claude (Anthropic), GPT-4o (OpenAI), or any via OpenRouter | User's choice of provider |
-| **Server** | Plain `https.createServer()` | No framework needed for 5 routes |
+| **Server** | Plain `https.createServer()` | No framework needed for 4 routes |
 | **Taskpane UI** | React 19 | Component model, streaming state management |
 | **Styling** | Tailwind CSS | Rapid UI development, small bundle |
 | **Excel API** | Office.js | Microsoft's official add-in API |
@@ -1054,7 +1030,7 @@ tailwindcss                      ← Styling
 
 | Vector | Mitigation |
 |--------|------------|
-| HTTPS cert | Self-signed, generated locally, never shared. |
+| HTTPS cert | OS-trusted via office-addin-dev-certs, generated locally, never shared. |
 | Localhost binding | Server binds to `127.0.0.1` only. Not accessible from other machines. |
 | Update endpoint | HTTPS to api.agentxl.com. Verify package integrity (checksum). |
 | CORS | Server sets CORS headers for localhost origin only. |
