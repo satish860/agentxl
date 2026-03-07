@@ -52,7 +52,6 @@ function promptSecret(question) {
   return new Promise((resolve) => {
     process.stdout.write(question);
     const rl = createInterface({ input: process.stdin, terminal: false });
-    // Mute output for secret input
     if (process.stdin.isTTY) process.stdin.setRawMode?.(false);
     rl.on("line", (line) => {
       rl.close();
@@ -74,99 +73,127 @@ async function openUrl(url) {
 }
 
 // ---------------------------------------------------------------------------
+// Step-by-step progress output
+// ---------------------------------------------------------------------------
+
+/** Print a step status: ✅ done, ⏳ in progress, ❌ failed */
+function step(icon, text) {
+  console.log(`  ${icon} ${text}`);
+}
+
+// ---------------------------------------------------------------------------
 // Auth flow using Pi SDK
 // ---------------------------------------------------------------------------
+
+async function checkAuth() {
+  const { AuthStorage } = await import("@mariozechner/pi-coding-agent");
+
+  const piAuthPath = join(homedir(), ".pi", "agent", "auth.json");
+  const agentxlAuthPath = join(homedir(), ".agentxl", "auth.json");
+  const authPath = existsSync(piAuthPath) ? piAuthPath : agentxlAuthPath;
+  const authStorage = new AuthStorage(authPath);
+
+  return authStorage.list().length > 0;
+}
 
 async function runAuthFlow() {
   const { AuthStorage } = await import("@mariozechner/pi-coding-agent");
   const { getOAuthProviders } = await import("@mariozechner/pi-ai");
 
-  // Use Pi's auth path — shared credentials, auto-refreshed tokens
   const piAuthPath = join(homedir(), ".pi", "agent", "auth.json");
   const agentxlAuthPath = join(homedir(), ".agentxl", "auth.json");
   const authPath = existsSync(piAuthPath) ? piAuthPath : agentxlAuthPath;
   const authStorage = new AuthStorage(authPath);
 
   // Check if already authenticated
-  const existing = authStorage.list();
-  if (existing.length > 0) {
+  if (authStorage.list().length > 0) {
     return true;
   }
 
   console.log(`
-   No API credentials found. Let's set you up.
+  No API credentials found. Let's get you set up.
 
-   Choose how to authenticate:
+  How would you like to connect?
+
+    Use an existing subscription (no API key needed):
+      1. Claude Pro/Max — sign in with your Anthropic account
+      2. ChatGPT Plus/Pro — sign in with your OpenAI account
+      3. GitHub Copilot — sign in with your GitHub account
+      4. Gemini — sign in with your Google account
+
+    Use an API key:
+      5. Paste an API key (Anthropic, OpenRouter, or OpenAI)
+
+    No account yet?
+      → Create a free OpenRouter account at https://openrouter.ai
+        Get an API key instantly. Free models available.
 `);
 
-  // Build menu: OAuth providers + API key option
+  // Build choices — OAuth providers + API key
   const oauthProviders = getOAuthProviders();
   const choices = [];
-
   for (const p of oauthProviders) {
     choices.push({ type: "oauth", id: p.id, name: p.name, provider: p });
   }
-  choices.push({ type: "apikey", id: "apikey", name: "Paste an API key (Anthropic, OpenRouter, OpenAI)" });
+  choices.push({ type: "apikey", id: "apikey", name: "Paste an API key" });
 
-  for (let i = 0; i < choices.length; i++) {
-    console.log(`   ${i + 1}. ${choices[i].name}`);
-  }
-  console.log("");
-
-  const answer = await prompt("   Enter choice (1-" + choices.length + "): ");
+  const answer = await prompt("  Enter choice (1-" + choices.length + "): ");
   const idx = parseInt(answer, 10) - 1;
 
   if (isNaN(idx) || idx < 0 || idx >= choices.length) {
-    console.error("\n   Invalid choice. Run 'agentxl start' to try again.\n");
+    console.error("\n  Invalid choice. Run 'agentxl login' to try again.\n");
     return false;
   }
 
   const choice = choices[idx];
 
   if (choice.type === "oauth") {
-    // OAuth login flow
-    console.log(`\n   Signing in with ${choice.name}...\n`);
+    console.log(`\n  Signing in with ${choice.name}...\n`);
 
     try {
       await authStorage.login(choice.id, {
         onAuth: (info) => {
-          console.log(`   🌐 Opening browser for sign-in...`);
-          console.log(`      ${info.url}\n`);
+          console.log(`  🌐 Opening browser for sign-in...`);
+          console.log(`     ${info.url}\n`);
           if (info.instructions) {
-            console.log(`      ${info.instructions}\n`);
+            console.log(`     ${info.instructions}\n`);
           }
           openUrl(info.url);
         },
         onPrompt: async (p) => {
-          const answer = await prompt(`   ${p.message}: `);
+          const answer = await prompt(`  ${p.message}: `);
           return answer;
         },
         onProgress: (message) => {
-          console.log(`   ${message}`);
+          console.log(`  ${message}`);
         },
         onManualCodeInput: async () => {
-          const code = await prompt("   Enter the code from the browser: ");
+          const code = await prompt("  Enter the code from the browser: ");
           return code;
         },
       });
 
-      console.log(`\n   ✅ Signed in with ${choice.name}!\n`);
+      console.log(`\n  ✅ Signed in with ${choice.name}\n`);
       return true;
     } catch (err) {
-      console.error(`\n   ❌ Sign-in failed: ${err.message}\n`);
+      console.error(`\n  ❌ Sign-in failed: ${err.message}\n`);
       return false;
     }
   } else {
     // API key flow
     console.log(`
-   Paste your API key below.
-   Supported providers: Anthropic (sk-ant-...), OpenRouter (sk-or-...), OpenAI (sk-...)
+  Paste your API key below.
+
+  Key prefixes:
+    sk-ant-...  → Anthropic (Claude)
+    sk-or-...   → OpenRouter (100+ models)
+    sk-...      → OpenAI (GPT-4o)
 `);
 
-    const key = await promptSecret("   API key: ");
+    const key = await promptSecret("  API key: ");
 
     if (!key) {
-      console.error("\n   No key entered. Run 'agentxl start' to try again.\n");
+      console.error("\n  No key entered. Run 'agentxl login' to try again.\n");
       return false;
     }
 
@@ -176,13 +203,12 @@ async function runAuthFlow() {
     else if (key.startsWith("sk-or-")) provider = "openrouter";
     else if (key.startsWith("sk-")) provider = "openai";
     else {
-      // Ask
-      const p = await prompt("   Could not detect provider. Enter provider name (anthropic/openrouter/openai): ");
+      const p = await prompt("  Could not detect provider. Enter provider name (anthropic/openrouter/openai): ");
       provider = p.toLowerCase();
     }
 
     authStorage.set(provider, { type: "api_key", key });
-    console.log(`\n   ✅ API key saved for ${provider}.\n`);
+    console.log(`\n  ✅ API key saved for ${provider}\n`);
     return true;
   }
 }
@@ -197,7 +223,7 @@ AgentXL v${VERSION} — AI agent for Microsoft Excel
 
 Usage:
   agentxl start [options]    Start the AgentXL server
-  agentxl login              Set up API credentials
+  agentxl login              Set up or change API credentials
   agentxl --version          Print version
   agentxl --help             Show this help
 
@@ -212,30 +238,6 @@ Examples:
 `);
 }
 
-function printBanner(port) {
-  const manifestPath = resolve(__dirname, "..", "manifest", "manifest.xml");
-  const manifestExists = existsSync(manifestPath);
-
-  console.log(`
-   ╔═══════════════════════════════════════╗
-   ║          AgentXL v${VERSION.padEnd(20)}║
-   ║       AI agent for Microsoft Excel    ║
-   ╚═══════════════════════════════════════╝
-
-🚀 AgentXL running at https://localhost:${port}
-`);
-
-  if (manifestExists) {
-    console.log(`📎 First time? Sideload the add-in in Excel:
-   Excel → Insert → My Add-ins → Upload My Add-in
-   Select: ${manifestPath}
-`);
-  }
-
-  console.log(`💡 Or test in browser: https://localhost:${port}/taskpane/
-`);
-}
-
 async function start() {
   const port = parseInt(getFlag("port") || "3001", 10);
 
@@ -244,7 +246,14 @@ async function start() {
     process.exit(1);
   }
 
-  // Import compiled server modules
+  console.log(`
+  ┌──────────────────────────────────────┐
+  │         AgentXL v${VERSION.padEnd(19)}│
+  │      AI agent for Microsoft Excel    │
+  └──────────────────────────────────────┘
+`);
+
+  // ── Step 1: Load modules ───────────────────────────────────────────────
   let ensureCerts, startServer, stopServer, setVerbose;
   try {
     const certs = await import("../dist/server/certs.js");
@@ -254,39 +263,68 @@ async function start() {
     stopServer = server.stopServer;
     setVerbose = server.setVerbose;
   } catch (err) {
-    console.error("Error: Could not load AgentXL server modules.");
-    console.error("   Run 'npm run build' first to compile TypeScript.");
-    console.error(`   ${err.message}`);
+    step("❌", "Could not load AgentXL server modules");
+    console.error("     Run 'npm run build' first to compile TypeScript.");
+    console.error(`     ${err.message}`);
     process.exit(1);
   }
 
-  // Check auth — run onboarding if needed
-  const authed = await runAuthFlow();
-  if (!authed) {
+  // ── Step 2: Check auth ─────────────────────────────────────────────────
+  const hasAuth = await checkAuth();
+  if (hasAuth) {
+    step("✅", "Auth ready");
+  } else {
+    const authed = await runAuthFlow();
+    if (!authed) process.exit(1);
+    step("✅", "Auth ready");
+  }
+
+  // ── Step 3: HTTPS certificates ─────────────────────────────────────────
+  try {
+    const certPair = await ensureCerts();
+    step("✅", "HTTPS certificate ready (trusted by OS)");
+
+    // ── Step 4: Start server ───────────────────────────────────────────────
+    if (hasFlag("verbose")) setVerbose(true);
+    await startServer(port, certPair);
+    step("✅", `Server running at https://localhost:${port}`);
+  } catch (err) {
+    step("❌", `Server failed to start: ${err.message}`);
     process.exit(1);
   }
 
-  // Enable verbose logging if requested
-  if (hasFlag("verbose")) {
-    setVerbose(true);
-  }
+  // ── Post-start guidance ────────────────────────────────────────────────
+  const manifestPath = resolve(__dirname, "..", "manifest", "manifest.xml");
+  const manifestExists = existsSync(manifestPath);
 
-  // Generate/load HTTPS certificates
-  const certPair = await ensureCerts();
+  console.log(`
+  ─────────────────────────────────────────────────
+  All systems go. Here's what to do next:
+  ─────────────────────────────────────────────────
 
-  // Start the server
-  await startServer(port, certPair);
+  🌐 Test in browser (confirm everything works):
+     https://localhost:${port}/taskpane/
 
-  // Print banner after successful start
-  printBanner(port);
+  📎 Load in Excel (one-time setup):
+     1. Excel → File → Options → Trust Center → Trust Center Settings
+     2. Trusted Add-in Catalogs → add path: ${manifestExists ? dirname(manifestPath) : "[manifest folder]"}
+     3. Check "Show in Menu" → OK → OK
+     4. Restart Excel
+     5. Insert → My Add-ins → SHARED FOLDER → AgentXL → Add
 
-  // Graceful shutdown (guard against repeated signals)
+  After setup, just run 'agentxl start' and click
+  AgentXL on the Home ribbon. No re-sideloading needed.
+
+  💬 Try your first message:
+     "What can you help me with in this workbook?"
+`);
+
+  // ── Graceful shutdown ──────────────────────────────────────────────────
   let shuttingDown = false;
   const shutdown = () => {
     if (shuttingDown) return;
     shuttingDown = true;
-    console.log("\nAgentXL stopped");
-    // Force exit after 2s if server.close() hangs on open connections
+    console.log("\n  AgentXL stopped. Goodbye!\n");
     const forceExit = setTimeout(() => process.exit(0), 2000);
     forceExit.unref?.();
     stopServer().then(() => process.exit(0));
@@ -297,9 +335,10 @@ async function start() {
 }
 
 async function login() {
+  console.log("");
   const authed = await runAuthFlow();
   if (authed) {
-    console.log("   Run 'agentxl start' to launch the server.\n");
+    console.log("  Run 'agentxl start' to launch the server.\n");
   }
   process.exit(authed ? 0 : 1);
 }
@@ -320,12 +359,12 @@ if (hasFlag("help") || command === "--help" || command === "help") {
 
 if (command === "start") {
   start().catch((err) => {
-    console.error(`\n❌ ${err.message || err}`);
+    console.error(`\n  ❌ ${err.message || err}\n`);
     process.exit(1);
   });
 } else if (command === "login") {
   login().catch((err) => {
-    console.error(`\n❌ ${err.message || err}`);
+    console.error(`\n  ❌ ${err.message || err}\n`);
     process.exit(1);
   });
 } else if (!command) {
