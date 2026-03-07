@@ -4,6 +4,10 @@ node_modules/
 # Build output
 dist/
 taskpane/dist/
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
 
 # Environment
 .env
