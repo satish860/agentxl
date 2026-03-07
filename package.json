@@ -7,7 +7,11 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/deltaxy-ai/agentxl"
+    "url": "https://github.com/satish860/agentxl"
+  },
+  "homepage": "https://github.com/satish860/agentxl#readme",
+  "bugs": {
+    "url": "https://github.com/satish860/agentxl/issues"
   },
   "keywords": [
     "excel",
@@ -16,18 +20,32 @@
     "office",
     "claude",
     "openai",
-    "spreadsheet"
+    "spreadsheet",
+    "microsoft",
+    "office-addin",
+    "chatgpt",
+    "llm"
   ],
   "bin": {
     "agentxl": "./bin/agentxl.js"
   },
   "main": "dist/server/index.js",
+  "files": [
+    "bin/",
+    "dist/",
+    "taskpane/dist/",
+    "manifest/",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc && npm run build:taskpane",
     "build:server": "tsc",
     "build:taskpane": "cd taskpane && npx vite build",
     "dev:taskpane": "cd taskpane && npx vite dev",
     "start": "node bin/agentxl.js start",
+    "prepublishOnly": "npm run build",
     "test": "npx tsx tests/certs.test.ts && npx tsx tests/server.test.ts && npx tsx tests/session.test.ts",
     "test:certs": "npx tsx tests/certs.test.ts",
     "test:server": "npx tsx tests/server.test.ts",

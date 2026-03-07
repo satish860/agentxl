@@ -128,11 +128,7 @@ async function run() {
     } else {
       await test("shows welcome screen with quick actions", async () => {
         // Wait for status check to complete and UI to render
-        await page.waitForSelector("text=AgentXL", { timeout: 5000 });
-
-        // Check AX logo area
-        const heading = await page.textContent("h1");
-        assert.equal(heading, "AgentXL");
+        await page.waitForSelector("text=What do you want to do", { timeout: 5000 });
 
         // Check quick action buttons exist
         const buttons = await page.$$("button");
@@ -140,16 +136,16 @@ async function run() {
           buttons.map((b) => b.textContent())
         );
         assert.ok(
-          buttonTexts.some((t) => t?.includes("Summarize data")),
-          "should have 'Summarize data' action"
+          buttonTexts.some((t) => t?.includes("Summarize this data")),
+          "should have 'Summarize this data' action"
         );
         assert.ok(
-          buttonTexts.some((t) => t?.includes("Create chart")),
-          "should have 'Create chart' action"
+          buttonTexts.some((t) => t?.includes("Create a chart")),
+          "should have 'Create a chart' action"
         );
         assert.ok(
-          buttonTexts.some((t) => t?.includes("Write formula")),
-          "should have 'Write formula' action"
+          buttonTexts.some((t) => t?.includes("Write a formula")),
+          "should have 'Write a formula' action"
         );
       });
 
@@ -165,8 +161,8 @@ async function run() {
       });
 
       await test("quick action fills the textarea", async () => {
-        // Click "Write formula" quick action
-        await page.click("text=Write formula");
+        // Click "Write a formula" quick action
+        await page.click("text=Write a formula");
 
         const textarea = await page.$("textarea");
         const value = await textarea!.inputValue();
@@ -200,14 +196,14 @@ async function run() {
         // Look for any assistant content in a card-style container
         await page.waitForFunction(
           () => {
-            const cards = document.querySelectorAll(".border.border-gray-200");
+            const cards = document.querySelectorAll(".border.border-gray-100");
             return cards.length > 0 && cards[0].textContent!.length > 5;
           },
           { timeout: 60000 }
         );
 
         // Verify assistant message has content
-        const cards = await page.$$(".border.border-gray-200");
+        const cards = await page.$$(".border.border-gray-100");
         assert.ok(cards.length > 0, "should have assistant message card");
 
         const assistantText = await cards[0].textContent();
@@ -230,13 +226,13 @@ async function run() {
         // Wait for second assistant response
         await page.waitForFunction(
           () => {
-            const cards = document.querySelectorAll(".border.border-gray-200");
+            const cards = document.querySelectorAll(".border.border-gray-100");
             return cards.length >= 2;
           },
           { timeout: 60000 }
         );
 
-        const cards = await page.$$(".border.border-gray-200");
+        const cards = await page.$$(".border.border-gray-100");
         assert.ok(
           cards.length >= 2,
           `should have at least 2 assistant messages, got ${cards.length}`
