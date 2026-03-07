@@ -31,7 +31,8 @@
     "test": "npx tsx tests/certs.test.ts && npx tsx tests/server.test.ts && npx tsx tests/session.test.ts",
     "test:certs": "npx tsx tests/certs.test.ts",
     "test:server": "npx tsx tests/server.test.ts",
-    "test:session": "npx tsx tests/session.test.ts"
+    "test:session": "npx tsx tests/session.test.ts",
+    "test:e2e": "npx tsx tests/e2e.test.ts"
   },
   "dependencies": {
     "@mariozechner/pi-coding-agent": "^0.52.12",
@@ -47,6 +48,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.0.0",
     "lucide-react": "^0.564.0",
+    "playwright": "^1.58.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
