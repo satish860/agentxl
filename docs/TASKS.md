@@ -256,7 +256,6 @@
 - `taskpane/tsconfig.json`
 - `taskpane/src/main.tsx` (React entry point)
 - `taskpane/src/styles/globals.css` (Tailwind directives)
-- `taskpane/tailwind.config.js`
 
 **Details:**
 - `taskpane/index.html`:
@@ -265,12 +264,15 @@
   - Minimal HTML: `<div id="root"></div>`
 - `taskpane/vite.config.ts`:
   - React plugin
+  - Tailwind v4 via `@tailwindcss/vite` plugin
   - Build output: `taskpane/dist/`
   - Base path: `/taskpane/`
 - `taskpane/src/main.tsx`:
   - Wait for Office.js to initialize (or proceed without it for browser testing)
   - Render `<App />` into `#root`
-- Tailwind setup with minimal config
+- Tailwind v4 setup — CSS-based, no `tailwind.config.js`:
+  - `globals.css` uses `@import "tailwindcss";` (v4 pattern)
+  - No `postcss.config.js` needed — Tailwind v4 runs as a Vite plugin
 - npm scripts in root `package.json`:
   - `build:taskpane` → `cd taskpane && vite build`
   - `dev:taskpane` → `cd taskpane && vite dev` (for standalone UI development)
