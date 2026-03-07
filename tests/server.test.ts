@@ -10,6 +10,7 @@ import { get, request as httpsRequest, type RequestOptions } from "https";
 import {
   mkdirSync,
   writeFileSync,
+  readFileSync,
   existsSync,
   rmSync,
 } from "fs";
@@ -107,33 +108,45 @@ async function test(name: string, fn: () => Promise<void>) {
 // Test fixtures
 // ---------------------------------------------------------------------------
 
+/** Files the test creates — saved/restored so real builds aren't clobbered. */
+const TEST_FILES: Record<string, Buffer | string> = {
+  "index.html": "<!DOCTYPE html><html><body>AgentXL Taskpane</body></html>",
+  "app.js": 'console.log("hello");',
+  "style.css": "body { margin: 0; }",
+  "data.json": '{"key":"value"}',
+  "assets/icon.png": Buffer.from([0x89, 0x50]),
+  "assets/logo.svg": "<svg></svg>",
+  "assets/favicon.ico": Buffer.from([0x00]),
+};
+
+const backups = new Map<string, Buffer | null>();
+
 function setupTaskpaneDist() {
   mkdirSync(ASSETS_DIR, { recursive: true });
 
-  writeFileSync(
-    join(TASKPANE_DIST, "index.html"),
-    "<!DOCTYPE html><html><body>AgentXL Taskpane</body></html>"
-  );
-  writeFileSync(
-    join(TASKPANE_DIST, "app.js"),
-    'console.log("hello");'
-  );
-  writeFileSync(
-    join(TASKPANE_DIST, "style.css"),
-    "body { margin: 0; }"
-  );
-  writeFileSync(
-    join(TASKPANE_DIST, "data.json"),
-    '{"key":"value"}'
-  );
-  // Binary-ish file for MIME test
-  writeFileSync(join(ASSETS_DIR, "icon.png"), Buffer.from([0x89, 0x50]));
-  writeFileSync(join(ASSETS_DIR, "logo.svg"), "<svg></svg>");
-  writeFileSync(join(ASSETS_DIR, "favicon.ico"), Buffer.from([0x00]));
+  // Back up existing files, then write test fixtures
+  for (const [rel, content] of Object.entries(TEST_FILES)) {
+    const fullPath = join(TASKPANE_DIST, rel);
+    if (existsSync(fullPath)) {
+      backups.set(rel, readFileSync(fullPath));
+    } else {
+      backups.set(rel, null); // mark for deletion on restore
+    }
+    writeFileSync(fullPath, content);
+  }
 }
 
 function teardownTaskpaneDist() {
-  rmSync(TASKPANE_DIST, { recursive: true, force: true });
+  // Restore original files (or delete test-only files)
+  for (const [rel, original] of backups) {
+    const fullPath = join(TASKPANE_DIST, rel);
+    if (original !== null) {
+      writeFileSync(fullPath, original);
+    } else if (existsSync(fullPath)) {
+      rmSync(fullPath);
+    }
+  }
+  backups.clear();
 }
 
 // ---------------------------------------------------------------------------

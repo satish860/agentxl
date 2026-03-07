@@ -286,6 +286,9 @@ async function start() {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log("\nAgentXL stopped");
+    // Force exit after 2s if server.close() hangs on open connections
+    const forceExit = setTimeout(() => process.exit(0), 2000);
+    forceExit.unref?.();
     stopServer().then(() => process.exit(0));
   };
 

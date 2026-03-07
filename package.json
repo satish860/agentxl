@@ -36,10 +36,11 @@
   "dependencies": {
     "@mariozechner/pi-coding-agent": "^0.52.12",
     "@sinclair/typebox": "^0.34.11",
-    "selfsigned": "^5.5.0"
+    "office-addin-dev-certs": "^2.0.6"
   },
   "devDependencies": {
     "@microsoft/office-js": "^1.1.110",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.1",
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
