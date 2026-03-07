@@ -1,0 +1,474 @@
+/**
+ * Acceptance test for Task 3: HTTPS Server
+ *
+ * Starts the server, hits every endpoint, validates responses, then shuts down.
+ * Run: npx tsx tests/server.test.ts
+ */
+
+import { startServer, stopServer } from "../src/server/index.js";
+import { get, request as httpsRequest, type RequestOptions } from "https";
+import {
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+  rmSync,
+} from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+import { strict as assert } from "assert";
+
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const PORT = 3098;
+const BASE = `https://localhost:${PORT}`;
+const TASKPANE_DIST = join(__dirname, "..", "taskpane", "dist");
+const ASSETS_DIR = join(TASKPANE_DIST, "assets");
+
+// ---------------------------------------------------------------------------
+// HTTP helpers
+// ---------------------------------------------------------------------------
+
+interface HttpResponse {
+  status: number;
+  headers: Record<string, string | string[] | undefined>;
+  body: string;
+}
+
+function httpRequest(
+  method: string,
+  path: string,
+  body?: Record<string, unknown>
+): Promise<HttpResponse> {
+  const payload = body ? JSON.stringify(body) : undefined;
+  const opts: RequestOptions = {
+    method,
+    rejectUnauthorized: false,
+    headers: {
+      ...(payload
+        ? {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(payload),
+          }
+        : {}),
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(`${BASE}${path}`, opts, (res) => {
+      let data = "";
+      res.on("data", (chunk: string) => (data += chunk));
+      res.on("end", () =>
+        resolve({
+          status: res.statusCode ?? 0,
+          headers: res.headers,
+          body: data,
+        })
+      );
+    });
+    req.on("error", reject);
+    if (payload) req.write(payload);
+    req.end();
+  });
+}
+
+const httpGet = (path: string) => httpRequest("GET", path);
+const httpPost = (path: string, body: Record<string, unknown>) =>
+  httpRequest("POST", path, body);
+const httpOptions = (path: string) => httpRequest("OPTIONS", path);
+
+// ---------------------------------------------------------------------------
+// Test runner
+// ---------------------------------------------------------------------------
+
+let passed = 0;
+let failed = 0;
+
+async function test(name: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+    passed++;
+    console.log(`  ✅ ${name}`);
+  } catch (error) {
+    failed++;
+    console.log(`  ❌ ${name}`);
+    console.error(
+      `     ${error instanceof Error ? error.message : error}`
+    );
+    process.exitCode = 1;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Test fixtures
+// ---------------------------------------------------------------------------
+
+function setupTaskpaneDist() {
+  mkdirSync(ASSETS_DIR, { recursive: true });
+
+  writeFileSync(
+    join(TASKPANE_DIST, "index.html"),
+    "<!DOCTYPE html><html><body>AgentXL Taskpane</body></html>"
+  );
+  writeFileSync(
+    join(TASKPANE_DIST, "app.js"),
+    'console.log("hello");'
+  );
+  writeFileSync(
+    join(TASKPANE_DIST, "style.css"),
+    "body { margin: 0; }"
+  );
+  writeFileSync(
+    join(TASKPANE_DIST, "data.json"),
+    '{"key":"value"}'
+  );
+  // Binary-ish file for MIME test
+  writeFileSync(join(ASSETS_DIR, "icon.png"), Buffer.from([0x89, 0x50]));
+  writeFileSync(join(ASSETS_DIR, "logo.svg"), "<svg></svg>");
+  writeFileSync(join(ASSETS_DIR, "favicon.ico"), Buffer.from([0x00]));
+}
+
+function teardownTaskpaneDist() {
+  rmSync(TASKPANE_DIST, { recursive: true, force: true });
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+async function run() {
+  console.log("\n🌐 Server Acceptance Tests\n");
+
+  // Setup
+  setupTaskpaneDist();
+  await startServer(PORT);
+
+  try {
+    // =======================================================================
+    // GET /api/version
+    // =======================================================================
+    console.log("\n  📡 GET /api/version\n");
+
+    await test("returns 200 with version string", async () => {
+      const res = await httpGet("/api/version");
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(typeof json.version, "string");
+      assert.ok(json.version.length > 0);
+    });
+
+    await test("response has CORS header", async () => {
+      const res = await httpGet("/api/version");
+      assert.equal(res.headers["access-control-allow-origin"], "*");
+    });
+
+    await test("response has Content-Type application/json", async () => {
+      const res = await httpGet("/api/version");
+      assert.ok(
+        res.headers["content-type"]?.toString().includes("application/json")
+      );
+    });
+
+    await test("works with query string (?t=123)", async () => {
+      const res = await httpGet("/api/version?t=123");
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.ok(json.version);
+    });
+
+    // =======================================================================
+    // GET /api/config/status
+    // =======================================================================
+    console.log("\n  📡 GET /api/config/status\n");
+
+    await test("returns 200 with auth status", async () => {
+      const res = await httpGet("/api/config/status");
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(typeof json.authenticated, "boolean");
+      assert.equal(typeof json.version, "string");
+      assert.ok("provider" in json, "should include provider field");
+    });
+
+    await test("POST returns 405", async () => {
+      const res = await httpPost("/api/config/status", {});
+      assert.equal(res.status, 405);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("GET"));
+    });
+
+    // =======================================================================
+    // POST /api/agent (stub)
+    // =======================================================================
+    console.log("\n  📡 POST /api/agent\n");
+
+    await test("returns 401 or 200 depending on auth", async () => {
+      const res = await httpPost("/api/agent", { message: "Hello" });
+      // 401 if no auth configured, 200 (SSE stream) if auth exists
+      assert.ok(
+        res.status === 401 || res.status === 200,
+        `expected 401 or 200, got ${res.status}`
+      );
+      if (res.status === 401) {
+        const json = JSON.parse(res.body);
+        assert.ok(json.error.includes("Not authenticated"));
+      }
+    });
+
+    await test("returns 400 without message field", async () => {
+      const res = await httpPost("/api/agent", {});
+      assert.equal(res.status, 400);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("message"));
+    });
+
+    await test("returns 400 with empty body", async () => {
+      const res = await httpPost("/api/agent", {} as any);
+      assert.equal(res.status, 400);
+    });
+
+    await test("returns 400 with non-string message", async () => {
+      const res = await httpPost("/api/agent", { message: 123 });
+      assert.equal(res.status, 400);
+    });
+
+    await test("returns 400 with empty string message", async () => {
+      const res = await httpPost("/api/agent", { message: "   " });
+      assert.equal(res.status, 400);
+    });
+
+    await test("GET returns 405", async () => {
+      const res = await httpGet("/api/agent");
+      assert.equal(res.status, 405);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("POST"));
+    });
+
+    // =======================================================================
+    // GET /taskpane/* — Static file serving
+    // =======================================================================
+    console.log("\n  📁 Static file serving (/taskpane/*)\n");
+
+    await test("/taskpane/ serves index.html", async () => {
+      const res = await httpGet("/taskpane/");
+      assert.equal(res.status, 200);
+      assert.ok(res.body.includes("AgentXL Taskpane"));
+      assert.ok(
+        res.headers["content-type"]?.toString().includes("text/html")
+      );
+    });
+
+    await test("/taskpane serves index.html (no trailing slash)", async () => {
+      const res = await httpGet("/taskpane");
+      assert.equal(res.status, 200);
+      assert.ok(res.body.includes("AgentXL Taskpane"));
+    });
+
+    await test("/taskpane/app.js serves JS with correct MIME", async () => {
+      const res = await httpGet("/taskpane/app.js");
+      assert.equal(res.status, 200);
+      assert.ok(res.body.includes("hello"));
+      assert.ok(
+        res.headers["content-type"]
+          ?.toString()
+          .includes("application/javascript")
+      );
+    });
+
+    await test("/taskpane/style.css serves CSS with correct MIME", async () => {
+      const res = await httpGet("/taskpane/style.css");
+      assert.equal(res.status, 200);
+      assert.ok(res.body.includes("margin"));
+      assert.ok(
+        res.headers["content-type"]?.toString().includes("text/css")
+      );
+    });
+
+    await test("/taskpane/data.json serves JSON with correct MIME", async () => {
+      const res = await httpGet("/taskpane/data.json");
+      assert.equal(res.status, 200);
+      assert.ok(
+        res.headers["content-type"]
+          ?.toString()
+          .includes("application/json")
+      );
+    });
+
+    await test("/taskpane/assets/icon.png serves PNG with correct MIME", async () => {
+      const res = await httpGet("/taskpane/assets/icon.png");
+      assert.equal(res.status, 200);
+      assert.ok(
+        res.headers["content-type"]?.toString().includes("image/png")
+      );
+    });
+
+    await test("/taskpane/assets/logo.svg serves SVG with correct MIME", async () => {
+      const res = await httpGet("/taskpane/assets/logo.svg");
+      assert.equal(res.status, 200);
+      assert.ok(
+        res.headers["content-type"]?.toString().includes("image/svg+xml")
+      );
+    });
+
+    await test("/taskpane/assets/favicon.ico serves ICO with correct MIME", async () => {
+      const res = await httpGet("/taskpane/assets/favicon.ico");
+      assert.equal(res.status, 200);
+      assert.ok(
+        res.headers["content-type"]?.toString().includes("image/x-icon")
+      );
+    });
+
+    await test("missing file returns 404", async () => {
+      const res = await httpGet("/taskpane/does-not-exist.xyz");
+      assert.equal(res.status, 404);
+    });
+
+    await test("SPA fallback: non-file path serves index.html", async () => {
+      const res = await httpGet("/taskpane/some/deep/route");
+      assert.equal(res.status, 200);
+      assert.ok(res.body.includes("AgentXL Taskpane"));
+    });
+
+    await test("Content-Length header present on static files", async () => {
+      const res = await httpGet("/taskpane/app.js");
+      assert.ok(res.headers["content-length"]);
+      assert.equal(
+        parseInt(res.headers["content-length"] as string, 10),
+        Buffer.byteLength('console.log("hello");')
+      );
+    });
+
+    await test("HTML has no-cache, assets have max-age", async () => {
+      const htmlRes = await httpGet("/taskpane/");
+      assert.ok(
+        htmlRes.headers["cache-control"]?.toString().includes("no-cache")
+      );
+
+      const jsRes = await httpGet("/taskpane/app.js");
+      assert.ok(
+        jsRes.headers["cache-control"]?.toString().includes("max-age=31536000")
+      );
+    });
+
+    await test("path traversal blocked (/../../../etc/passwd)", async () => {
+      const res = await httpGet(
+        "/taskpane/../../../../../../etc/passwd"
+      );
+      // Should return 404 or 403, never the file contents
+      assert.ok(
+        res.status === 404 || res.status === 403,
+        `expected 403 or 404, got ${res.status}`
+      );
+      assert.ok(!res.body.includes("root:"));
+    });
+
+    await test("CORS header present on static files", async () => {
+      const res = await httpGet("/taskpane/app.js");
+      assert.equal(res.headers["access-control-allow-origin"], "*");
+    });
+
+    // =======================================================================
+    // Root redirect
+    // =======================================================================
+    console.log("\n  🔀 Root redirect\n");
+
+    await test("GET / returns 302 → /taskpane/", async () => {
+      // Use raw request to avoid following redirect
+      const res = await new Promise<HttpResponse>((resolve, reject) => {
+        const req = get(
+          `${BASE}/`,
+          { rejectUnauthorized: false },
+          (r) => {
+            let data = "";
+            r.on("data", (chunk: string) => (data += chunk));
+            r.on("end", () =>
+              resolve({
+                status: r.statusCode ?? 0,
+                headers: r.headers,
+                body: data,
+              })
+            );
+          }
+        );
+        req.on("error", reject);
+      });
+      assert.equal(res.status, 302);
+      assert.equal(res.headers["location"], "/taskpane/");
+    });
+
+    // =======================================================================
+    // CORS preflight
+    // =======================================================================
+    console.log("\n  🔒 CORS\n");
+
+    await test("OPTIONS /api/agent returns 204 with CORS headers", async () => {
+      const res = await httpOptions("/api/agent");
+      assert.equal(res.status, 204);
+      assert.equal(res.headers["access-control-allow-origin"], "*");
+      assert.ok(
+        res.headers["access-control-allow-methods"]
+          ?.toString()
+          .includes("POST")
+      );
+      assert.ok(
+        res.headers["access-control-allow-headers"]
+          ?.toString()
+          .includes("Content-Type")
+      );
+      assert.ok(res.headers["access-control-max-age"]);
+    });
+
+    await test("OPTIONS works on any path", async () => {
+      const res = await httpOptions("/api/config/status");
+      assert.equal(res.status, 204);
+      assert.equal(res.headers["access-control-allow-origin"], "*");
+    });
+
+    // =======================================================================
+    // 404 catch-all
+    // =======================================================================
+    console.log("\n  🚫 404 catch-all\n");
+
+    await test("GET /unknown returns 404", async () => {
+      const res = await httpGet("/unknown");
+      assert.equal(res.status, 404);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error);
+    });
+
+    await test("GET /api/nonexistent returns 404", async () => {
+      const res = await httpGet("/api/nonexistent");
+      assert.equal(res.status, 404);
+    });
+
+    // =======================================================================
+    // Server lifecycle
+    // =======================================================================
+    console.log("\n  🔄 Server lifecycle\n");
+
+    await test("stopServer + restart on same port succeeds", async () => {
+      await stopServer();
+      // Small delay to ensure the port is fully released
+      await new Promise((r) => setTimeout(r, 200));
+      await startServer(PORT);
+      // Small delay to ensure the server is accepting connections
+      await new Promise((r) => setTimeout(r, 100));
+      const res = await httpGet("/api/version");
+      assert.equal(res.status, 200);
+    });
+  } finally {
+    await stopServer();
+    teardownTaskpaneDist();
+  }
+
+  // Summary
+  console.log(`\n  ─────────────────────────────────────`);
+  console.log(`  ${passed + failed} tests: ${passed} passed, ${failed} failed`);
+  console.log(`  ─────────────────────────────────────\n`);
+}
+
+run();

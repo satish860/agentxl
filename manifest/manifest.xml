@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+
+  <!-- Unique add-in ID -->
+  <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
+  <Version>1.0.0</Version>
+  <ProviderName>DeltaXY</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="AgentXL" />
+  <Description DefaultValue="AI-powered Excel assistant. Chat with AI to read data, write formulas, create charts, and more." />
+  <SupportUrl DefaultValue="https://github.com/deltaxy-ai/agentxl" />
+
+  <!-- Icon -->
+  <IconUrl DefaultValue="https://localhost:3001/taskpane/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://localhost:3001/taskpane/assets/icon-64.png" />
+
+  <!-- Excel only -->
+  <Hosts>
+    <Host Name="Workbook" />
+  </Hosts>
+
+  <!-- Permissions -->
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:3001/taskpane/" />
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <!-- Ribbon button -->
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="getStartedTitle" />
+            <Description resid="getStartedDescription" />
+            <LearnMoreUrl resid="learnMoreUrl" />
+          </GetStarted>
+
+          <!-- Ribbon extension -->
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="AgentXLGroup">
+                <Label resid="groupLabel" />
+                <Icon>
+                  <bt:Image size="16" resid="icon16" />
+                  <bt:Image size="32" resid="icon32" />
+                  <bt:Image size="80" resid="icon80" />
+                </Icon>
+                <Control xsi:type="Button" id="AgentXLButton">
+                  <Label resid="buttonLabel" />
+                  <Supertip>
+                    <Title resid="buttonLabel" />
+                    <Description resid="buttonTooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="icon16" />
+                    <bt:Image size="32" resid="icon32" />
+                    <bt:Image size="80" resid="icon80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>AgentXLPane</TaskpaneId>
+                    <SourceLocation resid="taskpaneUrl" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <!-- Resources -->
+    <Resources>
+      <bt:Images>
+        <bt:Image id="icon16" DefaultValue="https://localhost:3001/taskpane/assets/icon-16.png" />
+        <bt:Image id="icon32" DefaultValue="https://localhost:3001/taskpane/assets/icon-32.png" />
+        <bt:Image id="icon80" DefaultValue="https://localhost:3001/taskpane/assets/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="taskpaneUrl" DefaultValue="https://localhost:3001/taskpane/" />
+        <bt:Url id="learnMoreUrl" DefaultValue="https://github.com/deltaxy-ai/agentxl" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="groupLabel" DefaultValue="AgentXL" />
+        <bt:String id="buttonLabel" DefaultValue="AgentXL" />
+        <bt:String id="getStartedTitle" DefaultValue="AgentXL is ready!" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="buttonTooltip" DefaultValue="Open the AgentXL AI assistant panel" />
+        <bt:String id="getStartedDescription" DefaultValue="Click the AgentXL button on the Home tab to start chatting with your AI assistant." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
