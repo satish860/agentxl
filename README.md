@@ -20,8 +20,8 @@ Building the core pipeline: CLI → HTTPS server → Excel taskpane → Pi Codin
 | # | Task | Status |
 |---|------|--------|
 | 1 | Project scaffold (package.json, tsconfig, dependencies, folder structure) | ✅ Done |
-| 2 | HTTPS certificate generation for localhost | ⬜ Next |
-| 3 | HTTPS server (static file serving + API endpoints) | ⬜ |
+| 2 | HTTPS certificate generation for localhost | ✅ Done |
+| 3 | HTTPS server (static file serving + API endpoints) | ⬜ Next |
 | 4 | CLI entry point (`agentxl start`) | ⬜ |
 | 5 | Pi Coding Agent session + SSE streaming | ⬜ |
 | 6 | Auth configuration endpoints (API key + OAuth) | ⬜ |
