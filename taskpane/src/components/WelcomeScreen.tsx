@@ -22,11 +22,19 @@ const QUICK_ACTIONS = [
 interface WelcomeScreenProps {
   status: ConfigStatus;
   workbookId: string | null;
+  linkedFolderPath: string;
   onQuickAction: (prompt: string) => void;
+  onChangeFolder: () => void;
 }
 
-/** Shown when authenticated but no messages yet. */
-export function WelcomeScreen({ status, workbookId, onQuickAction }: WelcomeScreenProps) {
+/** Shown when authenticated, workbook is resolved, and a folder is linked. */
+export function WelcomeScreen({
+  status,
+  workbookId,
+  linkedFolderPath,
+  onQuickAction,
+  onChangeFolder,
+}: WelcomeScreenProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full p-6 text-center">
       <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center mb-4">
@@ -35,9 +43,20 @@ export function WelcomeScreen({ status, workbookId, onQuickAction }: WelcomeScre
       <p className="text-[15px] font-semibold text-gray-900 mb-0.5">
         Choose a folder, then ask a grounded question
       </p>
-      <p className="text-xs text-gray-400 mb-6">
+      <p className="text-xs text-gray-400 mb-4">
         AgentXL searches source files and maps answers into Excel
       </p>
+
+      <div className="w-full max-w-[280px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-left mb-5">
+        <p className="text-[11px] text-gray-400 mb-1">Linked folder</p>
+        <p className="text-[12px] text-gray-700 break-all">{linkedFolderPath}</p>
+        <button
+          onClick={onChangeFolder}
+          className="mt-3 text-[12px] font-medium text-emerald-600 hover:text-emerald-700"
+        >
+          Change folder
+        </button>
+      </div>
 
       {/* Quick actions — outcome-focused chips */}
       <div className="flex flex-col gap-2 w-full max-w-[260px]">

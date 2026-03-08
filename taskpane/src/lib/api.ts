@@ -32,6 +32,27 @@ export interface WorkbookIdentity {
   workbookId: string;
 }
 
+export interface FolderStatus {
+  workbookId: string;
+  linked: boolean;
+  folderPath?: string;
+  link?: {
+    workbookId: string;
+    folderPath: string;
+    workbookName: string | null;
+    workbookUrl: string | null;
+    host: string | null;
+    source: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+export interface FolderPickResult {
+  picked: boolean;
+  folderPath: string | null;
+}
+
 function getWorkbookNameFromUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   const trimmed = url.trim();
@@ -136,6 +157,72 @@ export async function resolveWorkbookIdentity(
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: "Workbook resolve failed" }));
     throw new Error(body.error || `Workbook resolve failed: HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function getFolderStatus(workbookId: string): Promise<FolderStatus> {
+  const res = await fetch(
+    `${BASE}/api/folder/status?workbookId=${encodeURIComponent(workbookId)}`
+  );
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Folder status failed" }));
+    throw new Error(body.error || `Folder status failed: HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function pickFolder(): Promise<FolderPickResult> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 16000);
+
+  try {
+    const res = await fetch(`${BASE}/api/folder/pick`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: "Folder picker failed" }));
+      throw new Error(body.error || `Folder picker failed: HTTP ${res.status}`);
+    }
+
+    return res.json();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Folder picker timed out. Paste the folder path manually instead.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+export async function selectFolder(
+  workbookId: string,
+  folderPath: string,
+  identity: WorkbookIdentityInput
+): Promise<FolderStatus> {
+  const res = await fetch(`${BASE}/api/folder/select`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      workbookId,
+      folderPath,
+      workbookName: identity.workbookName,
+      workbookUrl: identity.workbookUrl ?? null,
+      host: identity.host ?? null,
+      source: identity.source ?? null,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Folder selection failed" }));
+    throw new Error(body.error || `Folder selection failed: HTTP ${res.status}`);
   }
 
   return res.json();

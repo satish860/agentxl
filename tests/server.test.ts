@@ -9,12 +9,14 @@ import { startServer, stopServer } from "../src/server/index.js";
 import { get, request as httpsRequest, type RequestOptions } from "https";
 import {
   mkdirSync,
+  mkdtempSync,
   writeFileSync,
   readFileSync,
   existsSync,
   rmSync,
 } from "fs";
 import { join, dirname } from "path";
+import { tmpdir } from "os";
 import { fileURLToPath } from "url";
 import { strict as assert } from "assert";
 
@@ -155,6 +157,18 @@ function teardownTaskpaneDist() {
 
 async function run() {
   console.log("\n🌐 Server Acceptance Tests\n");
+
+  const originalDataDir = process.env.AGENTXL_DATA_DIR;
+  const originalPickFolderPath = process.env.AGENTXL_PICK_FOLDER_TEST_PATH;
+  const originalPickFolderDelay = process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS;
+  const originalPickFolderTimeout = process.env.AGENTXL_PICK_FOLDER_TIMEOUT_MS;
+  const originalPickFolderError = process.env.AGENTXL_PICK_FOLDER_TEST_ERROR;
+  const tempDataDir = mkdtempSync(join(tmpdir(), "agentxl-server-test-"));
+  process.env.AGENTXL_DATA_DIR = tempDataDir;
+  process.env.AGENTXL_PICK_FOLDER_TEST_PATH = "C:\\Evidence\\Picked Folder";
+  delete process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS;
+  delete process.env.AGENTXL_PICK_FOLDER_TIMEOUT_MS;
+  delete process.env.AGENTXL_PICK_FOLDER_TEST_ERROR;
 
   // Setup
   setupTaskpaneDist();
@@ -306,6 +320,124 @@ async function run() {
       assert.equal(res.status, 405);
       const json = JSON.parse(res.body);
       assert.ok(json.error.includes("POST"));
+    });
+
+    // =======================================================================
+    // Folder status API
+    // =======================================================================
+    console.log("\n  📡 Folder status API\n");
+
+    await test("GET /api/folder/status returns linked false when no mapping exists", async () => {
+      const res = await httpGet("/api/folder/status?workbookId=wb_status_test");
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(json.workbookId, "wb_status_test");
+      assert.equal(json.linked, false);
+    });
+
+    await test("POST /api/folder/select stores a folder for a valid workbookId", async () => {
+      const res = await httpPost("/api/folder/select", {
+        workbookId: "wb_status_test",
+        folderPath: "C:\\Clients\\ABC\\Support",
+        workbookName: "Lead Sheet.xlsx",
+        host: "Excel",
+        source: "excel-taskpane",
+      });
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(json.workbookId, "wb_status_test");
+      assert.equal(json.linked, true);
+      assert.equal(json.folderPath, "C:\\Clients\\ABC\\Support");
+      assert.equal(json.link.folderPath, "C:\\Clients\\ABC\\Support");
+    });
+
+    await test("GET /api/folder/status returns linked folder for a valid workbookId", async () => {
+      const res = await httpGet("/api/folder/status?workbookId=wb_status_test");
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(json.workbookId, "wb_status_test");
+      assert.equal(json.linked, true);
+      assert.equal(json.folderPath, "C:\\Clients\\ABC\\Support");
+      assert.equal(json.link.folderPath, "C:\\Clients\\ABC\\Support");
+    });
+
+    await test("POST /api/folder/select overwrites the previous mapping", async () => {
+      const res = await httpPost("/api/folder/select", {
+        workbookId: "wb_status_test",
+        folderPath: "C:\\Clients\\ABC\\Updated Support",
+      });
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(json.folderPath, "C:\\Clients\\ABC\\Updated Support");
+
+      const statusRes = await httpGet("/api/folder/status?workbookId=wb_status_test");
+      const statusJson = JSON.parse(statusRes.body);
+      assert.equal(statusJson.folderPath, "C:\\Clients\\ABC\\Updated Support");
+    });
+
+    await test("GET /api/folder/status returns 400 without workbookId", async () => {
+      const res = await httpGet("/api/folder/status");
+      assert.equal(res.status, 400);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("workbookId"));
+    });
+
+    await test("POST /api/folder/select returns 400 without workbookId", async () => {
+      const res = await httpPost("/api/folder/select", {
+        folderPath: "C:\\Clients\\ABC\\Support",
+      });
+      assert.equal(res.status, 400);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("workbookId"));
+    });
+
+    await test("POST /api/folder/select returns 400 without folderPath", async () => {
+      const res = await httpPost("/api/folder/select", {
+        workbookId: "wb_status_test",
+      });
+      assert.equal(res.status, 400);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("folderPath"));
+    });
+
+    await test("POST /api/folder/pick returns a picked local folder path", async () => {
+      const res = await httpPost("/api/folder/pick", {});
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(json.picked, true);
+      assert.equal(json.folderPath, "C:\\Evidence\\Picked Folder");
+    });
+
+    await test("POST /api/folder/pick returns timeout guidance when picker hangs", async () => {
+      process.env.AGENTXL_PICK_FOLDER_TEST_ERROR =
+        "Native folder picker timed out. Paste the folder path manually instead.";
+
+      try {
+        const res = await httpPost("/api/folder/pick", {});
+        assert.equal(res.status, 504);
+        const json = JSON.parse(res.body);
+        assert.ok(json.error.includes("timed out"));
+        assert.ok(json.error.includes("Paste the folder path manually"));
+      } finally {
+        delete process.env.AGENTXL_PICK_FOLDER_TEST_ERROR;
+      }
+    });
+
+    await test("wrong methods return 405 for folder endpoints", async () => {
+      const statusRes = await httpPost("/api/folder/status", {});
+      assert.equal(statusRes.status, 405);
+      const statusJson = JSON.parse(statusRes.body);
+      assert.ok(statusJson.error.includes("GET"));
+
+      const pickRes = await httpGet("/api/folder/pick");
+      assert.equal(pickRes.status, 405);
+      const pickJson = JSON.parse(pickRes.body);
+      assert.ok(pickJson.error.includes("POST"));
+
+      const selectRes = await httpGet("/api/folder/select");
+      assert.equal(selectRes.status, 405);
+      const selectJson = JSON.parse(selectRes.body);
+      assert.ok(selectJson.error.includes("POST"));
     });
 
     // =======================================================================
@@ -570,6 +702,12 @@ async function run() {
   } finally {
     await stopServer();
     teardownTaskpaneDist();
+    process.env.AGENTXL_DATA_DIR = originalDataDir;
+    process.env.AGENTXL_PICK_FOLDER_TEST_PATH = originalPickFolderPath;
+    process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS = originalPickFolderDelay;
+    process.env.AGENTXL_PICK_FOLDER_TIMEOUT_MS = originalPickFolderTimeout;
+    process.env.AGENTXL_PICK_FOLDER_TEST_ERROR = originalPickFolderError;
+    rmSync(tempDataDir, { recursive: true, force: true });
   }
 
   // Summary

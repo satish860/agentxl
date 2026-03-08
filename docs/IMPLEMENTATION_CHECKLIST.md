@@ -32,7 +32,7 @@
 ---
 
 ### 2. Workbook → folder mapping storage
-- [ ] Add local server-side storage for `workbookId -> folderPath`
+- [x] Add local server-side storage for `workbookId -> folderPath`
 
 **Acceptance test**
 - Server can save a folder path for a given `workbookId`
@@ -46,7 +46,7 @@
 ---
 
 ### 3. Folder status API
-- [ ] Add folder status endpoints for the current workbook
+- [x] Add folder status endpoints for the current workbook
 
 **Acceptance test**
 - `GET /api/folder/status` returns linked/not-linked state for a valid `workbookId`
@@ -59,7 +59,7 @@
 ---
 
 ### 4. Taskpane folder-linking flow
-- [ ] Add a no-folder state and ready state in the taskpane
+- [x] Add a no-folder state and ready state in the taskpane
 
 **Acceptance test**
 - If no folder is linked, taskpane shows a primary “Choose folder” flow
@@ -184,9 +184,9 @@
 ## Current execution order
 
 1. [x] Workbook identity resolution
-2. [ ] Workbook → folder mapping storage
-3. [ ] Folder status API
-4. [ ] Taskpane folder-linking flow
+2. [x] Workbook → folder mapping storage
+3. [x] Folder status API
+4. [x] Taskpane folder-linking flow
 5. [ ] Folder scanning and file inventory
 6. [ ] Folder-aware agent requests
 7. [ ] Basic document tools for the agent
@@ -200,6 +200,6 @@
 
 ## Next task to implement
 
-**Task 2 — Workbook → folder mapping storage**
+**Task 5 — Folder scanning and file inventory**
 
-Task 1 is complete. Do not start Task 3 until Task 2 passes acceptance testing.
+Task 4 is complete. Do not start Task 6 until Task 5 passes acceptance testing.

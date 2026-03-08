@@ -12,6 +12,9 @@ import { chromium, type Browser, type Page } from "playwright";
 import { ensureCerts } from "../src/server/certs.js";
 import { startServer, stopServer } from "../src/server/index.js";
 import { resetSession, isAuthenticated } from "../src/agent/session.js";
+import { mkdtempSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { strict as assert } from "assert";
 
 const PORT = 3096;
@@ -56,6 +59,13 @@ async function run() {
   console.log("\n🌐 End-to-End Tests (Playwright)\n");
 
   const hasAuth = isAuthenticated();
+  const originalDataDir = process.env.AGENTXL_DATA_DIR;
+  const originalPickFolderPath = process.env.AGENTXL_PICK_FOLDER_TEST_PATH;
+  const originalPickFolderDelay = process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS;
+  const tempDataDir = mkdtempSync(join(tmpdir(), "agentxl-e2e-"));
+  process.env.AGENTXL_DATA_DIR = tempDataDir;
+  process.env.AGENTXL_PICK_FOLDER_TEST_PATH = "C:\\Evidence\\Picked Folder";
+  process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS = "250";
 
   // Start server
   const certs = await ensureCerts();
@@ -126,52 +136,61 @@ async function run() {
       skip("streaming response", "No auth configured");
       skip("follow-up message", "No auth configured");
     } else {
-      await test("shows welcome screen with quick actions", async () => {
-        // Wait for status check to complete and UI to render
-        await page.waitForSelector("text=What do you want to do", { timeout: 5000 });
+      await test("shows folder-link flow when no folder is linked", async () => {
+        await page.waitForSelector("text=Choose the folder with your supporting documents", {
+          timeout: 5000,
+        });
 
-        // Check quick action buttons exist
-        const buttons = await page.$$("button");
-        const buttonTexts = await Promise.all(
-          buttons.map((b) => b.textContent())
-        );
-        assert.ok(
-          buttonTexts.some((t) => t?.includes("Summarize this data")),
-          "should have 'Summarize this data' action"
-        );
-        assert.ok(
-          buttonTexts.some((t) => t?.includes("Create a chart")),
-          "should have 'Create a chart' action"
-        );
-        assert.ok(
-          buttonTexts.some((t) => t?.includes("Write a formula")),
-          "should have 'Write a formula' action"
-        );
+        const input = await page.$('input[placeholder*="Clients"]');
+        assert.ok(input, "should have folder path input");
       });
 
-      await test("textarea and send button are present", async () => {
+      await test("folder picker keeps manual path entry usable and then fills the path", async () => {
+        await page.click("text=Try folder picker");
+        const input = await page.$('input[placeholder*="Clients"]');
+        assert.ok(input, "should have folder path input");
+        assert.equal(await input!.isDisabled(), false, "manual path input should stay enabled");
+
+        await page.waitForFunction(() => {
+          const el = document.querySelector('input[placeholder*="Clients"]') as HTMLInputElement | null;
+          return !!el && el.value.includes('Picked Folder');
+        }, { timeout: 5000 });
+
+        await page.click("text=Link folder");
+        await page.waitForSelector("text=Linked folder", { timeout: 5000 });
+        await page.waitForSelector("text=Compare source files to this sheet", {
+          timeout: 5000,
+        });
+      });
+
+      await test("linked folder persists when the taskpane reloads", async () => {
+        await page.reload({ waitUntil: "networkidle" });
+        await page.waitForSelector("text=Linked folder", { timeout: 5000 });
+        const text = await page.textContent("body");
+        assert.ok(text?.includes("C:\\Evidence\\Picked Folder"));
+      });
+
+      await test("textarea and send button are present after folder is linked", async () => {
         const textarea = await page.$("textarea");
         assert.ok(textarea, "should have a textarea");
 
         const placeholder = await textarea!.getAttribute("placeholder");
         assert.ok(
-          placeholder?.includes("spreadsheet"),
-          `placeholder should mention spreadsheet, got: ${placeholder}`
+          placeholder?.includes("source files"),
+          `placeholder should mention source files, got: ${placeholder}`
         );
       });
 
       await test("quick action fills the textarea", async () => {
-        // Click "Write a formula" quick action
-        await page.click("text=Write a formula");
+        await page.click("text=Map a value into Excel");
 
         const textarea = await page.$("textarea");
         const value = await textarea!.inputValue();
         assert.ok(
-          value.includes("formula"),
-          `textarea should contain formula text, got: ${value}`
+          value.includes("map it into Excel"),
+          `textarea should contain mapping text, got: ${value}`
         );
 
-        // Clear it for the real test
         await textarea!.fill("");
       });
 
@@ -301,6 +320,10 @@ async function run() {
     await browser.close().catch(() => {});
     resetSession();
     await stopServer();
+    process.env.AGENTXL_DATA_DIR = originalDataDir;
+    process.env.AGENTXL_PICK_FOLDER_TEST_PATH = originalPickFolderPath;
+    process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS = originalPickFolderDelay;
+    rmSync(tempDataDir, { recursive: true, force: true });
   }
 
   // Summary

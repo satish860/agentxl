@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { pickFolder } from "./lib/api";
 import { useAgentStatus } from "./hooks/useAgentStatus";
 import { useWorkbookIdentity } from "./hooks/useWorkbookIdentity";
+import { useFolderLink } from "./hooks/useFolderLink";
 import { useChatStream } from "./hooks/useChatStream";
 import { ConnectionError } from "./components/ConnectionError";
 import { AuthRequired } from "./components/AuthRequired";
+import { FolderLinkScreen } from "./components/FolderLinkScreen";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { MessageBubble } from "./components/MessageBubble";
 import { ChatInput } from "./components/ChatInput";
@@ -13,12 +16,27 @@ export function App() {
     useAgentStatus();
   const {
     workbookId,
+    workbookIdentityInput,
     workbookResolveError,
     isResolvingWorkbook,
   } = useWorkbookIdentity(Boolean(status?.authenticated));
+  const {
+    folderStatus,
+    folderError,
+    isLoadingFolderStatus,
+    isSavingFolder,
+    saveFolderLink,
+  } = useFolderLink(
+    workbookId,
+    workbookIdentityInput,
+    Boolean(status?.authenticated)
+  );
   const { messages, isStreaming, sendMessage, stopStreaming } =
     useChatStream(markServerDown);
   const [input, setInput] = useState("");
+  const [isEditingFolder, setIsEditingFolder] = useState(false);
+  const [isPickingFolder, setIsPickingFolder] = useState(false);
+  const [pickerError, setPickerError] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
@@ -42,6 +60,39 @@ export function App() {
     },
     []
   );
+
+  const handleSaveFolder = useCallback(
+    async (folderPath: string) => {
+      setPickerError(null);
+      const ok = await saveFolderLink(folderPath);
+      if (ok) {
+        setIsEditingFolder(false);
+      }
+    },
+    [saveFolderLink]
+  );
+
+  const handlePickFolder = useCallback(async () => {
+    setPickerError(null);
+    setIsPickingFolder(true);
+    try {
+      const result = await pickFolder();
+      return result.folderPath;
+    } catch (error) {
+      setPickerError(
+        error instanceof Error
+          ? error.message
+          : "Could not open the folder picker. Paste the folder path manually instead."
+      );
+      return null;
+    } finally {
+      setIsPickingFolder(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    setPickerError(null);
+  }, [workbookId]);
 
   // ── Connection error (never connected) ──────────────────────────────────
   if (connectionError && !status) {
@@ -71,9 +122,18 @@ export function App() {
     );
   }
 
+  const isFolderLinked = Boolean(folderStatus?.linked && folderStatus.folderPath);
+  const showFolderLinkFlow = !workbookId || isLoadingFolderStatus || !isFolderLinked || isEditingFolder;
+
   // ── Chat UI ─────────────────────────────────────────────────────────────
   const hasMessages = messages.length > 0;
-  const inputDisabled = serverDown || !workbookId || Boolean(workbookResolveError);
+  const inputDisabled =
+    serverDown ||
+    !workbookId ||
+    Boolean(workbookResolveError) ||
+    Boolean(folderError) ||
+    !isFolderLinked ||
+    isEditingFolder;
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -94,17 +154,42 @@ export function App() {
 
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto">
-        {!hasMessages ? (
+        {showFolderLinkFlow ? (
+          workbookId ? (
+            <FolderLinkScreen
+              workbookId={workbookId}
+              workbookName={workbookIdentityInput?.workbookName ?? null}
+              currentFolderPath={folderStatus?.folderPath ?? null}
+              isSaving={isSavingFolder || isLoadingFolderStatus}
+              isPickingFolder={isPickingFolder}
+              error={pickerError ?? folderError}
+              onPickFolder={handlePickFolder}
+              onSave={handleSaveFolder}
+              onCancel={isFolderLinked ? () => setIsEditingFolder(false) : undefined}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-sm text-gray-400">Preparing folder link…</div>
+            </div>
+          )
+        ) : !hasMessages ? (
           <WelcomeScreen
             status={status}
             workbookId={workbookId}
+            linkedFolderPath={folderStatus!.folderPath!}
             onQuickAction={handleQuickAction}
+            onChangeFolder={() => setIsEditingFolder(true)}
           />
         ) : (
           <div className="p-4 space-y-4">
             {workbookId && (
-              <div className="text-[11px] text-gray-400 px-1">
-                Workbook ID: {workbookId}
+              <div className="space-y-1 px-1">
+                <div className="text-[11px] text-gray-400">Workbook ID: {workbookId}</div>
+                {folderStatus?.folderPath && (
+                  <div className="text-[11px] text-gray-400 break-all">
+                    Linked folder: {folderStatus.folderPath}
+                  </div>
+                )}
               </div>
             )}
             {messages.map((msg) => (
@@ -130,14 +215,16 @@ export function App() {
       </div>
 
       {/* Input */}
-      <ChatInput
-        value={input}
-        onChange={setInput}
-        onSend={handleSend}
-        onStop={stopStreaming}
-        isStreaming={isStreaming}
-        disabled={inputDisabled}
-      />
+      {isFolderLinked && !isEditingFolder && (
+        <ChatInput
+          value={input}
+          onChange={setInput}
+          onSend={handleSend}
+          onStop={stopStreaming}
+          isStreaming={isStreaming}
+          disabled={inputDisabled}
+        />
+      )}
     </div>
   );
 }

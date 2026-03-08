@@ -11,6 +11,11 @@ import {
   abortSession,
 } from "../agent/session.js";
 import { resolveWorkbookId } from "./workbook-identity.js";
+import {
+  getWorkbookFolderLink,
+  setWorkbookFolderLink,
+} from "./workbook-folder-store.js";
+import { pickLocalFolder } from "./folder-picker.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -179,6 +184,120 @@ function handleTaskpane(
 
 function handleVersion(_req: IncomingMessage, res: ServerResponse): void {
   sendJson(res, 200, { version: getVersion() });
+}
+
+// ---------------------------------------------------------------------------
+// Route: GET /api/folder/status
+// ---------------------------------------------------------------------------
+
+function handleFolderStatus(
+  req: IncomingMessage,
+  res: ServerResponse
+): void {
+  const rawUrl = req.url ?? "/";
+  const url = new URL(rawUrl, "https://localhost");
+  const workbookId = url.searchParams.get("workbookId")?.trim();
+
+  if (!workbookId) {
+    sendError(res, 400, "Missing workbookId query parameter");
+    return;
+  }
+
+  const link = getWorkbookFolderLink(workbookId);
+  if (!link) {
+    sendJson(res, 200, {
+      workbookId,
+      linked: false,
+    });
+    return;
+  }
+
+  sendJson(res, 200, {
+    workbookId,
+    linked: true,
+    folderPath: link.folderPath,
+    link,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Route: POST /api/folder/pick
+// ---------------------------------------------------------------------------
+
+async function handleFolderPick(
+  _req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  try {
+    const folderPath = await pickLocalFolder();
+    sendJson(res, 200, {
+      picked: Boolean(folderPath),
+      folderPath,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to open native folder picker";
+    const status = message.toLowerCase().includes("timed out") ? 504 : 500;
+
+    sendError(res, status, message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Route: POST /api/folder/select
+// ---------------------------------------------------------------------------
+
+async function handleFolderSelect(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  const body = await parseJsonBody(req);
+
+  if (!body || typeof body !== "object") {
+    sendError(res, 400, "Missing folder selection payload");
+    return;
+  }
+
+  const workbookId =
+    typeof body.workbookId === "string" ? body.workbookId.trim() : "";
+  const folderPath =
+    typeof body.folderPath === "string" ? body.folderPath.trim() : "";
+
+  if (!workbookId) {
+    sendError(res, 400, "Missing workbookId in request body");
+    return;
+  }
+
+  if (!folderPath) {
+    sendError(res, 400, "Missing folderPath in request body");
+    return;
+  }
+
+  try {
+    const link = setWorkbookFolderLink({
+      workbookId,
+      folderPath,
+      workbookName:
+        typeof body.workbookName === "string" ? body.workbookName : null,
+      workbookUrl:
+        typeof body.workbookUrl === "string" ? body.workbookUrl : null,
+      host: typeof body.host === "string" ? body.host : null,
+      source: typeof body.source === "string" ? body.source : null,
+    });
+
+    sendJson(res, 200, {
+      workbookId,
+      linked: true,
+      folderPath: link.folderPath,
+      link,
+    });
+  } catch (error) {
+    sendError(
+      res,
+      400,
+      error instanceof Error ? error.message : "Failed to save folder mapping"
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -352,6 +471,9 @@ function handleConfigStatus(
 const API_ROUTES: Record<string, string> = {
   "/api/version": "GET",
   "/api/workbook/resolve": "POST",
+  "/api/folder/status": "GET",
+  "/api/folder/pick": "POST",
+  "/api/folder/select": "POST",
   "/api/agent": "POST",
   "/api/config/status": "GET",
 };
@@ -396,6 +518,21 @@ async function handleRequest(
 
   if (url === "/api/workbook/resolve" && method === "POST") {
     await handleWorkbookResolve(req, res);
+    return;
+  }
+
+  if (url === "/api/folder/status" && method === "GET") {
+    handleFolderStatus(req, res);
+    return;
+  }
+
+  if (url === "/api/folder/pick" && method === "POST") {
+    await handleFolderPick(req, res);
+    return;
+  }
+
+  if (url === "/api/folder/select" && method === "POST") {
+    await handleFolderSelect(req, res);
     return;
   }
 

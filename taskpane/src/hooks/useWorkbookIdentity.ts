@@ -2,18 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import {
   getWorkbookIdentityInput,
   resolveWorkbookIdentity,
+  type WorkbookIdentityInput,
 } from "../lib/api";
 
 const RECHECK_INTERVAL_MS = 5000;
 
 export interface WorkbookIdentityState {
   workbookId: string | null;
+  workbookIdentityInput: WorkbookIdentityInput | null;
   workbookResolveError: string | null;
   isResolvingWorkbook: boolean;
 }
 
 export function useWorkbookIdentity(enabled: boolean): WorkbookIdentityState {
   const [workbookId, setWorkbookId] = useState<string | null>(null);
+  const [workbookIdentityInput, setWorkbookIdentityInput] =
+    useState<WorkbookIdentityInput | null>(null);
   const [workbookResolveError, setWorkbookResolveError] = useState<string | null>(null);
   const [isResolvingWorkbook, setIsResolvingWorkbook] = useState(false);
   const lastResolvedRef = useRef<string | null>(null);
@@ -27,6 +31,7 @@ export function useWorkbookIdentity(enabled: boolean): WorkbookIdentityState {
   useEffect(() => {
     if (!enabled) {
       setWorkbookId(null);
+      setWorkbookIdentityInput(null);
       setWorkbookResolveError(null);
       setIsResolvingWorkbook(false);
       lastResolvedRef.current = null;
@@ -44,6 +49,10 @@ export function useWorkbookIdentity(enabled: boolean): WorkbookIdentityState {
       try {
         const input = await getWorkbookIdentityInput();
         const fingerprint = JSON.stringify(input);
+
+        if (!cancelled) {
+          setWorkbookIdentityInput(input);
+        }
 
         if (!force && lastResolvedRef.current === fingerprint && workbookIdRef.current) {
           if (!cancelled) setWorkbookResolveError(null);
@@ -96,5 +105,10 @@ export function useWorkbookIdentity(enabled: boolean): WorkbookIdentityState {
     };
   }, [enabled]);
 
-  return { workbookId, workbookResolveError, isResolvingWorkbook };
+  return {
+    workbookId,
+    workbookIdentityInput,
+    workbookResolveError,
+    isResolvingWorkbook,
+  };
 }
