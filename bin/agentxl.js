@@ -254,14 +254,16 @@ async function start() {
 `);
 
   // ── Step 1: Load modules ───────────────────────────────────────────────
-  let ensureCerts, startServer, stopServer, setVerbose;
+  let ensureCerts, startServer, stopServer, setVerbose, getFolderPickerStrategy;
   try {
     const certs = await import("../dist/server/certs.js");
     const server = await import("../dist/server/index.js");
+    const picker = await import("../dist/server/folder-picker.js");
     ensureCerts = certs.ensureCerts;
     startServer = server.startServer;
     stopServer = server.stopServer;
     setVerbose = server.setVerbose;
+    getFolderPickerStrategy = picker.getFolderPickerStrategy;
   } catch (err) {
     step("❌", "Could not load AgentXL server modules");
     console.error("     Run 'npm run build' first to compile TypeScript.");
@@ -291,6 +293,27 @@ async function start() {
   } catch (err) {
     step("❌", `Server failed to start: ${err.message}`);
     process.exit(1);
+  }
+
+  // ── Step 5: Folder picker strategy ────────────────────────────────────
+  const pickerStrategy = getFolderPickerStrategy();
+  const pickerLabels = {
+    "native-helper": "Native folder picker helper",
+    "powershell": "PowerShell folder picker (fallback)",
+    "osascript": "macOS folder picker (osascript)",
+    "manual-only": "Manual path entry only",
+  };
+  const pickerLabel = pickerLabels[pickerStrategy.method] || pickerStrategy.method;
+  if (pickerStrategy.method === "native-helper") {
+    step("✅", `Folder picker: ${pickerLabel}`);
+  } else if (pickerStrategy.method === "powershell" || pickerStrategy.method === "osascript") {
+    step("⚠️", `Folder picker: ${pickerLabel}`);
+    if (pickerStrategy.platform === "win32") {
+      step("  ", "Build the native helper for a better experience:");
+      step("  ", "  npm run build:folder-picker:win");
+    }
+  } else {
+    step("ℹ️", `Folder picker: ${pickerLabel}`);
   }
 
   // ── Post-start guidance ────────────────────────────────────────────────

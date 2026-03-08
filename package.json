@@ -35,7 +35,6 @@
     "dist/",
     "taskpane/dist/",
     "manifest/",
-    "tools/folder-picker-win/",
     "package.json",
     "README.md",
     "LICENSE"
@@ -44,7 +43,7 @@
     "build": "tsc && npm run build:taskpane",
     "build:server": "tsc",
     "build:taskpane": "cd taskpane && npx vite build",
-    "build:folder-picker:win": "dotnet publish ./tools/folder-picker-win/agentxl-folder-picker.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained false -o ./bin",
+    "build:folder-picker:win": "dotnet publish ./tools/folder-picker-win/agentxl-folder-picker.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true -o ./bin",
     "dev:taskpane": "cd taskpane && npx vite dev",
     "start": "node bin/agentxl.js start",
     "prepublishOnly": "npm run build",

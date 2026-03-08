@@ -228,6 +228,31 @@ async function pickLocalFolderWithPowerShell(timeoutMs: number): Promise<string 
   return selected.length > 0 ? selected : null;
 }
 
+export interface FolderPickerStrategy {
+  platform: string;
+  method: "native-helper" | "powershell" | "osascript" | "manual-only";
+  helperPath: string | null;
+}
+
+/** Detect which folder picker strategy will be used at runtime. */
+export function getFolderPickerStrategy(): FolderPickerStrategy {
+  const currentPlatform = platform();
+
+  if (currentPlatform === "win32") {
+    const helperPath = getFolderPickerHelperPath();
+    if (helperPath) {
+      return { platform: "win32", method: "native-helper", helperPath };
+    }
+    return { platform: "win32", method: "powershell", helperPath: null };
+  }
+
+  if (currentPlatform === "darwin") {
+    return { platform: "darwin", method: "osascript", helperPath: null };
+  }
+
+  return { platform: currentPlatform, method: "manual-only", helperPath: null };
+}
+
 export async function pickLocalFolder(
   initialPath?: string | null
 ): Promise<string | null> {
