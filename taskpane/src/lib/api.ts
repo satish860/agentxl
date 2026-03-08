@@ -178,31 +178,18 @@ export async function getFolderStatus(workbookId: string): Promise<FolderStatus>
 export async function pickFolder(
   initialPath?: string | null
 ): Promise<FolderPickResult> {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), 16000);
+  const res = await fetch(`${BASE}/api/folder/pick`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ initialPath: initialPath ?? null }),
+  });
 
-  try {
-    const res = await fetch(`${BASE}/api/folder/pick`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initialPath: initialPath ?? null }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "Folder picker failed" }));
-      throw new Error(body.error || `Folder picker failed: HTTP ${res.status}`);
-    }
-
-    return res.json();
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("Folder picker timed out. Paste the folder path manually instead.");
-    }
-    throw error;
-  } finally {
-    window.clearTimeout(timeoutId);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Folder picker failed" }));
+    throw new Error(body.error || `Folder picker failed: HTTP ${res.status}`);
   }
+
+  return res.json();
 }
 
 export async function selectFolder(

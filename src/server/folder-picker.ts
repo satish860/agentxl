@@ -35,7 +35,9 @@ function getPickerTimeoutMs(): number {
     return parsed;
   }
 
-  return 15000;
+  // No timeout by default — let the user take as long as they need.
+  // The picker is a blocking dialog; it closes when the user picks or cancels.
+  return 0;
 }
 
 function toFriendlyPickerError(error: unknown): Error {
@@ -75,7 +77,8 @@ function execFileAsync(
       args,
       {
         windowsHide: true,
-        timeout: timeoutMs,
+        // 0 means no timeout — let the user take as long as they need.
+        timeout: timeoutMs > 0 ? timeoutMs : 0,
       },
       (error, stdout) => {
         if (error) {
