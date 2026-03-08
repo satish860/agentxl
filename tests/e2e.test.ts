@@ -145,16 +145,12 @@ async function run() {
         assert.ok(input, "should have folder path input");
       });
 
-      await test("folder picker keeps manual path entry usable and then fills the path", async () => {
-        await page.click("text=Try folder picker");
+      await test("manual path entry links a folder", async () => {
         const input = await page.$('input[placeholder*="Clients"]');
         assert.ok(input, "should have folder path input");
-        assert.equal(await input!.isDisabled(), false, "manual path input should stay enabled");
+        assert.equal(await input!.isDisabled(), false, "path input should be enabled");
 
-        await page.waitForFunction(() => {
-          const el = document.querySelector('input[placeholder*="Clients"]') as HTMLInputElement | null;
-          return !!el && el.value.includes('Picked Folder');
-        }, { timeout: 5000 });
+        await input!.fill("C:\\Evidence\\Picked Folder");
 
         await page.click("text=Link folder");
         await page.waitForSelector("text=Linked folder", { timeout: 5000 });

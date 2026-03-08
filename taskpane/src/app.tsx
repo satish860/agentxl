@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { pickFolder } from "./lib/api";
 import { useAgentStatus } from "./hooks/useAgentStatus";
 import { useWorkbookIdentity } from "./hooks/useWorkbookIdentity";
 import { useFolderLink } from "./hooks/useFolderLink";
@@ -35,8 +34,6 @@ export function App() {
     useChatStream(markServerDown);
   const [input, setInput] = useState("");
   const [isEditingFolder, setIsEditingFolder] = useState(false);
-  const [isPickingFolder, setIsPickingFolder] = useState(false);
-  const [pickerError, setPickerError] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
@@ -63,7 +60,6 @@ export function App() {
 
   const handleSaveFolder = useCallback(
     async (folderPath: string) => {
-      setPickerError(null);
       const ok = await saveFolderLink(folderPath);
       if (ok) {
         setIsEditingFolder(false);
@@ -71,28 +67,6 @@ export function App() {
     },
     [saveFolderLink]
   );
-
-  const handlePickFolder = useCallback(async () => {
-    setPickerError(null);
-    setIsPickingFolder(true);
-    try {
-      const result = await pickFolder(folderStatus?.folderPath ?? null);
-      return result.folderPath;
-    } catch (error) {
-      setPickerError(
-        error instanceof Error
-          ? error.message
-          : "Could not open the folder picker. Paste the folder path manually instead."
-      );
-      return null;
-    } finally {
-      setIsPickingFolder(false);
-    }
-  }, [folderStatus?.folderPath]);
-
-  useEffect(() => {
-    setPickerError(null);
-  }, [workbookId]);
 
   // ── Connection error (never connected) ──────────────────────────────────
   if (connectionError && !status) {
@@ -161,9 +135,7 @@ export function App() {
               workbookName={workbookIdentityInput?.workbookName ?? null}
               currentFolderPath={folderStatus?.folderPath ?? null}
               isSaving={isSavingFolder || isLoadingFolderStatus}
-              isPickingFolder={isPickingFolder}
-              error={pickerError ?? folderError}
-              onPickFolder={handlePickFolder}
+              error={folderError}
               onSave={handleSaveFolder}
               onCancel={isFolderLinked ? () => setIsEditingFolder(false) : undefined}
             />
