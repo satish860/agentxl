@@ -8,6 +8,8 @@ src/**/*.js
 src/**/*.js.map
 src/**/*.d.ts
 src/**/*.d.ts.map
+tools/folder-picker-win/bin/
+tools/folder-picker-win/obj/
 
 # Environment
 .env

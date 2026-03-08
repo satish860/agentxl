@@ -225,11 +225,17 @@ function handleFolderStatus(
 // ---------------------------------------------------------------------------
 
 async function handleFolderPick(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse
 ): Promise<void> {
   try {
-    const folderPath = await pickLocalFolder();
+    const body = await parseJsonBody(req);
+    const initialPath =
+      body && typeof body === "object" && typeof body.initialPath === "string"
+        ? body.initialPath
+        : null;
+
+    const folderPath = await pickLocalFolder(initialPath);
     sendJson(res, 200, {
       picked: Boolean(folderPath),
       folderPath,

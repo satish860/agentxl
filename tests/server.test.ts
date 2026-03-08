@@ -31,6 +31,7 @@ const PORT = 3098;
 const BASE = `https://localhost:${PORT}`;
 const TASKPANE_DIST = join(__dirname, "..", "taskpane", "dist");
 const ASSETS_DIR = join(TASKPANE_DIST, "assets");
+const MOCK_FOLDER_PICKER = join(__dirname, "fixtures", "mock-folder-picker.mjs");
 
 // ---------------------------------------------------------------------------
 // HTTP helpers
@@ -163,12 +164,18 @@ async function run() {
   const originalPickFolderDelay = process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS;
   const originalPickFolderTimeout = process.env.AGENTXL_PICK_FOLDER_TIMEOUT_MS;
   const originalPickFolderError = process.env.AGENTXL_PICK_FOLDER_TEST_ERROR;
+  const originalFolderPickerHelper = process.env.AGENTXL_FOLDER_PICKER_HELPER;
+  const originalMockFolderPickerMode = process.env.MOCK_FOLDER_PICKER_MODE;
+  const originalMockFolderPickerPath = process.env.MOCK_FOLDER_PICKER_PATH;
   const tempDataDir = mkdtempSync(join(tmpdir(), "agentxl-server-test-"));
   process.env.AGENTXL_DATA_DIR = tempDataDir;
   process.env.AGENTXL_PICK_FOLDER_TEST_PATH = "C:\\Evidence\\Picked Folder";
   delete process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS;
   delete process.env.AGENTXL_PICK_FOLDER_TIMEOUT_MS;
   delete process.env.AGENTXL_PICK_FOLDER_TEST_ERROR;
+  delete process.env.AGENTXL_FOLDER_PICKER_HELPER;
+  delete process.env.MOCK_FOLDER_PICKER_MODE;
+  delete process.env.MOCK_FOLDER_PICKER_PATH;
 
   // Setup
   setupTaskpaneDist();
@@ -406,6 +413,28 @@ async function run() {
       const json = JSON.parse(res.body);
       assert.equal(json.picked, true);
       assert.equal(json.folderPath, "C:\\Evidence\\Picked Folder");
+    });
+
+    await test("POST /api/folder/pick uses the native helper contract when configured", async () => {
+      process.env.AGENTXL_PICK_FOLDER_TEST_PATH = "";
+      process.env.AGENTXL_FOLDER_PICKER_HELPER = MOCK_FOLDER_PICKER;
+      process.env.MOCK_FOLDER_PICKER_MODE = "success";
+      process.env.MOCK_FOLDER_PICKER_PATH = "C:\\Helper Picked\\Support";
+
+      try {
+        const res = await httpPost("/api/folder/pick", {
+          initialPath: "C:\\Existing\\Support",
+        });
+        assert.equal(res.status, 200);
+        const json = JSON.parse(res.body);
+        assert.equal(json.picked, true);
+        assert.equal(json.folderPath, "C:\\Helper Picked\\Support");
+      } finally {
+        process.env.AGENTXL_PICK_FOLDER_TEST_PATH = "C:\\Evidence\\Picked Folder";
+        delete process.env.AGENTXL_FOLDER_PICKER_HELPER;
+        delete process.env.MOCK_FOLDER_PICKER_MODE;
+        delete process.env.MOCK_FOLDER_PICKER_PATH;
+      }
     });
 
     await test("POST /api/folder/pick returns timeout guidance when picker hangs", async () => {
@@ -707,6 +736,9 @@ async function run() {
     process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS = originalPickFolderDelay;
     process.env.AGENTXL_PICK_FOLDER_TIMEOUT_MS = originalPickFolderTimeout;
     process.env.AGENTXL_PICK_FOLDER_TEST_ERROR = originalPickFolderError;
+    process.env.AGENTXL_FOLDER_PICKER_HELPER = originalFolderPickerHelper;
+    process.env.MOCK_FOLDER_PICKER_MODE = originalMockFolderPickerMode;
+    process.env.MOCK_FOLDER_PICKER_PATH = originalMockFolderPickerPath;
     rmSync(tempDataDir, { recursive: true, force: true });
   }
 

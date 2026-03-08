@@ -76,7 +76,7 @@ export function App() {
     setPickerError(null);
     setIsPickingFolder(true);
     try {
-      const result = await pickFolder();
+      const result = await pickFolder(folderStatus?.folderPath ?? null);
       return result.folderPath;
     } catch (error) {
       setPickerError(
@@ -88,7 +88,7 @@ export function App() {
     } finally {
       setIsPickingFolder(false);
     }
-  }, []);
+  }, [folderStatus?.folderPath]);
 
   useEffect(() => {
     setPickerError(null);

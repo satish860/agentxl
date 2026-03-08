@@ -1,8 +1,30 @@
 import { execFile } from "child_process";
+import { existsSync } from "fs";
 import { platform } from "os";
+import { dirname, extname, join } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+interface FolderPickerHelperResponse {
+  ok: boolean;
+  cancelled?: boolean;
+  folderPath?: string | null;
+  error?: string;
+}
+
+interface CommandInvocation {
+  command: string;
+  args: string[];
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getProjectRoot(): string {
+  return join(__dirname, "..", "..");
 }
 
 function getPickerTimeoutMs(): number {
@@ -66,7 +88,149 @@ function execFileAsync(
   });
 }
 
-export async function pickLocalFolder(): Promise<string | null> {
+function getFolderPickerHelperPath(): string | null {
+  const override = process.env.AGENTXL_FOLDER_PICKER_HELPER?.trim();
+  if (override) {
+    return override;
+  }
+
+  const projectRoot = getProjectRoot();
+  const candidates = [
+    join(projectRoot, "bin", "agentxl-folder-picker.exe"),
+    join(
+      projectRoot,
+      "tools",
+      "folder-picker-win",
+      "bin",
+      "Release",
+      "net8.0-windows",
+      "win-x64",
+      "publish",
+      "agentxl-folder-picker.exe"
+    ),
+    join(
+      projectRoot,
+      "tools",
+      "folder-picker-win",
+      "bin",
+      "Release",
+      "net8.0-windows",
+      "publish",
+      "agentxl-folder-picker.exe"
+    ),
+  ];
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function buildHelperInvocation(
+  helperPath: string,
+  initialPath?: string | null
+): CommandInvocation {
+  const helperExt = extname(helperPath).toLowerCase();
+  const args: string[] = [];
+
+  if (initialPath && initialPath.trim().length > 0) {
+    args.push("--initial-path", initialPath.trim());
+  }
+
+  if ([".js", ".mjs", ".cjs"].includes(helperExt)) {
+    return {
+      command: process.execPath,
+      args: [helperPath, ...args],
+    };
+  }
+
+  return {
+    command: helperPath,
+    args,
+  };
+}
+
+function parseHelperResponse(stdout: string): FolderPickerHelperResponse {
+  const trimmed = stdout.trim();
+  if (!trimmed) {
+    throw new Error("Folder picker helper returned no output");
+  }
+
+  const lines = trimmed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const candidates = Array.from(new Set([lines.at(-1) ?? trimmed, trimmed]));
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as FolderPickerHelperResponse;
+      if (parsed && typeof parsed.ok === "boolean") {
+        return parsed;
+      }
+    } catch {
+      // Try next candidate.
+    }
+  }
+
+  throw new Error("Folder picker helper returned invalid JSON");
+}
+
+async function pickLocalFolderWithHelper(
+  helperPath: string,
+  timeoutMs: number,
+  initialPath?: string | null
+): Promise<string | null> {
+  const invocation = buildHelperInvocation(helperPath, initialPath);
+  const stdout = await execFileAsync(
+    invocation.command,
+    invocation.args,
+    timeoutMs
+  );
+  const response = parseHelperResponse(stdout);
+
+  if (!response.ok) {
+    throw new Error(response.error || "Folder picker helper failed");
+  }
+
+  if (response.cancelled) {
+    return null;
+  }
+
+  const folderPath =
+    typeof response.folderPath === "string" ? response.folderPath.trim() : "";
+  return folderPath.length > 0 ? folderPath : null;
+}
+
+async function pickLocalFolderWithPowerShell(timeoutMs: number): Promise<string | null> {
+  const script = [
+    "Add-Type -AssemblyName System.Windows.Forms",
+    "[System.Windows.Forms.Application]::EnableVisualStyles()",
+    "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog",
+    "$dialog.Description = 'Choose the folder with your supporting documents'",
+    "$dialog.ShowNewFolderButton = $false",
+    "$dialog.UseDescriptionForTitle = $true",
+    "$dialog.RootFolder = [System.Environment+SpecialFolder]::MyDocuments",
+    "if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialog.SelectedPath }",
+  ].join("; ");
+
+  const stdout = await execFileAsync(
+    "powershell",
+    ["-NoProfile", "-STA", "-Command", script],
+    timeoutMs
+  );
+
+  const selected = stdout.trim();
+  return selected.length > 0 ? selected : null;
+}
+
+export async function pickLocalFolder(
+  initialPath?: string | null
+): Promise<string | null> {
   const testDelayRaw = process.env.AGENTXL_PICK_FOLDER_TEST_DELAY_MS?.trim();
   const testDelayMs = testDelayRaw ? Number(testDelayRaw) : NaN;
   if (Number.isFinite(testDelayMs) && testDelayMs > 0) {
@@ -87,25 +251,34 @@ export async function pickLocalFolder(): Promise<string | null> {
   const timeoutMs = getPickerTimeoutMs();
 
   if (currentPlatform === "win32") {
-    const script = [
-      "Add-Type -AssemblyName System.Windows.Forms",
-      "[System.Windows.Forms.Application]::EnableVisualStyles()",
-      "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog",
-      "$dialog.Description = 'Choose the folder with your supporting documents'",
-      "$dialog.ShowNewFolderButton = $false",
-      "$dialog.UseDescriptionForTitle = $true",
-      "$dialog.RootFolder = [System.Environment+SpecialFolder]::MyDocuments",
-      "if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialog.SelectedPath }",
-    ].join("; ");
+    const helperPath = getFolderPickerHelperPath();
 
-    const stdout = await execFileAsync(
-      "powershell",
-      ["-NoProfile", "-STA", "-Command", script],
-      timeoutMs
-    );
+    if (helperPath) {
+      try {
+        return await pickLocalFolderWithHelper(helperPath, timeoutMs, initialPath);
+      } catch (error) {
+        const helperError =
+          error instanceof Error ? error.message : "Folder picker helper failed";
 
-    const selected = stdout.trim();
-    return selected.length > 0 ? selected : null;
+        if (helperError.toLowerCase().includes("timed out")) {
+          throw error instanceof Error ? error : new Error(helperError);
+        }
+
+        try {
+          return await pickLocalFolderWithPowerShell(timeoutMs);
+        } catch (fallbackError) {
+          const fallbackMessage =
+            fallbackError instanceof Error
+              ? fallbackError.message
+              : "PowerShell folder picker fallback failed";
+          throw new Error(
+            `${helperError}. PowerShell fallback also failed: ${fallbackMessage}`
+          );
+        }
+      }
+    }
+
+    return pickLocalFolderWithPowerShell(timeoutMs);
   }
 
   if (currentPlatform === "darwin") {

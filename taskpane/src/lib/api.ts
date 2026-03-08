@@ -175,7 +175,9 @@ export async function getFolderStatus(workbookId: string): Promise<FolderStatus>
   return res.json();
 }
 
-export async function pickFolder(): Promise<FolderPickResult> {
+export async function pickFolder(
+  initialPath?: string | null
+): Promise<FolderPickResult> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), 16000);
 
@@ -183,6 +185,7 @@ export async function pickFolder(): Promise<FolderPickResult> {
     const res = await fetch(`${BASE}/api/folder/pick`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initialPath: initialPath ?? null }),
       signal: controller.signal,
     });
 
