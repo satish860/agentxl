@@ -1,12 +1,30 @@
 # AgentXL — Code Agent Context
 
-> Open-source AI agent that lives inside Microsoft Excel. Built by DeltaXY.
+> Local-first document-to-Excel agent for evidence-heavy work. Built by DeltaXY.
 
 ---
 
-## What Is This
+## What This Is
 
-AgentXL is an open-source Excel add-in that brings an AI agent into the Excel taskpane. Users chat in natural language — the agent reads data, writes formulas, creates charts, formats ranges, and manages worksheets. Everything runs locally on the user's machine.
+AgentXL is **not** a generic Excel chatbot.
+
+AgentXL is a local-first Excel add-in for workflows where the **source of truth lives in documents** and the **final output lives in Excel**.
+
+The core workflow is:
+
+1. User points AgentXL at a **local folder** of source documents
+2. User asks a grounded question or gives a mapping instruction
+3. AgentXL **searches the folder agentically**, reads the relevant files, and extracts the answer
+4. AgentXL maps the grounded result into Excel with **traceability back to source files**
+
+Primary wedge:
+- audit
+- due diligence
+- transaction support
+- compliance / evidence review
+
+Broader market:
+- any document-heavy professional workflow that ends in spreadsheets
 
 **Install and run:**
 ```bash
@@ -14,210 +32,295 @@ npm install -g agentxl
 agentxl start
 ```
 
-That's it. No server. No cloud. No account. User provides their own Anthropic API key.
+No cloud server. No account with us. User brings their own model/provider.
 
 ---
 
-## Architecture
+## Product Positioning
 
-```
+### One-line definition
+AgentXL turns source documents into traceable Excel workpapers.
+
+### What we are optimizing for
+- **Relief**, not novelty
+- **Outcome over tool**
+- **Evidence over chat**
+- **Folder-first workflow**
+- **Traceability over automation theater**
+- **Evals before infrastructure**
+
+### What we are not building
+- not a generic “ask Excel anything” assistant
+- not a classic RAG stack with embeddings/vector DB as the starting point
+- not a feature buffet of charts, formulas, and worksheet tricks as the main story
+
+Excel is the execution surface, not the product identity.
+
+---
+
+## Core Product Method
+
+AgentXL follows this method:
+
+**Parse → Search → Ask → Evaluate → Fix → Repeat**
+
+This is intentionally aligned with the product philosophy from:
+- `C:\Source\Business\productdesign.md`
+- your blog post: **You Don't Need 36 Tools to Build Agentic RAG**
+
+Implications for implementation:
+- prefer simple parsing + direct file reading over heavyweight infra
+- use **agentic file search** over local folders
+- treat Excel tools as low-level execution primitives
+- design for explicit source traceability
+- build eval loops early for extraction / mapping correctness
+
+---
+
+## Architecture (Target)
+
+```text
 User runs: agentxl start
   → Local HTTPS server on localhost:3001
-  → Serves /taskpane (static HTML/JS/CSS — chat UI)
-  → Serves POST /api/agent (Pi SDK → Claude → SSE events)
+  → Serves /taskpane UI
+  → Serves API endpoints for agent orchestration
 
-Excel loads taskpane from https://localhost:3001/taskpane
-  → User chats
-  → Agent reasons + calls Excel tools
-  → Taskpane executes Office.js operations on the spreadsheet
+User opens Excel taskpane
+  → Selects workbook / sheet context
+  → Points AgentXL at a local folder of evidence files
+  → Agent searches files, reads relevant documents, and prepares grounded results
+  → Taskpane writes mapped outputs into Excel via Office.js
 ```
 
 ### Stack
 - **Runtime:** Node.js
-- **Agent:** Pi SDK (`@mariozechner/pi-coding-agent`) — session management, tool calling, streaming
-- **LLM:** Claude via Anthropic API (or Azure Claude for enterprise)
-- **Excel integration:** Office.js (Microsoft Office Add-in API)
-- **Taskpane UI:** React (pre-built, served as static files)
-- **HTTPS:** OS-trusted localhost cert via office-addin-dev-certs (Office add-ins require HTTPS)
+- **Agent runtime:** Pi SDK (`@mariozechner/pi-coding-agent`)
+- **LLM:** user-selected provider via Pi auth / API key
+- **Excel integration:** Office.js
+- **Taskpane UI:** React (static build)
+- **HTTPS:** `office-addin-dev-certs`
 
-### No Next.js. No Vercel. No CDN. One npm package. One process.
+### Architectural principle
+**Documents are the source. Excel is the destination.**
+
+---
+
+## Current State vs Target State
+
+### Current repo has
+- local HTTPS server
+- Pi SDK session + streaming
+- Excel taskpane shell
+- auth flow
+- low-level Excel tool execution path
+
+### Target repo needs
+- local folder selection
+- document inventory / indexing metadata
+- agentic file search
+- selective file reading / parsing
+- grounded extraction with citations / traceability
+- Excel mapping workflows
+- eval and correction loop for document tasks
+
+If existing code or docs conflict with this document, prefer **this document + README + product spec**.
 
 ---
 
 ## Folder Structure
 
-```
+```text
 C:\Code\AgentXL\
 ├── bin/
-│   └── agentxl.js              ← CLI entry point ("agentxl start")
+│   └── agentxl.js                     ← CLI entry point
 ├── src/
 │   ├── server/
-│   │   └── index.ts            ← HTTPS server (~150 lines)
-│   │                              - GET /taskpane/* → serves static files
-│   │                              - POST /api/agent → Pi SDK session → Claude → SSE
+│   │   └── index.ts                   ← HTTPS server + API endpoints
 │   ├── agent/
-│   │   ├── session.ts          ← Pi SDK: createAgentSession, prompt, subscribe, stream events
+│   │   ├── session.ts                 ← Pi SDK agent session
+│   │   ├── models.ts                  ← Model/provider resolution
 │   │   ├── tools/
-│   │   │   └── excel-tools.ts  ← 10 Excel tool definitions
-│   │   └── provider/
-│   │       └── azure-provider.ts  ← Azure Claude support (optional)
+│   │   │   ├── excel-tools.ts         ← Low-level Excel execution tools
+│   │   │   └── document-tools.ts      ← Planned: folder/file/search/extract tools
+│   │   ├── search/                    ← Planned: agentic file search helpers
+│   │   └── parser/                    ← Planned: file parsing / normalization
 │   └── types/
-│       └── office.d.ts         ← Office.js type declarations
+│       └── office.d.ts                ← Office.js type declarations
 ├── taskpane/
-│   ├── index.html              ← Entry point loaded by Excel
+│   ├── index.html                     ← Taskpane entry point
 │   ├── src/
-│   │   ├── app.tsx             ← Chat UI (streaming, thinking blocks, tool cards)
-│   │   ├── components/
-│   │   │   ├── ThinkingBlock.tsx
-│   │   │   └── ToolCard.tsx
-│   │   └── lib/
-│   │       └── excel-executor.ts  ← Executes Excel operations via Office.js
-│   └── styles/
-│       └── globals.css
+│   │   ├── app.tsx                    ← Taskpane orchestrator
+│   │   ├── components/                ← UI pieces
+│   │   └── lib/                       ← API client, stream handling, Excel executor
+├── docs/
+│   ├── FOLDER_FIRST_PRODUCT_SPEC.md   ← Product spec for document-first workflow
+│   ├── TECHNICAL_ARCHITECTURE.md      ← Legacy / partially stale
+│   ├── USER_FLOW.md                   ← Legacy / partially stale
+│   └── TASKS.md                       ← Legacy module checklist
 ├── manifest/
-│   └── manifest.xml            ← Office add-in manifest → localhost:3001
-├── .env.example
-├── .gitignore
-├── package.json
-├── tsconfig.json
-├── LICENSE                     ← MIT
+│   └── manifest.xml
 ├── README.md
-└── AGENTS.md                   ← This file
+└── AGENTS.md
 ```
 
 ---
 
-## 10 Excel Tools
+## Product Surface vs Implementation Surface
 
-| Tool | What It Does |
-|------|-------------|
-| `excel_read_range` | Read data, values, formulas from any range or active selection |
-| `excel_write_range` | Write values or formulas to ranges |
-| `excel_create_table` | Convert ranges to structured Excel tables |
-| `excel_create_chart` | Create charts (column, bar, line, pie, scatter, area, doughnut) |
-| `excel_get_workbook_info` | Get workbook metadata (sheets, tables, named ranges, sample data) |
-| `excel_format_range` | Apply formatting (fonts, colors, borders, number formats, alignment) |
-| `excel_insert_rows` | Insert rows into worksheets |
-| `excel_delete_rows` | Delete rows from worksheets |
-| `excel_add_worksheet` | Add new worksheets |
-| `excel_run_formula` | Evaluate formulas without writing to cells |
+### Product surface (what users care about)
+- choose local document folder
+- search evidence
+- answer grounded questions
+- map outputs into Excel
+- trace cells back to source files
+- reconcile source files against workbook content
 
----
+### Implementation surface (how we do it)
+- file listing / metadata
+- parsers for PDFs / CSV / XLSX / TXT
+- selective reads
+- model prompts
+- Office.js write / format operations
 
-## How the Pieces Fit
+### Important rule
+Do **not** confuse low-level Excel primitives with the product itself.
 
-### Server (`src/server/index.ts`)
-- HTTPS server on localhost:3001
-- Static file serving: `/taskpane/*` → files from `taskpane/` directory
-- Agent endpoint: `POST /api/agent` → receives message + Excel context → streams SSE events back
-- Single process, single user, no session management complexity
+`excel_write_range` is implementation.
 
-### Agent Session (`src/agent/session.ts`)
-- Uses Pi SDK's `createAgentSession` with Excel tools as custom tools
-- On `POST /api/agent`:
-  1. Receives `{ message, context }` from taskpane
-  2. Calls `session.prompt(message)`
-  3. Subscribes to events (`message_update`, `tool_execution_start`, `tool_execution_end`, `agent_end`)
-  4. Streams events as SSE (`data: ${JSON.stringify(event)}\n\n`)
-- API key: checks `ANTHROPIC_API_KEY` env var or Pi SDK's `AuthStorage`
-
-### Excel Tools (`src/agent/tools/excel-tools.ts`)
-- Each tool returns an instruction object: `{ operation, params }`
-- Tools don't execute Excel operations directly — they describe WHAT to do
-- The taskpane client receives the instruction and executes it via Office.js
-- This split exists because Office.js runs in the browser (taskpane), not on the server
-
-### Taskpane UI (`taskpane/`)
-- React chat interface loaded by Excel in an embedded WebView
-- Sends user messages to `localhost:3001/api/agent`
-- Reads SSE stream, renders: thinking blocks, tool execution cards, text responses
-- On `tool_execution_end` events with Excel instructions: calls `excel-executor.ts`
-- `excel-executor.ts` uses Office.js API to actually modify the spreadsheet
-
-### Manifest (`manifest/manifest.xml`)
-- Tells Excel where to load the taskpane from: `https://localhost:3001/taskpane`
-- Adds "AgentXL" button to the Home ribbon tab
-- User registers via Trusted Add-in Catalog (one-time setup)
+“Map the cash balance from the bank statement folder into the cash workpaper with a citation” is product behavior.
 
 ---
 
-## CLI (`bin/agentxl.js`)
+## Planned Tool Architecture
 
-```
-agentxl start [--port 3001]
-  1. Check for API key (ANTHROPIC_API_KEY env var or Pi SDK auth)
-     → If missing: prompt user to enter it, save via Pi SDK AuthStorage
-  2. Generate/check HTTPS cert for localhost (office-addin-dev-certs)
-  3. Start HTTPS server on specified port
-  4. Print:
-     "🚀 AgentXL running at https://localhost:3001"
-     "📎 First time? Sideload the add-in in Excel:"
-     "   Add to Excel via Trusted Add-in Catalog (one-time)"
-     "   Select: [path to manifest.xml]"
-```
+### Low-level Excel tools (existing / near-existing)
+- `excel_read_range`
+- `excel_write_range`
+- `excel_create_table`
+- `excel_create_chart`
+- `excel_get_workbook_info`
+- `excel_format_range`
+- `excel_insert_rows`
+- `excel_delete_rows`
+- `excel_add_worksheet`
+- `excel_run_formula`
 
----
+### Higher-level document tools (planned)
+- `document_list_folder`
+- `document_get_file_metadata`
+- `document_read_file`
+- `document_extract_text`
+- `document_extract_table`
+- `document_search_folder`
+- `document_answer_question`
+- `document_trace_sources`
+- `document_compare_to_workbook`
+- `document_map_to_excel`
 
-## Reference Implementation
-
-Deepak built a working prototype: https://github.com/deepak-chowdry/agent-excel
-
-**What to port (reuse the logic, rewrite for new architecture):**
-- `agent-pi/tools/excel-tools.ts` → `src/agent/tools/excel-tools.ts` (10 tool definitions — port directly)
-- `agent-pi/provider/azure-provider.ts` → `src/agent/provider/azure-provider.ts` (port directly)
-- `lib/excel-executor.ts` → `taskpane/src/lib/excel-executor.ts` (port directly)
-- `app/taskpane/page.tsx` → `taskpane/src/app.tsx` (port chat UI, remove Next.js dependencies)
-- `components/blocks/ThinkingBlock.tsx` → `taskpane/src/components/ThinkingBlock.tsx` (port directly)
-- `components/blocks/ToolCard.tsx` → `taskpane/src/components/ToolCard.tsx` (port directly)
-- `agent-pi/init.ts` → `src/agent/session.ts` (extract Pi SDK session logic, remove Next.js wrappers)
-
-**What to NOT port:**
-- `app/api/agent/route.ts` — Next.js API route. Replace with plain HTTP handler in `src/server/index.ts`
-- `app/page.tsx` — Next.js landing page. Not needed.
-- `next.config.ts`, `postcss.config.mjs`, `components.json` — Next.js config. Not needed.
-- `lib/use-agent.ts` — React hook for Next.js. Not needed (taskpane handles streaming directly).
+The higher-level document tools are the real product layer.
 
 ---
 
-## Key Design Decisions
+## UX Direction
 
-| Decision | Rationale |
-|----------|-----------|
-| No Next.js | Unnecessary complexity. A ~150 line HTTPS server does everything needed. |
-| Everything local | No server dependency. No BYOK panel. No multi-user sessions. Pi SDK handles auth. |
-| Static taskpane | Pre-built React bundle served as static files. No SSR needed for a chat UI. |
-| Tools describe, client executes | Excel tools return instructions. Taskpane executes via Office.js. Because Office.js runs in the browser, not Node.js. |
-| Single session | One user, one machine, one Pi SDK agent session. No session management needed. |
-| MIT license | Maximize adoption. Code isn't the moat — domain expertise is. |
-| npm package | `npm install -g agentxl` → instant distribution. npm downloads = public social proof. |
+The primary user action should be:
+
+> **Point AgentXL at the local folder with the supporting documents.**
+
+Not:
+
+> Ask your spreadsheet a question.
+
+### Taskpane should evolve toward
+- folder picker / folder status
+- file inventory panel
+- search / evidence status
+- grounded answer area
+- traceability / citations
+- mapping preview into Excel
+- exception list / review state
+
+Chat remains useful, but chat should be in service of the workflow — not the identity of the product.
 
 ---
 
-## Build Order
+## Delivery Priorities
 
-| # | What | Depends On | Effort |
-|---|------|-----------|--------|
-| 1 | `src/agent/tools/excel-tools.ts` — port 10 tools from reference | Nothing | 1 hour |
-| 2 | `src/agent/session.ts` — Pi SDK session init + prompt + event streaming | #1 | 2 hours |
-| 3 | `src/server/index.ts` — HTTPS server with static serving + SSE endpoint | #2 | 2-3 hours |
-| 4 | `bin/agentxl.js` — CLI entry point with API key check | #3 | 1 hour |
-| 5 | Port taskpane UI (app.tsx, components, excel-executor, styles) | Nothing (parallel) | 2-3 hours |
-| 6 | `manifest/manifest.xml` — update URLs to localhost:3001 | #3 | 15 min |
-| 7 | HTTPS cert generation for localhost | #3 | 1 hour |
-| 8 | `package.json` with bin field + npm publish config | #4 | 30 min |
-| 9 | Test end-to-end: install globally → start → sideload → chat → Excel operations | All | 1-2 hours |
-| 10 | README.md | #9 (needs working demo for GIF) | 3-4 hours |
+### Phase 1 — Foundation
+1. local folder selection
+2. file listing + metadata
+3. parse supported file types
+4. basic agentic search across local files
+5. grounded answers from selected files
 
-**Total: ~14-17 hours (2 focused days)**
+### Phase 2 — Excel mapping
+6. map extracted results into workbook ranges
+7. show source traceability for mapped outputs
+8. reconcile workbook values against source files
+9. generate exception lists / review-ready outputs
+
+### Phase 3 — Quality loop
+10. benchmark set for document tasks
+11. pass/fail evals on extraction and mapping
+12. failure pattern analysis
+13. prompt / workflow improvements based on evals
+
+### Phase 4 — Workflow hardening
+14. larger folder support
+15. better file type coverage
+16. caching / incremental refresh
+17. review UX improvements
+
+---
+
+## Non-Goals (for now)
+
+- full enterprise document management system
+- generic semantic search platform
+- multi-user cloud collaboration
+- classic embeddings/vector DB stack as a default dependency
+- positioning as an all-purpose Excel copilot
+
+If scale later requires heavier retrieval infrastructure, add it later — after measuring real failure modes.
+
+---
+
+## Legacy Docs Warning
+
+Some repo docs and UI strings still reflect an earlier “AI for Excel / spreadsheet chat” direction.
+
+Treat these as historical unless updated:
+- `docs/TECHNICAL_ARCHITECTURE.md`
+- `docs/USER_FLOW.md`
+- `docs/TASKS.md`
+- some taskpane quick actions / placeholders
+- some package metadata / keywords
+
+Prefer the following sources of truth:
+1. `AGENTS.md`
+2. `README.md`
+3. `docs/FOLDER_FIRST_PRODUCT_SPEC.md`
 
 ---
 
 ## Business Context
 
-Full business strategy, competitive landscape, launch plan, and revenue model: `C:\Source\Business\projects\AgentXL\AGENTS.md`
+AgentXL’s wedge is **audit + diligence**, but the product should not be framed as “only for auditors.”
 
-**Summary:** AgentXL is DeltaXY's open-source distribution + brand engine. Free core drives GitHub stars, npm downloads, blog traffic. Commercial layer (AgentXL for Audit) adds SPV audit tools + document extraction for €150-200/user/month. DeltaXY owns all IP. Zero GT overlap.
+Correct framing:
+- built for audit and diligence workflows first
+- useful anywhere document-heavy work ends in spreadsheets
+
+Commercial expansion can go deeper into audit-specific workflows, but the open-source core should remain a strong **document-to-Excel agent**.
 
 ---
 
-*Created: March 6, 2026*
+## References
+
+- Product design principles: `C:\Source\Business\productdesign.md`
+- Business strategy: `C:\Source\Business\projects\AgentXL\AGENTS.md`
+- Product spec: `docs/FOLDER_FIRST_PRODUCT_SPEC.md`
+
+---
+
+*Updated: March 8, 2026*
