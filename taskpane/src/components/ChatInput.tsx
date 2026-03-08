@@ -51,7 +51,7 @@ export function ChatInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about your spreadsheet…"
+          placeholder="Ask about your source files…"
           disabled={isStreaming || disabled}
           rows={1}
           className="flex-1 resize-none rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50 disabled:bg-gray-50 placeholder:text-gray-400"

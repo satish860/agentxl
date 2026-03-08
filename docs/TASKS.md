@@ -1,272 +1,443 @@
-# AgentXL — Module 1 Tasks
+# AgentXL — Implementation Tasks
 
-> "Chat with Claude in Excel" — Developer Version
->
-> Goal: User runs `npm install -g agentxl` → `agentxl start` → authenticates via CLI → HTTPS server starts → add to Excel via Trusted Add-in Catalog → open taskpane → chat with AI inside Excel.
->
-> No Excel tools yet. Just proving the full pipeline works end-to-end.
+> Task roadmap for the folder-first, document-to-Excel version of AgentXL.
 
 ---
 
-## Prerequisites
+## 1. Goal
 
-- Node.js 20+
-- Excel desktop (Windows or Mac)
-- A subscription (Claude Pro/Max, ChatGPT Plus, GitHub Copilot) or an API key (Anthropic, OpenRouter, OpenAI)
+Build AgentXL into a product where a user can:
 
----
+1. open Excel
+2. point AgentXL at a local folder of source documents
+3. ask a grounded question
+4. review the answer with traceability
+5. map the result into Excel
 
-## Task 1: Project Scaffold ✅
-
-**What:** Initialize the project with package.json, TypeScript config, dependencies, and folder structure.
-
-**Files:** `package.json`, `tsconfig.json`, `.gitignore`, `.env.example`
-
-**Status:** Complete.
+This roadmap replaces the older spreadsheet-chat-first framing.
 
 ---
 
-## Task 2: HTTPS Certificate Generation ✅
+## 2. Guiding Principles
 
-**What:** Generate OS-trusted localhost certificates using Microsoft's `office-addin-dev-certs`. Office add-ins require HTTPS, and Excel blocks untrusted certificates.
-
-**Files:** `src/server/certs.ts`
-
-**Details:**
-- Uses `office-addin-dev-certs` (Microsoft's official package for Office Add-in development)
-- Generates certs AND installs CA into OS trust store automatically
-- Chrome, Edge, and Excel all trust localhost without manual steps
-- Certs stored at `~/.office-addin-dev-certs/` (Microsoft's default location)
-- First run may prompt for admin/keychain access — expected, one-time only
-
-**Status:** Complete. 3 tests passing.
+- **Folder-first** over spreadsheet-first
+- **Agentic file search** over classic RAG by default
+- **Traceability** over magic
+- **Evaluation** before complexity
+- **Excel as destination**, not identity
 
 ---
 
-## Task 3: HTTPS Server ✅
+## 3. Current Base
 
-**What:** Plain Node.js HTTPS server. No Express, no framework.
+Already present in the repo:
+- local HTTPS server
+- Pi SDK auth + session management
+- SSE chat streaming
+- Excel taskpane shell
+- Office.js execution path
+- build/test setup
 
-**Files:** `src/server/index.ts`
-
-**Routes:**
-
-| Method | Path | Purpose | Status |
-|--------|------|---------|--------|
-| `GET` | `/taskpane/*` | Serve static files | ✅ |
-| `POST` | `/api/agent` | Chat with AI (SSE) | ✅ |
-| `GET` | `/api/config/status` | Check auth status | ✅ |
-| `GET` | `/api/version` | Return version | ✅ |
-
-**Details:**
-- Binds to `127.0.0.1` only
-- CORS headers on all responses, OPTIONS preflight
-- 405 for known routes with wrong method
-- Content-Length on static files, cache headers (no-cache for HTML, max-age for assets)
-- Path traversal protection
-- SPA fallback for non-file paths
-- Verbose request logging via `setVerbose()`
-- `startServer(port, certs?)` and `stopServer()` exports
-
-**Status:** Complete. 32 tests passing.
+These pieces are useful foundations, but they are not yet the finished product workflow.
 
 ---
 
-## Task 4: CLI Entry Point ✅
+## 4. Implementation Phases
 
-**What:** `bin/agentxl.js` — guided setup wizard when user types `agentxl start`.
+## Phase 1 — Reframe the existing shell
 
-**Files:** `bin/agentxl.js`
+### Task 1.1 — Update stale user-facing copy
+**Goal:** Remove spreadsheet-first wording from current UI shell.
 
-**Commands:**
-- `agentxl start [--port 3001] [--verbose]` — authenticate (if needed) → start server → print next steps
-- `agentxl login` — standalone auth setup
-- `agentxl --version` — print version
-- `agentxl --help` — print usage
+**Files likely involved:**
+- `taskpane/src/components/WelcomeScreen.tsx`
+- `taskpane/src/components/ChatInput.tsx`
+- `package.json`
 
-**Start flow:**
-```
-  ┌──────────────────────────────────────┐
-  │         AgentXL v1.0.0              │
-  │      AI agent for Microsoft Excel    │
-  └──────────────────────────────────────┘
+**Changes:**
+- replace generic spreadsheet prompts with folder/document prompts
+- update package description and keywords to reflect document-to-Excel positioning
+- keep UI minimal and outcome-focused
 
-  ✅ Auth ready
-  ✅ HTTPS certificate ready (trusted by OS)
-  ✅ Server running at https://localhost:3001
-
-  [Next steps: browser test → one-time Excel setup → first message]
-```
-
-**Auth flow on first run (via Pi SDK):**
-- Outcome-focused menu: subscriptions grouped, API key grouped, "no account yet?" path
-- OAuth providers: `authStorage.login()` opens browser, saves token
-- API key: auto-detects provider from prefix, saves via `authStorage.set()`
-- Credentials shared with Pi (`~/.pi/agent/auth.json`) — same subscriptions, auto-refreshed tokens
-- Skips auth if already authenticated
-
-**Status:** Complete. Graceful shutdown with repeated-signal guard.
+**Status:** Pending
 
 ---
 
-## Task 5: Agent Session + SSE Streaming ✅
+## Phase 2 — Folder-first workflow foundation
 
-**What:** Pi SDK agent session and the `POST /api/agent` SSE endpoint.
+### Task 2.1 — Add folder selection capability
+**Goal:** Let user choose a local folder of source documents.
 
-**Files:** `src/agent/session.ts`, `src/agent/models.ts`
+**Requirements:**
+- select folder path
+- show selected path in UI
+- persist current folder in server/runtime state
+- support reselecting folder
 
-**`src/agent/models.ts` — Default model selection:**
-- Prefers subscriptions (OAuth) over API keys — subscriptions are already paid for
-- Priority: Anthropic → OpenAI Codex → OpenRouter → OpenAI
-- Uses `ModelRegistry.getAvailable()` (auth-aware) + `isUsingOAuth()` to rank
-- Falls back to first available model
+**Potential files:**
+- `src/server/index.ts`
+- `src/server/folder-service.ts` (new)
+- `taskpane/src/components/` (new folder picker UI)
+- `taskpane/src/lib/api.ts`
 
-**`src/agent/session.ts` — Session management:**
-- Auth resolution: `~/.agentxl/auth.json` → falls back to `~/.pi/agent/auth.json`
-- Module-level singleton session
-- `createAgentSession()` with `thinkingLevel: "medium"`, no built-in tools, in-memory session/settings
-- Exports: `initSession()`, `getSession()`, `isAuthenticated()`, `getAuthProvider()`, `resetSession()`, `abortSession()`
+**Status:** Pending
 
-**SSE endpoint (`POST /api/agent`):**
-- 401 if not authenticated
-- Prepends Excel context to message: `[Context: Active sheet: ..., Selected range: ...]`
-- Streams all Pi SDK events as SSE (`data: {...}\n\n`)
-- Closes stream on `agent_end`, handles client disconnect with `completed` guard
-- Error events sent as `{ type: "error", error: "..." }`
+### Task 2.2 — Folder status endpoint
+**Goal:** Expose selected folder info to the taskpane.
 
-**Status:** Complete. 19 tests passing (including live LLM SSE streaming tests).
+**API:**
+- `GET /api/folder/status`
+- `POST /api/folder/select`
+- `POST /api/folder/refresh`
 
----
+**Response should include:**
+- path
+- selected/not selected
+- file count
+- supported file count
+- last scanned timestamp
 
-## Task 6: Taskpane — Build Setup ✅
+**Status:** Pending
 
-**What:** Set up React + Vite + Tailwind for the taskpane UI.
+### Task 2.3 — File inventory model
+**Goal:** Represent files in the selected folder consistently.
 
-**Files:**
-- `taskpane/index.html`
-- `taskpane/vite.config.ts`
-- `taskpane/tsconfig.json`
-- `taskpane/src/main.tsx` (React entry point)
-- `taskpane/src/styles/globals.css` (Tailwind directives)
+**Fields:**
+- relative path
+- file name
+- extension
+- size
+- modified time
+- parse status
+- supported flag
 
-**Details:**
-- Vite + React 19 + Tailwind v4 + `@tailwindcss/typography`
-- Build output: `taskpane/dist/`
-- Base path: `/taskpane/`
-- Office.js loaded from Microsoft CDN
-- Tailwind v4 CSS-based (no `tailwind.config.js`)
-
-**Status:** Complete.
-
----
-
-## Task 7: Taskpane — Chat UI ✅
-
-**What:** Main chat interface with streaming responses, modularized into hooks and components.
-
-**Files:**
-- `taskpane/src/app.tsx` — thin orchestrator (~100 lines)
-- `taskpane/src/hooks/useAgentStatus.ts` — status fetch, reconnect, auth polling
-- `taskpane/src/hooks/useChatStream.ts` — send, abort, streaming, error handling
-- `taskpane/src/components/WelcomeScreen.tsx` — logo + quick actions
-- `taskpane/src/components/MessageBubble.tsx` — user/assistant/system messages
-- `taskpane/src/components/ChatInput.tsx` — textarea + send/stop buttons
-- `taskpane/src/components/ThinkingBlock.tsx` — collapsible thinking display
-- `taskpane/src/components/ConnectionError.tsx` — "can't connect" screen
-- `taskpane/src/components/AuthRequired.tsx` — "run agentxl login" screen
-- `taskpane/src/lib/types.ts` — typed `Message`, `AgentSSEEvent`, `AssistantMessageEvent`
-- `taskpane/src/lib/stream-handler.ts` — SSE event → message updates (no React dependency)
-- `taskpane/src/lib/api.ts` — API client, provider labels, SSE parsing
-
-**Features:**
-- Welcome screen with quick action buttons (Summarize, Chart, Formula)
-- SSE parsing via `assistantMessageEvent` deltas
-- Collapsible thinking blocks
-- Markdown rendering (react-markdown + remark-gfm + typography)
-- Reconnect banner on server failure (polls every 2s)
-- Auth polling when unauthenticated (detects `agentxl login` automatically)
-- Card-style assistant bubbles, right-aligned green user messages
-- Friendly provider labels (anthropic → Claude, etc.)
-- Stop button, Enter/Shift+Enter, auto-scroll, auto-resize textarea
-- Input disabled during server-down state
-
-**Status:** Complete.
+**Status:** Pending
 
 ---
 
-## Task 8: Manifest ✅
+## Phase 3 — Parsing pipeline
 
-**What:** Office add-in manifest XML for localhost.
+### Task 3.1 — Basic file enumeration
+**Goal:** Recursively list supported files in the selected folder.
 
-**Files:**
-- `manifest/manifest.xml`
+**Initial supported types:**
+- PDF
+- CSV
+- XLSX
+- TXT
+- MD
 
-**Details:**
-- Taskpane URL: `https://localhost:3001/taskpane/`
-- Display name: "AgentXL"
-- Provider: "DeltaXY"
-- Ribbon button on Home tab
-- Permissions: `ReadWriteDocument`
-- Placeholder icons (16/32/64/80px)
-- Registration via Trusted Add-in Catalog (one-time setup)
+**Status:** Pending
 
-**Status:** Complete. Verified working in Excel.
+### Task 3.2 — Parsing layer
+**Goal:** Normalize file contents into text/tables usable by the agent.
 
----
+**Likely module:**
+- `src/agent/parser/`
 
-## Task 9: E2E Tests ✅
+**Responsibilities:**
+- PDF text extraction
+- CSV reading
+- XLSX sheet extraction
+- TXT/MD plain text handling
 
-**What:** Playwright browser-based E2E tests covering the full pipeline.
+**Status:** Pending
 
-**Files:** `tests/e2e.test.ts`
+### Task 3.3 — Parse status reporting
+**Goal:** Surface parse success/failure per file in the UI or logs.
 
-**Tests:**
-1. Server health: version endpoint, auth status
-2. Taskpane loads without JS errors
-3. Welcome screen with quick actions
-4. Textarea and send button present
-5. Quick action fills textarea
-6. Send message → streaming response from Claude
-7. Follow-up message (session persists)
-8. Stop button appears during streaming
-9. Server stop/restart cycle
-
-**Status:** Complete. 10 tests passing.
+**Status:** Pending
 
 ---
 
-## All Tasks Complete ✅
+## Phase 4 — Agentic file search
 
-| Task | Tests | Status |
-|------|-------|--------|
-| Task 1: Project Scaffold | — | ✅ |
-| Task 2: HTTPS Certs | 3 | ✅ |
-| Task 3: HTTPS Server | 32 | ✅ |
-| Task 4: CLI + Auth | — | ✅ |
-| Task 5: Agent Session + SSE | 19 | ✅ |
-| Task 6: Taskpane Build Setup | — | ✅ |
-| Task 7: Chat UI | — | ✅ |
-| Task 8: Manifest | — | ✅ |
-| Task 9: E2E Tests | 10 | ✅ |
-| **Total** | **64** | **✅ All passing** |
+### Task 4.1 — Metadata-first search
+**Goal:** Search files cheaply before deep reads.
+
+**Signals:**
+- file name
+- folder name
+- extension
+- modified time
+- simple keyword matches
+
+**Status:** Pending
+
+### Task 4.2 — Selective deep reads
+**Goal:** Read only the most relevant files in more detail.
+
+**Behavior:**
+- inspect promising files first
+- read more when confidence is low
+- follow references across files when needed
+
+**Status:** Pending
+
+### Task 4.3 — Search/result event streaming
+**Goal:** Let the taskpane show what the agent is doing.
+
+**Potential SSE events:**
+- `folder_scan_start`
+- `folder_scan_end`
+- `file_search_start`
+- `file_search_hit`
+- `file_read_start`
+- `file_read_end`
+
+**Status:** Pending
 
 ---
 
-## What Module 1 Does NOT Include
+## Phase 5 — Grounded answering
 
-| Not included | Comes in |
-|-------------|----------|
-| Excel tools (read, write, format, chart) | Module 2 & 3 |
-| ToolCard component | Module 2 |
-| excel-executor.ts | Module 2 |
-| Settings panel in taskpane | Module 4 |
-| Taskpane-based auth onboarding | Module 4 |
-| Auto-update system | Module 4 |
-| Windows installer | Module 4 |
-| System tray app | Module 4 |
-| npm publish | Module 4 |
+### Task 5.1 — Folder-aware prompts
+**Goal:** Ensure agent prompts are grounded in selected folder context, not just workbook context.
+
+**Current:**
+- `/api/agent` includes active sheet / selected range context
+
+**Target:**
+- include folder context
+- include search results / file references
+- return grounded answers, not generic chat answers
+
+**Status:** Pending
+
+### Task 5.2 — Source citations
+**Goal:** Return which files supported the answer.
+
+**Minimum output:**
+- file name/path
+- page/section/table if available
+- source snippets later if needed
+
+**Status:** Pending
+
+### Task 5.3 — Unsupported / insufficient evidence handling
+**Goal:** Explicitly say when the answer cannot be grounded.
+
+**Status:** Pending
 
 ---
 
-*Created: March 7, 2026*
-*Updated: March 7, 2026 — All 9 tasks complete. Module 1 done.*
+## Phase 6 — Excel mapping
+
+### Task 6.1 — Mapping preview model
+**Goal:** Represent proposed Excel writes before execution.
+
+**Should include:**
+- destination sheet/range
+- value(s) to write
+- source trace metadata
+- operation type
+
+**Status:** Pending
+
+### Task 6.2 — Workbook write flow
+**Goal:** Let user confirm writes before they happen.
+
+**Requirements:**
+- preview result
+- confirm or cancel
+- execute via Office.js
+
+**Status:** Pending
+
+### Task 6.3 — Traceability persistence
+**Goal:** Preserve enough metadata to answer “which file did this cell come from?”
+
+**Open question:**
+- where should traceability metadata live for workbook writes?
+
+**Status:** Pending
+
+---
+
+## Phase 7 — Reconciliation workflows
+
+### Task 7.1 — Source-to-workbook comparison
+**Goal:** Compare document-derived values against workbook values.
+
+**Examples:**
+- trial balance folder vs lead sheet
+- bank statement vs cash workpaper
+- agreement terms vs lease schedule
+
+**Status:** Pending
+
+### Task 7.2 — Exception list generation
+**Goal:** Produce review-ready mismatch or support-gap lists in Excel.
+
+**Status:** Pending
+
+### Task 7.3 — Review-ready formatting
+**Goal:** Apply formatting only after grounded outputs are produced.
+
+**Important:**
+Formatting is secondary. Grounding and traceability come first.
+
+**Status:** Pending
+
+---
+
+## Phase 8 — Taskpane UX evolution
+
+### Task 8.1 — Replace generic welcome screen
+**Goal:** Make “choose folder” the main CTA.
+
+**Status:** Pending
+
+### Task 8.2 — Add folder panel
+**Goal:** Show selected path, file count, scan status.
+
+**Status:** Pending
+
+### Task 8.3 — Add evidence/result panel
+**Goal:** Show grounded answer and sources.
+
+**Status:** Pending
+
+### Task 8.4 — Add mapping/review panel
+**Goal:** Show mapping preview, write action, and exceptions.
+
+**Status:** Pending
+
+---
+
+## Phase 9 — Evaluation loop
+
+### Task 9.1 — Benchmark fixtures
+**Goal:** Create repeatable test folders and expected outputs.
+
+**Each fixture should include:**
+- sample folder
+- question/instruction
+- expected answer
+- expected source file(s)
+- expected Excel mapping
+
+**Status:** Pending
+
+### Task 9.2 — Pass/fail evaluation script
+**Goal:** Measure correctness explicitly.
+
+**Metrics:**
+- file selection correctness
+- extraction correctness
+- mapping correctness
+- traceability completeness
+
+**Status:** Pending
+
+### Task 9.3 — Failure analysis
+**Goal:** Categorize recurring failure patterns.
+
+**Examples:**
+- wrong file picked
+- wrong date format
+- wrong table chosen
+- wrong sign/currency handling
+- missing citation
+- wrong target cell/range
+
+**Status:** Pending
+
+### Task 9.4 — Improvement loop
+**Goal:** Feed evaluation failures back into prompts, parsing, and search logic.
+
+**Status:** Pending
+
+---
+
+## Phase 10 — Hardening
+
+### Task 10.1 — Large folder handling
+**Goal:** Keep performance acceptable on bigger evidence folders.
+
+**Status:** Pending
+
+### Task 10.2 — Incremental refresh
+**Goal:** Refresh only changed files when possible.
+
+**Status:** Pending
+
+### Task 10.3 — Better error handling
+**Goal:** Graceful handling for unsupported files, locked files, parse failures, and missing evidence.
+
+**Status:** Pending
+
+### Task 10.4 — Cross-platform checks
+**Goal:** Validate folder selection and local file behavior on Windows and Mac.
+
+**Status:** Pending
+
+---
+
+## 5. Near-Term Recommended Order
+
+1. **Fix stale UI/package copy**
+2. **Add folder selection + folder status API**
+3. **Add file inventory model + basic scanning**
+4. **Add parsing for initial file types**
+5. **Add metadata-first + selective file search**
+6. **Return grounded answers with citations**
+7. **Add mapping preview + confirm write flow**
+8. **Add traceability persistence**
+9. **Add benchmark fixtures and pass/fail evals**
+
+---
+
+## 6. Success Criteria by Phase
+
+### Phase 1 success
+No more spreadsheet-first messaging in the shell.
+
+### Phase 2 success
+User can select a folder and see folder status in the taskpane.
+
+### Phase 3 success
+System can parse initial supported file types.
+
+### Phase 4 success
+Agent can search a folder and identify likely relevant files.
+
+### Phase 5 success
+Agent returns grounded answers with source references.
+
+### Phase 6 success
+User can review and write a grounded result into Excel.
+
+### Phase 7 success
+User can reconcile source files against workbook content.
+
+### Phase 9 success
+We can measure whether the system is actually right.
+
+---
+
+## 7. Out of Scope for Now
+
+- vector DB / embeddings-first infrastructure
+- generic “AI for all spreadsheet tasks” positioning
+- cloud multi-user collaboration
+- enterprise deployment automation beyond local-first core
+- broad feature work unrelated to document-to-Excel workflows
+
+---
+
+## 8. Summary
+
+The implementation roadmap should move AgentXL from:
+
+> chat shell inside Excel
+
+to:
+
+> folder-first, agentic-search, traceable document-to-Excel workflow
+
+That is the actual product.
+
+---
+
+*Updated: March 8, 2026*

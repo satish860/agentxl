@@ -1,10 +1,22 @@
-import { BarChart3, FileSpreadsheet, Calculator, Shield } from "lucide-react";
-import { getProviderLabel, type ConfigStatus } from "../lib/api";
+import { Search, FileSpreadsheet, FolderOpen, Shield } from "lucide-react";
+import { type ConfigStatus } from "../lib/api";
 
 const QUICK_ACTIONS = [
-  { icon: FileSpreadsheet, label: "Summarize this data", prompt: "Summarize the data in this spreadsheet" },
-  { icon: BarChart3, label: "Create a chart", prompt: "Create a chart from the selected data" },
-  { icon: Calculator, label: "Write a formula", prompt: "Help me write a formula" },
+  {
+    icon: FolderOpen,
+    label: "Compare source files to this sheet",
+    prompt: "Compare the selected document folder to this sheet and flag mismatches",
+  },
+  {
+    icon: FileSpreadsheet,
+    label: "Map a value into Excel",
+    prompt: "Extract the relevant value from the selected document folder and map it into Excel",
+  },
+  {
+    icon: Search,
+    label: "Trace cells to source files",
+    prompt: "Show me which workbook cells came from which source files",
+  },
 ];
 
 interface WelcomeScreenProps {
@@ -20,10 +32,10 @@ export function WelcomeScreen({ status, onQuickAction }: WelcomeScreenProps) {
         <span className="text-white text-lg font-bold tracking-tight">AX</span>
       </div>
       <p className="text-[15px] font-semibold text-gray-900 mb-0.5">
-        What do you want to do with this data?
+        Choose a folder, then ask a grounded question
       </p>
       <p className="text-xs text-gray-400 mb-6">
-        Or pick a quick action below
+        AgentXL searches source files and maps answers into Excel
       </p>
 
       {/* Quick actions — outcome-focused chips */}
@@ -47,7 +59,7 @@ export function WelcomeScreen({ status, onQuickAction }: WelcomeScreenProps) {
       </div>
 
       <p className="text-[10px] text-gray-300 mt-2">
-        {getProviderLabel(status.provider)} • v{status.version}
+        Version {status.version}
       </p>
     </div>
   );

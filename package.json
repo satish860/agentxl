@@ -1,7 +1,7 @@
 {
   "name": "agentxl",
   "version": "1.0.0",
-  "description": "Open-source AI agent that lives inside Microsoft Excel",
+  "description": "Local-first document-to-Excel agent for traceable workpapers and evidence-heavy workflows", 
   "author": "DeltaXY <hello@deltaxy.ai>",
   "license": "MIT",
   "type": "module",
@@ -15,15 +15,15 @@
   },
   "keywords": [
     "excel",
-    "ai",
+    "document-to-excel",
+    "workpaper",
+    "diligence",
+    "audit",
+    "evidence",
     "agent",
     "office",
-    "claude",
-    "openai",
-    "spreadsheet",
     "microsoft",
     "office-addin",
-    "chatgpt",
     "llm"
   ],
   "bin": {
