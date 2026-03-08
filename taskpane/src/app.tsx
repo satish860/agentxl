@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useAgentStatus } from "./hooks/useAgentStatus";
+import { useWorkbookIdentity } from "./hooks/useWorkbookIdentity";
 import { useChatStream } from "./hooks/useChatStream";
 import { ConnectionError } from "./components/ConnectionError";
 import { AuthRequired } from "./components/AuthRequired";
@@ -10,6 +11,11 @@ import { ChatInput } from "./components/ChatInput";
 export function App() {
   const { status, connectionError, serverDown, markServerDown } =
     useAgentStatus();
+  const {
+    workbookId,
+    workbookResolveError,
+    isResolvingWorkbook,
+  } = useWorkbookIdentity(Boolean(status?.authenticated));
   const { messages, isStreaming, sendMessage, stopStreaming } =
     useChatStream(markServerDown);
   const [input, setInput] = useState("");
@@ -56,8 +62,18 @@ export function App() {
     return <AuthRequired />;
   }
 
+  // ── Workbook identity state ─────────────────────────────────────────────
+  if (isResolvingWorkbook && !workbookId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-sm text-gray-400">Resolving workbook…</div>
+      </div>
+    );
+  }
+
   // ── Chat UI ─────────────────────────────────────────────────────────────
   const hasMessages = messages.length > 0;
+  const inputDisabled = serverDown || !workbookId || Boolean(workbookResolveError);
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -69,12 +85,28 @@ export function App() {
         </div>
       )}
 
+      {/* Workbook state banner */}
+      {workbookResolveError && (
+        <div className="bg-red-50 border-b border-red-100 px-4 py-2 text-xs text-red-700">
+          Could not resolve workbook identity. Reopen the taskpane or workbook and try again.
+        </div>
+      )}
+
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto">
         {!hasMessages ? (
-          <WelcomeScreen status={status} onQuickAction={handleQuickAction} />
+          <WelcomeScreen
+            status={status}
+            workbookId={workbookId}
+            onQuickAction={handleQuickAction}
+          />
         ) : (
           <div className="p-4 space-y-4">
+            {workbookId && (
+              <div className="text-[11px] text-gray-400 px-1">
+                Workbook ID: {workbookId}
+              </div>
+            )}
             {messages.map((msg) => (
               <MessageBubble key={msg.id} message={msg} />
             ))}
@@ -104,7 +136,7 @@ export function App() {
         onSend={handleSend}
         onStop={stopStreaming}
         isStreaming={isStreaming}
-        disabled={serverDown}
+        disabled={inputDisabled}
       />
     </div>
   );

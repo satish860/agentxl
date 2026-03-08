@@ -215,6 +215,100 @@ async function run() {
     });
 
     // =======================================================================
+    // POST /api/workbook/resolve
+    // =======================================================================
+    console.log("\n  📡 POST /api/workbook/resolve\n");
+
+    await test("returns 200 with workbookId", async () => {
+      const res = await httpPost("/api/workbook/resolve", {
+        workbookName: "Lead_Sheet_2025.xlsx",
+        host: "Excel",
+        source: "excel-taskpane",
+      });
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.ok(/^wb_[a-f0-9]{16}$/.test(json.workbookId), `invalid workbookId: ${json.workbookId}`);
+    });
+
+    await test("same workbook context returns the same workbookId", async () => {
+      const body = {
+        workbookName: "Lead_Sheet_2025.xlsx",
+        workbookUrl: "file:///C:/Clients/ABC/Lead_Sheet_2025.xlsx",
+        host: "Excel",
+        source: "excel-taskpane",
+      };
+      const res1 = await httpPost("/api/workbook/resolve", body);
+      const res2 = await httpPost("/api/workbook/resolve", body);
+      assert.equal(res1.status, 200);
+      assert.equal(res2.status, 200);
+      const json1 = JSON.parse(res1.body);
+      const json2 = JSON.parse(res2.body);
+      assert.equal(json1.workbookId, json2.workbookId);
+    });
+
+    await test("URL variants with query strings resolve to the same workbookId", async () => {
+      const res1 = await httpPost("/api/workbook/resolve", {
+        workbookName: "Cash.xlsx",
+        workbookUrl: "https://contoso.sharepoint.com/sites/Audit/Cash.xlsx?web=1",
+      });
+      const res2 = await httpPost("/api/workbook/resolve", {
+        workbookName: "Cash.xlsx",
+        workbookUrl: "https://contoso.sharepoint.com/sites/Audit/Cash.xlsx",
+      });
+      assert.equal(res1.status, 200);
+      assert.equal(res2.status, 200);
+      const json1 = JSON.parse(res1.body);
+      const json2 = JSON.parse(res2.body);
+      assert.equal(json1.workbookId, json2.workbookId);
+    });
+
+    await test("URL variants with fragments resolve to the same workbookId", async () => {
+      const res1 = await httpPost("/api/workbook/resolve", {
+        workbookName: "Cash.xlsx",
+        workbookUrl: "https://contoso.sharepoint.com/sites/Audit/Cash.xlsx#sheet=1",
+      });
+      const res2 = await httpPost("/api/workbook/resolve", {
+        workbookName: "Cash.xlsx",
+        workbookUrl: "https://contoso.sharepoint.com/sites/Audit/Cash.xlsx",
+      });
+      assert.equal(res1.status, 200);
+      assert.equal(res2.status, 200);
+      const json1 = JSON.parse(res1.body);
+      const json2 = JSON.parse(res2.body);
+      assert.equal(json1.workbookId, json2.workbookId);
+    });
+
+    await test("different workbook context returns a different workbookId", async () => {
+      const res1 = await httpPost("/api/workbook/resolve", {
+        workbookName: "Lead_Sheet_2025.xlsx",
+        workbookUrl: "file:///C:/Clients/ABC/Lead_Sheet_2025.xlsx",
+      });
+      const res2 = await httpPost("/api/workbook/resolve", {
+        workbookName: "Cash_Workpaper.xlsx",
+        workbookUrl: "file:///C:/Clients/ABC/Cash_Workpaper.xlsx",
+      });
+      assert.equal(res1.status, 200);
+      assert.equal(res2.status, 200);
+      const json1 = JSON.parse(res1.body);
+      const json2 = JSON.parse(res2.body);
+      assert.notEqual(json1.workbookId, json2.workbookId);
+    });
+
+    await test("returns 400 without workbookName or workbookUrl", async () => {
+      const res = await httpPost("/api/workbook/resolve", {});
+      assert.equal(res.status, 400);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("workbookName") || json.error.includes("workbookUrl"));
+    });
+
+    await test("GET returns 405", async () => {
+      const res = await httpGet("/api/workbook/resolve");
+      assert.equal(res.status, 405);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("POST"));
+    });
+
+    // =======================================================================
     // POST /api/agent (stub)
     // =======================================================================
     console.log("\n  📡 POST /api/agent\n");

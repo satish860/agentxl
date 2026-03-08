@@ -10,6 +10,7 @@ import {
   getSession,
   abortSession,
 } from "../agent/session.js";
+import { resolveWorkbookId } from "./workbook-identity.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -181,6 +182,43 @@ function handleVersion(_req: IncomingMessage, res: ServerResponse): void {
 }
 
 // ---------------------------------------------------------------------------
+// Route: POST /api/workbook/resolve
+// ---------------------------------------------------------------------------
+
+async function handleWorkbookResolve(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  const body = await parseJsonBody(req);
+
+  if (!body || typeof body !== "object") {
+    sendError(res, 400, "Missing workbook context in request body");
+    return;
+  }
+
+  const workbookName =
+    typeof body.workbookName === "string" ? body.workbookName : null;
+  const workbookUrl =
+    typeof body.workbookUrl === "string" ? body.workbookUrl : null;
+  const host = typeof body.host === "string" ? body.host : null;
+  const source = typeof body.source === "string" ? body.source : null;
+
+  if ((!workbookName || workbookName.trim().length === 0) && (!workbookUrl || workbookUrl.trim().length === 0)) {
+    sendError(res, 400, "Missing workbookName or workbookUrl in request body");
+    return;
+  }
+
+  const workbookId = resolveWorkbookId({
+    workbookName,
+    workbookUrl,
+    host,
+    source,
+  });
+
+  sendJson(res, 200, { workbookId });
+}
+
+// ---------------------------------------------------------------------------
 // Route: POST /api/agent — SSE streaming via Pi SDK session
 // ---------------------------------------------------------------------------
 
@@ -313,6 +351,7 @@ function handleConfigStatus(
 
 const API_ROUTES: Record<string, string> = {
   "/api/version": "GET",
+  "/api/workbook/resolve": "POST",
   "/api/agent": "POST",
   "/api/config/status": "GET",
 };
@@ -352,6 +391,11 @@ async function handleRequest(
 
   if (url === "/api/version" && method === "GET") {
     handleVersion(req, res);
+    return;
+  }
+
+  if (url === "/api/workbook/resolve" && method === "POST") {
+    await handleWorkbookResolve(req, res);
     return;
   }
 

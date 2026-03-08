@@ -21,11 +21,12 @@ const QUICK_ACTIONS = [
 
 interface WelcomeScreenProps {
   status: ConfigStatus;
+  workbookId: string | null;
   onQuickAction: (prompt: string) => void;
 }
 
 /** Shown when authenticated but no messages yet. */
-export function WelcomeScreen({ status, onQuickAction }: WelcomeScreenProps) {
+export function WelcomeScreen({ status, workbookId, onQuickAction }: WelcomeScreenProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full p-6 text-center">
       <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center mb-4">
@@ -58,9 +59,16 @@ export function WelcomeScreen({ status, onQuickAction }: WelcomeScreenProps) {
         <span>Your data stays on your machine</span>
       </div>
 
-      <p className="text-[10px] text-gray-300 mt-2">
-        Version {status.version}
-      </p>
+      <div className="mt-2 space-y-1">
+        <p className="text-[10px] text-gray-300">
+          Version {status.version}
+        </p>
+        {workbookId && (
+          <p className="text-[10px] text-gray-300">
+            Workbook ID: {workbookId}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

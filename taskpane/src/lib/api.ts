@@ -21,6 +21,27 @@ export interface ExcelContext {
   selectedRange?: string;
 }
 
+export interface WorkbookIdentityInput {
+  workbookName: string;
+  workbookUrl?: string | null;
+  host?: string | null;
+  source?: string | null;
+}
+
+export interface WorkbookIdentity {
+  workbookId: string;
+}
+
+function getWorkbookNameFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  const normalized = trimmed.replace(/\\/g, "/");
+  const lastSegment = normalized.split("/").filter(Boolean).pop();
+  return lastSegment && lastSegment.length > 0 ? lastSegment : null;
+}
+
 /** Friendly display names for provider IDs. */
 const PROVIDER_LABELS: Record<string, string> = {
   anthropic: "Claude",
@@ -60,6 +81,64 @@ export async function getExcelContext(): Promise<ExcelContext | undefined> {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Build workbook identity input for server-side workbook resolution.
+ * In Excel, this uses Office.js context. In browser-only mode, it falls back
+ * to a stable preview identity so the flow still works during development.
+ */
+export async function getWorkbookIdentityInput(): Promise<WorkbookIdentityInput> {
+  const win = window as any;
+  const office = win.Office;
+  const workbookUrl =
+    typeof office?.context?.document?.url === "string"
+      ? office.context.document.url
+      : null;
+  let workbookName = getWorkbookNameFromUrl(workbookUrl);
+
+  try {
+    if (typeof win.Excel !== "undefined") {
+      const excelName = await win.Excel.run(async (ctx: any) => {
+        const workbook = ctx.workbook as any;
+        if (typeof workbook.load === "function") {
+          workbook.load("name");
+          await ctx.sync();
+        }
+        return typeof workbook.name === "string" ? workbook.name : null;
+      });
+
+      if (typeof excelName === "string" && excelName.trim().length > 0) {
+        workbookName = excelName.trim();
+      }
+    }
+  } catch {
+    // Ignore Office.js workbook-name failures — URL/browser fallback is enough.
+  }
+
+  return {
+    workbookName: workbookName ?? document.title ?? "AgentXL Workbook",
+    workbookUrl,
+    host: typeof office?.context?.host === "string" ? office.context.host : "browser",
+    source: typeof win.Excel !== "undefined" ? "excel-taskpane" : "browser-preview",
+  };
+}
+
+export async function resolveWorkbookIdentity(
+  input: WorkbookIdentityInput
+): Promise<WorkbookIdentity> {
+  const res = await fetch(`${BASE}/api/workbook/resolve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Workbook resolve failed" }));
+    throw new Error(body.error || `Workbook resolve failed: HTTP ${res.status}`);
+  }
+
+  return res.json();
 }
 
 export interface SSEEvent {
