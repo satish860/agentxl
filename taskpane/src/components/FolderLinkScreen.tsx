@@ -6,7 +6,9 @@ interface FolderLinkScreenProps {
   workbookName: string | null;
   currentFolderPath?: string | null;
   isSaving: boolean;
+  isPickingFolder: boolean;
   error: string | null;
+  onPickFolder: () => Promise<string | null>;
   onSave: (folderPath: string) => Promise<void> | void;
   onCancel?: () => void;
 }
@@ -16,7 +18,9 @@ export function FolderLinkScreen({
   workbookName,
   currentFolderPath,
   isSaving,
+  isPickingFolder,
   error,
+  onPickFolder,
   onSave,
   onCancel,
 }: FolderLinkScreenProps) {
@@ -25,6 +29,13 @@ export function FolderLinkScreen({
   useEffect(() => {
     setFolderPath(currentFolderPath ?? "");
   }, [currentFolderPath]);
+
+  async function handlePickFolder() {
+    const picked = await onPickFolder();
+    if (picked) {
+      setFolderPath(picked);
+    }
+  }
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -36,7 +47,8 @@ export function FolderLinkScreen({
         Choose the folder with your supporting documents
       </p>
       <p className="text-xs text-gray-400 mb-5 max-w-[280px]">
-        Paste the full path to your local folder below.
+        Paste a local folder path below. If the picker works in your Excel setup,
+        you can use it as a shortcut.
       </p>
 
       <div className="w-full max-w-[320px] rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm">
@@ -60,12 +72,23 @@ export function FolderLinkScreen({
           onChange={(e) => setFolderPath(e.target.value)}
           placeholder="C:\\Clients\\ABC\\Support"
           disabled={isSaving}
-          autoFocus
           className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50"
         />
 
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={handlePickFolder}
+            disabled={isSaving || isPickingFolder}
+            className="rounded-xl border border-gray-200 px-3 py-2.5 text-[12px] text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+          >
+            {isPickingFolder ? "Trying to open…" : "Try folder picker"}
+          </button>
+        </div>
+
         <p className="mt-2 text-[11px] text-gray-400">
-          Right-click any folder in File Explorer → Copy as path, then paste here.
+          {isPickingFolder
+            ? "If the picker does not appear, keep typing the folder path manually."
+            : "Manual path entry is the most reliable fallback in Excel."}
         </p>
 
         {error && (
