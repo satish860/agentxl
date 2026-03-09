@@ -16,7 +16,7 @@ import {
   setWorkbookFolderLink,
 } from "./workbook-folder-store.js";
 import { pickLocalFolder } from "./folder-picker.js";
-import { scanAndSaveInventory, loadInventory } from "./folder-scanner.js";
+import { scanAndSaveInventory, loadInventory, type FolderInventory, type FileEntry } from "./folder-scanner.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -452,6 +452,84 @@ async function handleWorkbookResolve(
 }
 
 // ---------------------------------------------------------------------------
+// Folder context builder
+// ---------------------------------------------------------------------------
+
+/** Max supported files to list individually in context. */
+const MAX_FILES_IN_CONTEXT = 50;
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * Build a folder context block to prepend to the agent message.
+ * Gives the agent awareness of what files are available.
+ */
+function buildFolderContext(
+  folderPath: string,
+  inventory: FolderInventory
+): string {
+  const lines: string[] = [];
+
+  lines.push("[AgentXL Context]");
+  lines.push("");
+  lines.push(
+    "You are AgentXL, a document-to-Excel agent. Ground every answer in the files below."
+  );
+  lines.push(
+    "Cite the source file when you reference a value. If the folder does not contain enough evidence, say so."
+  );
+  lines.push("Do not fabricate data. If you are uncertain, say so.");
+  lines.push("");
+  lines.push(`Linked folder: ${folderPath}`);
+  lines.push(
+    `${inventory.supportedFiles} supported file${inventory.supportedFiles !== 1 ? "s" : ""}, ${inventory.totalFiles} total`
+  );
+
+  const supported = inventory.files.filter((f) => f.supported);
+  const unsupported = inventory.files.filter((f) => !f.supported);
+
+  if (supported.length > 0) {
+    lines.push("");
+    lines.push("Supported files (you can read these):");
+    const shown = supported.slice(0, MAX_FILES_IN_CONTEXT);
+    for (const f of shown) {
+      lines.push(`- ${f.relativePath} (${formatFileSize(f.sizeBytes)})`);
+    }
+    if (supported.length > MAX_FILES_IN_CONTEXT) {
+      lines.push(
+        `  ... and ${supported.length - MAX_FILES_IN_CONTEXT} more supported files`
+      );
+    }
+  }
+
+  if (unsupported.length > 0) {
+    lines.push("");
+    const unsupportedNames = unsupported
+      .slice(0, 10)
+      .map((f) => f.name)
+      .join(", ");
+    const suffix =
+      unsupported.length > 10
+        ? ` and ${unsupported.length - 10} more`
+        : "";
+    lines.push(
+      `Unsupported files (cannot read): ${unsupportedNames}${suffix}`
+    );
+  }
+
+  lines.push("");
+  lines.push(
+    `To read a file, use the read tool with the absolute path. Files are under: ${folderPath}`
+  );
+
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // Route: POST /api/agent — SSE streaming via Pi SDK session
 // ---------------------------------------------------------------------------
 
@@ -481,19 +559,44 @@ async function handleAgent(
     return;
   }
 
-  // Build message with optional Excel context
+  // Build message with folder + Excel context
   const context = body.context as
     | { activeSheet?: string; selectedRange?: string }
     | undefined;
+  const workbookId =
+    typeof body.workbookId === "string" ? body.workbookId.trim() : "";
   const message: string = body.message.trim();
-  let fullMessage: string = message;
-  if (context && (context.activeSheet || context.selectedRange)) {
-    const parts: string[] = [];
-    if (context.activeSheet) parts.push(`Active sheet: ${context.activeSheet}`);
-    if (context.selectedRange)
-      parts.push(`Selected range: ${context.selectedRange}`);
-    fullMessage = `[Context: ${parts.join(", ")}]\n\n${message}`;
+
+  // Resolve folder context from workbookId
+  const contextParts: string[] = [];
+
+  if (workbookId) {
+    const link = getWorkbookFolderLink(workbookId);
+    if (link) {
+      const inventory = loadInventory(workbookId);
+      if (inventory) {
+        contextParts.push(buildFolderContext(link.folderPath, inventory));
+      } else {
+        contextParts.push(
+          `[Linked folder: ${link.folderPath}]\n[No file inventory available — folder has not been scanned yet]`
+        );
+      }
+    }
   }
+
+  // Add Excel context
+  if (context && (context.activeSheet || context.selectedRange)) {
+    const excelParts: string[] = [];
+    if (context.activeSheet) excelParts.push(`Active sheet: ${context.activeSheet}`);
+    if (context.selectedRange)
+      excelParts.push(`Selected range: ${context.selectedRange}`);
+    contextParts.push(`[Excel: ${excelParts.join(", ")}]`);
+  }
+
+  const fullMessage =
+    contextParts.length > 0
+      ? `${contextParts.join("\n\n")}\n\n${message}`
+      : message;
 
   // SSE headers
   res.writeHead(200, {

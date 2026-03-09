@@ -32,7 +32,7 @@ export function App() {
     Boolean(status?.authenticated)
   );
   const { messages, isStreaming, sendMessage, stopStreaming } =
-    useChatStream(markServerDown);
+    useChatStream(workbookId, markServerDown);
   const [input, setInput] = useState("");
   const [isEditingFolder, setIsEditingFolder] = useState(false);
   const [isPickingFolder, setIsPickingFolder] = useState(false);

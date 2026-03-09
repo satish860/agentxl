@@ -230,19 +230,21 @@ export interface SSEEvent {
  *
  * @param message - User message text
  * @param context - Optional Excel context
+ * @param workbookId - Optional workbook ID for folder context resolution
  * @param onEvent - Callback for each SSE event
  * @param signal - AbortSignal for cancellation
  */
 export async function streamAgent(
   message: string,
   context: ExcelContext | undefined,
+  workbookId: string | null,
   onEvent: (event: SSEEvent) => void,
   signal?: AbortSignal
 ): Promise<void> {
   const res = await fetch(`${BASE}/api/agent`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, context }),
+    body: JSON.stringify({ message, context, workbookId }),
     signal,
   });
 

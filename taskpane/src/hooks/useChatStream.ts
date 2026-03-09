@@ -22,6 +22,7 @@ export interface ChatStreamState {
 }
 
 export function useChatStream(
+  workbookId: string | null,
   onServerDown: () => void
 ): ChatStreamState {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -84,6 +85,7 @@ export function useChatStream(
         await streamAgent(
           trimmed,
           context,
+          workbookId,
           (event) => {
             const result = processSSEEvent(event as AgentSSEEvent, acc);
             applyResult(result);

@@ -13,9 +13,11 @@ import { fileURLToPath } from "url";
 import {
   existsSync,
   mkdirSync,
+  mkdtempSync,
   writeFileSync,
+  rmSync,
 } from "fs";
-import { homedir } from "os";
+import { homedir, tmpdir } from "os";
 import { get, request as httpsRequest, type RequestOptions } from "https";
 
 import { getDefaultModel } from "../src/agent/models.js";
@@ -326,19 +328,16 @@ async function run() {
     );
   });
 
-  await test("session has no built-in tools", async () => {
+  await test("session has read-only tools (read, grep, find, ls)", async () => {
     if (!hasAuth) throw new Error("No auth available");
     const session = await getSession();
     const toolNames = session.getActiveToolNames();
-    // No read/bash/edit/write — Excel-only agent
+    // readOnlyTools — agent can read files but not modify anything
     assert.ok(
-      !toolNames.includes("read"),
-      "should not have 'read' tool"
+      toolNames.includes("read"),
+      "should have 'read' tool"
     );
-    assert.ok(
-      !toolNames.includes("bash"),
-      "should not have 'bash' tool"
-    );
+    // Should NOT have write-capable tools
     assert.ok(
       !toolNames.includes("edit"),
       "should not have 'edit' tool"
@@ -471,6 +470,53 @@ async function run() {
         // Just verify the stream completes successfully with context
         const types = events.map((e) => e.type);
         assert.ok(types.includes("agent_end"), "should complete successfully");
+      });
+
+      await test("SSE stream with workbookId includes folder context", async () => {
+        // Link a folder with a test file for this workbook
+        const testFolder = mkdtempSync(join(tmpdir(), "agentxl-sse-folder-"));
+        writeFileSync(join(testFolder, "sample.txt"), "The answer is 42.");
+
+        const { setWorkbookFolderLink } = await import(
+          "../src/server/workbook-folder-store.js"
+        );
+        const { scanAndSaveInventory } = await import(
+          "../src/server/folder-scanner.js"
+        );
+
+        setWorkbookFolderLink({
+          workbookId: "wb_sse_folder_test",
+          folderPath: testFolder,
+          workbookName: "SSE Test.xlsx",
+        });
+        scanAndSaveInventory("wb_sse_folder_test", testFolder);
+
+        try {
+          const { events } = await postAgentSSE(
+            {
+              message:
+                "Read sample.txt and tell me the answer. Reply with only the number.",
+              workbookId: "wb_sse_folder_test",
+            },
+            60_000
+          );
+          const types = events.map((e) => e.type);
+          assert.ok(
+            types.includes("agent_end"),
+            "should complete successfully with folder context"
+          );
+
+          // Check that the agent produced some text response
+          const messageUpdates = events.filter(
+            (e) => e.type === "message_update"
+          );
+          assert.ok(
+            messageUpdates.length > 0,
+            "should have message updates with folder-aware response"
+          );
+        } finally {
+          rmSync(testFolder, { recursive: true, force: true });
+        }
       });
 
       await test("SSE error event on invalid session state", async () => {

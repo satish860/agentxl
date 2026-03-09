@@ -88,7 +88,7 @@
 ---
 
 ### 6. Folder-aware agent requests
-- [ ] Make `/api/agent` resolve folder context from `workbookId`
+- [x] Make `/api/agent` resolve folder context from `workbookId`
 
 **Acceptance test**
 - Agent request with valid `workbookId` includes linked folder context on the server side
@@ -200,6 +200,6 @@
 
 ## Next task to implement
 
-**Task 6 — Folder-aware agent requests**
+**Task 7 — Basic document tools for the agent**
 
-Task 5 is complete. Do not start Task 7 until Task 6 passes acceptance testing.
+Task 6 is complete. Do not start Task 8 until Task 7 passes acceptance testing.

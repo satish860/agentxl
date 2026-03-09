@@ -10,6 +10,7 @@ import { homedir } from "os";
 import { existsSync } from "fs";
 import {
   createAgentSession,
+  readOnlyTools,
   AuthStorage,
   ModelRegistry,
   SessionManager,
@@ -92,8 +93,8 @@ export async function initSession(): Promise<AgentSession> {
   const { session } = await createAgentSession({
     model,
     thinkingLevel: "medium",
-    tools: [],               // No built-in tools (read/bash/edit/write)
-    customTools: [],          // Excel tools come in Module 2
+    tools: readOnlyTools,    // read, grep, find, ls — agent can read files
+    customTools: [],          // Excel tools come later
     sessionManager: SessionManager.inMemory(),
     settingsManager: SettingsManager.inMemory({
       compaction: { enabled: false },
