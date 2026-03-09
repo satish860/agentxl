@@ -21,7 +21,7 @@ import {
   getConvertedPath,
   listConvertedFiles,
   isTextMeaningful,
-  getMistralApiKey,
+  getOcrConfig,
   MIN_CHARS_PER_PAGE,
 } from "../src/server/document-converter.js";
 import { scanFolder } from "../src/server/folder-scanner.js";
@@ -126,22 +126,59 @@ await test("isTextMeaningful ignores whitespace in count", async () => {
   assert.equal(isTextMeaningful(text, 1), false);
 });
 
-await test("getMistralApiKey returns null when not set", async () => {
-  const original = process.env.MISTRAL_API_KEY;
+await test("getOcrConfig returns null when no OCR keys set", async () => {
+  const origAzureEndpoint = process.env.AZURE_MISTRAL_ENDPOINT;
+  const origAzureKey = process.env.AZURE_MISTRAL_API_KEY;
+  const origMistral = process.env.MISTRAL_API_KEY;
+  delete process.env.AZURE_MISTRAL_ENDPOINT;
+  delete process.env.AZURE_MISTRAL_API_KEY;
   delete process.env.MISTRAL_API_KEY;
-  assert.equal(getMistralApiKey(), null);
-  if (original) process.env.MISTRAL_API_KEY = original;
+
+  assert.equal(getOcrConfig(), null);
+
+  // Restore
+  if (origAzureEndpoint) process.env.AZURE_MISTRAL_ENDPOINT = origAzureEndpoint;
+  if (origAzureKey) process.env.AZURE_MISTRAL_API_KEY = origAzureKey;
+  if (origMistral) process.env.MISTRAL_API_KEY = origMistral;
 });
 
-await test("getMistralApiKey returns key when set", async () => {
-  const original = process.env.MISTRAL_API_KEY;
-  process.env.MISTRAL_API_KEY = "test-key-123";
-  assert.equal(getMistralApiKey(), "test-key-123");
-  if (original) {
-    process.env.MISTRAL_API_KEY = original;
-  } else {
-    delete process.env.MISTRAL_API_KEY;
-  }
+await test("getOcrConfig prefers Azure Mistral over direct Mistral", async () => {
+  const origAzureEndpoint = process.env.AZURE_MISTRAL_ENDPOINT;
+  const origAzureKey = process.env.AZURE_MISTRAL_API_KEY;
+  const origMistral = process.env.MISTRAL_API_KEY;
+
+  process.env.AZURE_MISTRAL_ENDPOINT = "https://example.azure.com/ocr";
+  process.env.AZURE_MISTRAL_API_KEY = "azure-key";
+  process.env.MISTRAL_API_KEY = "direct-key";
+
+  const config = getOcrConfig();
+  assert.equal(config?.provider, "azure-mistral");
+  assert.equal(config?.endpoint, "https://example.azure.com/ocr");
+  assert.equal(config?.apiKey, "azure-key");
+
+  // Restore
+  if (origAzureEndpoint) { process.env.AZURE_MISTRAL_ENDPOINT = origAzureEndpoint; } else { delete process.env.AZURE_MISTRAL_ENDPOINT; }
+  if (origAzureKey) { process.env.AZURE_MISTRAL_API_KEY = origAzureKey; } else { delete process.env.AZURE_MISTRAL_API_KEY; }
+  if (origMistral) { process.env.MISTRAL_API_KEY = origMistral; } else { delete process.env.MISTRAL_API_KEY; }
+});
+
+await test("getOcrConfig falls back to direct Mistral", async () => {
+  const origAzureEndpoint = process.env.AZURE_MISTRAL_ENDPOINT;
+  const origAzureKey = process.env.AZURE_MISTRAL_API_KEY;
+  const origMistral = process.env.MISTRAL_API_KEY;
+
+  delete process.env.AZURE_MISTRAL_ENDPOINT;
+  delete process.env.AZURE_MISTRAL_API_KEY;
+  process.env.MISTRAL_API_KEY = "direct-key";
+
+  const config = getOcrConfig();
+  assert.equal(config?.provider, "mistral");
+  assert.equal(config?.apiKey, "direct-key");
+
+  // Restore
+  if (origAzureEndpoint) { process.env.AZURE_MISTRAL_ENDPOINT = origAzureEndpoint; } else { delete process.env.AZURE_MISTRAL_ENDPOINT; }
+  if (origAzureKey) { process.env.AZURE_MISTRAL_API_KEY = origAzureKey; } else { delete process.env.AZURE_MISTRAL_API_KEY; }
+  if (origMistral) { process.env.MISTRAL_API_KEY = origMistral; } else { delete process.env.MISTRAL_API_KEY; }
 });
 
 // =========================================================================

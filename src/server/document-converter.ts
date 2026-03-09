@@ -88,30 +88,95 @@ function isTextMeaningful(text: string, pageCount: number): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Mistral OCR (for scanned/image PDFs)
+// OCR configuration (Azure Mistral or direct Mistral)
 // ---------------------------------------------------------------------------
 
-/**
- * Get the Mistral API key from environment.
- * Returns null if not configured.
- */
-function getMistralApiKey(): string | null {
-  return process.env.MISTRAL_API_KEY?.trim() || null;
+interface OcrConfig {
+  provider: "azure-mistral" | "mistral";
+  endpoint?: string;
+  apiKey: string;
 }
 
 /**
- * OCR a PDF using Mistral's OCR API.
- * Uploads the file, runs OCR, returns markdown.
+ * Detect which OCR provider is available.
+ * Priority: Azure Mistral (enterprise) → direct Mistral → null
  */
-async function ocrWithMistral(pdfPath: string): Promise<string> {
-  const apiKey = getMistralApiKey();
-  if (!apiKey) {
+function getOcrConfig(): OcrConfig | null {
+  // Azure Mistral (enterprise — Azure AI Services)
+  const azureEndpoint = process.env.AZURE_MISTRAL_ENDPOINT?.trim();
+  const azureKey = process.env.AZURE_MISTRAL_API_KEY?.trim();
+  if (azureEndpoint && azureKey) {
+    return { provider: "azure-mistral", endpoint: azureEndpoint, apiKey: azureKey };
+  }
+
+  // Direct Mistral API
+  const mistralKey = process.env.MISTRAL_API_KEY?.trim();
+  if (mistralKey) {
+    return { provider: "mistral", apiKey: mistralKey };
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Azure Mistral OCR
+// ---------------------------------------------------------------------------
+
+/**
+ * OCR a PDF using Azure-hosted Mistral OCR.
+ * Sends the PDF as a base64 data URL — no file upload step needed.
+ */
+async function ocrWithAzureMistral(
+  pdfPath: string,
+  endpoint: string,
+  apiKey: string
+): Promise<string> {
+  const buffer = readFileSync(pdfPath);
+  const base64 = buffer.toString("base64");
+  const dataUrl = `data:application/pdf;base64,${base64}`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": apiKey,
+    },
+    body: JSON.stringify({
+      model: "mistral-ocr-latest",
+      document: {
+        type: "document_url",
+        document_url: dataUrl,
+      },
+      table_format: "markdown",
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
     throw new Error(
-      "MISTRAL_API_KEY not set. Scanned PDFs need Mistral OCR. " +
-      "Set MISTRAL_API_KEY in .env or environment to enable OCR."
+      `Azure Mistral OCR failed (${response.status}): ${body.slice(0, 200)}`
     );
   }
 
+  const result = (await response.json()) as {
+    pages: Array<{ markdown: string }>;
+  };
+
+  return result.pages.map((p) => p.markdown).join("\n\n---\n\n");
+}
+
+// ---------------------------------------------------------------------------
+// Direct Mistral OCR
+// ---------------------------------------------------------------------------
+
+/**
+ * OCR a PDF using Mistral's direct API.
+ * Uploads the file, runs OCR, returns markdown.
+ */
+async function ocrWithDirectMistral(
+  pdfPath: string,
+  apiKey: string
+): Promise<string> {
   const { Mistral } = await import("@mistralai/mistralai");
   const client = new Mistral({ apiKey });
 
@@ -137,9 +202,7 @@ async function ocrWithMistral(pdfPath: string): Promise<string> {
   });
 
   // Combine all pages into markdown
-  const pages = ocrResult.pages.map(
-    (page) => page.markdown
-  );
+  const pages = ocrResult.pages.map((page) => page.markdown);
 
   // Clean up the uploaded file (best effort)
   try {
@@ -149,6 +212,30 @@ async function ocrWithMistral(pdfPath: string): Promise<string> {
   }
 
   return pages.join("\n\n---\n\n");
+}
+
+// ---------------------------------------------------------------------------
+// Unified OCR dispatcher
+// ---------------------------------------------------------------------------
+
+/**
+ * OCR a PDF using the best available provider.
+ */
+async function ocrPdf(pdfPath: string): Promise<string> {
+  const config = getOcrConfig();
+  if (!config) {
+    throw new Error(
+      "No OCR provider configured. Scanned PDFs need Mistral OCR.\n" +
+      "Set AZURE_MISTRAL_ENDPOINT + AZURE_MISTRAL_API_KEY (Azure)\n" +
+      "or MISTRAL_API_KEY (direct) in .env to enable OCR."
+    );
+  }
+
+  if (config.provider === "azure-mistral") {
+    return ocrWithAzureMistral(pdfPath, config.endpoint!, config.apiKey);
+  }
+
+  return ocrWithDirectMistral(pdfPath, config.apiKey);
 }
 
 // ---------------------------------------------------------------------------
@@ -178,16 +265,17 @@ async function pdfToMarkdown(pdfPath: string): Promise<string> {
     });
   }
 
-  // Step 2: Text is empty/sparse — try Mistral OCR
+  // Step 2: Text is empty/sparse — try OCR (Azure Mistral or direct Mistral)
   const pageCount = extraction?.pageCount ?? 0;
   const sparseText = extraction?.text ?? "";
 
   try {
-    const ocrText = await ocrWithMistral(pdfPath);
+    const ocrText = await ocrPdf(pdfPath);
+    const config = getOcrConfig();
     return formatPdfMarkdown(fileName, ocrText, pageCount, {
       title: extraction?.title,
       author: extraction?.author,
-      method: "mistral-ocr",
+      method: config?.provider === "azure-mistral" ? "azure-mistral-ocr" : "mistral-ocr",
     });
   } catch (err) {
     const ocrError = err instanceof Error ? err.message : String(err);
@@ -202,7 +290,7 @@ async function pdfToMarkdown(pdfPath: string): Promise<string> {
       });
     }
 
-    return `# ${fileName}\n\n> ⚠️ This PDF is scanned/image-based and could not be read.\n> Text extraction returned no content.\n> OCR failed: ${ocrError}\n\nSet MISTRAL_API_KEY to enable OCR for scanned documents.`;
+    return `# ${fileName}\n\n> ⚠️ This PDF is scanned/image-based and could not be read.\n> Text extraction returned no content.\n> OCR failed: ${ocrError}\n\nSet AZURE_MISTRAL_ENDPOINT + AZURE_MISTRAL_API_KEY or MISTRAL_API_KEY to enable OCR.`;
   }
 }
 
@@ -381,4 +469,5 @@ export function listConvertedFiles(
 }
 
 // Exports for testing
-export { isTextMeaningful, getMistralApiKey, MIN_CHARS_PER_PAGE };
+export { isTextMeaningful, getOcrConfig, MIN_CHARS_PER_PAGE };
+export type { OcrConfig };
