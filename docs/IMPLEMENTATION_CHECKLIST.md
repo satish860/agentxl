@@ -101,13 +101,17 @@
 ---
 
 ### 7. Basic document tools for the agent
-- [ ] Add initial document tools for listing, inspecting, reading, and searching files
+- [x] Add initial document tools for listing, inspecting, reading, and searching files
+
+**Resolution:** Pi SDK's built-in `readOnlyTools` (read, grep, find, ls) already provide
+full file access. Session `cwd` is set to the linked folder so tools operate on the
+user's documents. Tool calls are visible in the UI as live badges. No custom tools needed.
 
 **Acceptance test**
-- Agent can list files in the linked folder
-- Agent can inspect file metadata
-- Agent can read supported files
-- Agent can search for likely relevant files before deeper reads
+- Agent can list files in the linked folder ✅ (ls with cwd set to linked folder)
+- Agent can inspect file metadata ✅ (ls, find)
+- Agent can read supported files ✅ (read tool)
+- Agent can search for likely relevant files before deeper reads ✅ (grep, find)
 
 **Expected outcome**
 - Agent can work with evidence files instead of only workbook context
@@ -187,9 +191,9 @@
 2. [x] Workbook → folder mapping storage
 3. [x] Folder status API
 4. [x] Taskpane folder-linking flow
-5. [ ] Folder scanning and file inventory
-6. [ ] Folder-aware agent requests
-7. [ ] Basic document tools for the agent
+5. [x] Folder scanning and file inventory
+6. [x] Folder-aware agent requests
+7. [x] Basic document tools for the agent (covered by Pi SDK readOnlyTools + cwd)
 8. [ ] Review-before-write flow
 9. [ ] Traceability record storage
 10. [ ] Benchmark fixtures
@@ -200,6 +204,6 @@
 
 ## Next task to implement
 
-**Task 7 — Basic document tools for the agent**
+**Task 8 — Review-before-write flow**
 
-Task 6 is complete. Do not start Task 8 until Task 7 passes acceptance testing.
+Task 7 is complete. Do not start Task 9 until Task 8 passes acceptance testing.
