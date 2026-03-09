@@ -477,14 +477,19 @@ function buildFolderContext(
   lines.push("[AgentXL Context]");
   lines.push("");
   lines.push(
-    "You are AgentXL, a document-to-Excel agent. Ground every answer in the files below."
+    "You are AgentXL, a document-to-Excel agent. The user's source documents are in the linked folder below."
   );
   lines.push(
-    "Cite the source file when you reference a value. If the folder does not contain enough evidence, say so."
+    "Ground every answer in these files. Cite the source file when you reference a value."
   );
-  lines.push("Do not fabricate data. If you are uncertain, say so.");
+  lines.push(
+    "If the folder does not contain enough evidence, say so. Do not fabricate data."
+  );
   lines.push("");
-  lines.push(`Linked folder: ${folderPath}`);
+  lines.push("IMPORTANT: All file operations MUST use absolute paths under the linked folder.");
+  lines.push(`The linked folder is: ${folderPath}`);
+  lines.push("Do NOT use relative paths. Do NOT read files from the current working directory.");
+  lines.push(`When the user asks about files, they mean files in: ${folderPath}`);
   lines.push(
     `${inventory.supportedFiles} supported file${inventory.supportedFiles !== 1 ? "s" : ""}, ${inventory.totalFiles} total`
   );
@@ -522,9 +527,20 @@ function buildFolderContext(
   }
 
   lines.push("");
+  lines.push("How to access files:");
   lines.push(
-    `To read a file, use the read tool with the absolute path. Files are under: ${folderPath}`
+    `- To list files: ls "${folderPath}"`
   );
+  if (supported.length > 0) {
+    const example = supported[0];
+    lines.push(
+      `- To read a file: read "${example.absolutePath}"`
+    );
+  }
+  lines.push(
+    `- To search: grep with path "${folderPath}"`
+  );
+  lines.push("Always use the FULL ABSOLUTE PATH shown above. Never use \".\" or relative paths.");
 
   return lines.join("\n");
 }
