@@ -1,37 +1,48 @@
 /**
  * SSE event → chat message state updates.
  *
- * Extracted from the React component so it can be tested independently
- * and doesn't bury protocol handling inside UI rendering.
+ * Builds a chronological list of blocks (thinking, text, tool_call)
+ * so the UI renders them in the order they happened — not grouped by type.
  */
 
 import type {
   Message,
+  MessageBlock,
   ThinkingEntry,
   ToolCall,
   AgentSSEEvent,
   ToolExecutionStartEvent,
   ToolExecutionEndEvent,
 } from "./types";
-import { getToolLabel, getToolSummary } from "./tool-meta";
+import { getToolSummary } from "./tool-meta";
 
 /** Mutable accumulator for an in-progress assistant response. */
 export interface StreamAccumulator {
   assistantId: string;
-  content: string;
+  /** Chronological blocks — the source of truth for rendering. */
+  blocks: MessageBlock[];
+  /** Index of the currently-streaming thinking block in `blocks`, or -1. */
+  activeThinkingIdx: number;
+  /** Index of the currently-streaming text block in `blocks`, or -1. */
+  activeTextIdx: number;
+  /** Full concatenated text (kept for backward compat / search). */
+  fullText: string;
+  /** All thinking entries (kept for backward compat). */
   thinking: ThinkingEntry[];
+  /** All tool calls (kept for backward compat / status tracking). */
   toolCalls: ToolCall[];
-  currentThinkingIdx: number;
 }
 
 /** Create a fresh accumulator for a new assistant turn. */
 export function createAccumulator(): StreamAccumulator {
   return {
     assistantId: crypto.randomUUID(),
-    content: "",
+    blocks: [],
+    activeThinkingIdx: -1,
+    activeTextIdx: -1,
+    fullText: "",
     thinking: [],
     toolCalls: [],
-    currentThinkingIdx: -1,
   };
 }
 
@@ -45,8 +56,7 @@ export type StreamResult =
 /**
  * Process a single SSE event and return what the UI should do.
  *
- * Mutates the accumulator (content, thinking blocks) for efficiency,
- * but returns a fresh Message snapshot for React state.
+ * Mutates the accumulator for efficiency, returns a fresh Message snapshot.
  */
 export function processSSEEvent(
   event: AgentSSEEvent,
@@ -58,38 +68,62 @@ export function processSSEEvent(
       if (!ame) return { action: "none" };
 
       switch (ame.type) {
-        case "text_delta":
-          acc.content += ame.delta;
+        case "text_delta": {
+          // If no active text block, create one
+          if (acc.activeTextIdx < 0) {
+            acc.activeTextIdx = acc.blocks.length;
+            acc.blocks.push({ type: "text", content: "" });
+          }
+          const textBlock = acc.blocks[acc.activeTextIdx] as { type: "text"; content: string };
+          textBlock.content += ame.delta;
+          acc.fullText += ame.delta;
           return { action: "update_assistant", message: snapshotMessage(acc) };
+        }
 
-        case "thinking_start":
-          acc.currentThinkingIdx = acc.thinking.length;
-          acc.thinking.push({ content: "", isStreaming: true });
+        case "thinking_start": {
+          // Close any active text block (new thinking = new section)
+          acc.activeTextIdx = -1;
+
+          // Create a new thinking block
+          acc.activeThinkingIdx = acc.blocks.length;
+          const entry: ThinkingEntry = { content: "", isStreaming: true };
+          acc.thinking.push(entry);
+          acc.blocks.push({ type: "thinking", content: "", isStreaming: true });
           return { action: "update_assistant", message: snapshotMessage(acc) };
+        }
 
-        case "thinking_delta":
-          if (acc.currentThinkingIdx >= 0) {
-            acc.thinking[acc.currentThinkingIdx].content += ame.delta;
-            return {
-              action: "update_assistant",
-              message: snapshotMessage(acc),
+        case "thinking_delta": {
+          if (acc.activeThinkingIdx >= 0) {
+            const block = acc.blocks[acc.activeThinkingIdx] as {
+              type: "thinking"; content: string; isStreaming: boolean;
             };
+            block.content += ame.delta;
+            // Also update the legacy thinking array
+            const legacyIdx = acc.thinking.length - 1;
+            if (legacyIdx >= 0) acc.thinking[legacyIdx].content += ame.delta;
+            return { action: "update_assistant", message: snapshotMessage(acc) };
           }
           return { action: "none" };
+        }
 
-        case "thinking_end":
-          if (acc.currentThinkingIdx >= 0) {
-            acc.thinking[acc.currentThinkingIdx].isStreaming = false;
-            if (ame.content) {
-              acc.thinking[acc.currentThinkingIdx].content = ame.content;
+        case "thinking_end": {
+          if (acc.activeThinkingIdx >= 0) {
+            const block = acc.blocks[acc.activeThinkingIdx] as {
+              type: "thinking"; content: string; isStreaming: boolean;
+            };
+            block.isStreaming = false;
+            if (ame.content) block.content = ame.content;
+            // Update legacy
+            const legacyIdx = acc.thinking.length - 1;
+            if (legacyIdx >= 0) {
+              acc.thinking[legacyIdx].isStreaming = false;
+              if (ame.content) acc.thinking[legacyIdx].content = ame.content;
             }
-            acc.currentThinkingIdx = -1;
-            return {
-              action: "update_assistant",
-              message: snapshotMessage(acc),
-            };
+            acc.activeThinkingIdx = -1;
+            return { action: "update_assistant", message: snapshotMessage(acc) };
           }
           return { action: "none" };
+        }
 
         default:
           return { action: "none" };
@@ -98,22 +132,29 @@ export function processSSEEvent(
 
     case "tool_execution_start": {
       const e = event as ToolExecutionStartEvent;
-      acc.toolCalls.push({
+      // Close any active text block
+      acc.activeTextIdx = -1;
+
+      const tool: ToolCall = {
         id: e.toolCallId,
         name: e.toolName,
         status: "running",
         summary: getToolSummary(e.toolName, e.args),
-      });
+      };
+      acc.toolCalls.push(tool);
+      acc.blocks.push({ type: "tool_call", tool });
       return { action: "update_assistant", message: snapshotMessage(acc) };
     }
 
     case "tool_execution_end": {
       const e = event as ToolExecutionEndEvent;
+      // Close any active text block (text after tool = new section)
+      acc.activeTextIdx = -1;
 
-      // Match by stable toolCallId — not best-effort name matching
-      const idx = acc.toolCalls.findIndex((t) => t.id === e.toolCallId);
-      if (idx >= 0) {
-        acc.toolCalls[idx].status = e.isError ? "error" : "done";
+      // Update status in-place (block references the same ToolCall object)
+      const tool = acc.toolCalls.find((t) => t.id === e.toolCallId);
+      if (tool) {
+        tool.status = e.isError ? "error" : "done";
       }
       return { action: "update_assistant", message: snapshotMessage(acc) };
     }
@@ -143,9 +184,10 @@ function snapshotMessage(acc: StreamAccumulator): Message {
   return {
     id: acc.assistantId,
     role: "assistant",
-    content: acc.content,
+    content: acc.fullText,
     thinking: acc.thinking.length > 0 ? [...acc.thinking] : undefined,
     toolCalls: acc.toolCalls.length > 0 ? [...acc.toolCalls] : undefined,
+    blocks: acc.blocks.length > 0 ? [...acc.blocks] : undefined,
     timestamp: Date.now(),
   };
 }

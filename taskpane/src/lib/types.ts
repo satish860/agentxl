@@ -20,12 +20,24 @@ export interface ToolCall {
   summary?: string;
 }
 
+/**
+ * A chronological block within an assistant message.
+ * Rendered in order so thinking → text → tool → thinking → text
+ * flows naturally.
+ */
+export type MessageBlock =
+  | { type: "thinking"; content: string; isStreaming: boolean }
+  | { type: "text"; content: string }
+  | { type: "tool_call"; tool: ToolCall };
+
 export interface Message {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   thinking?: ThinkingEntry[];
   toolCalls?: ToolCall[];
+  /** Chronological blocks for rendering (assistant messages only). */
+  blocks?: MessageBlock[];
   timestamp: number;
 }
 

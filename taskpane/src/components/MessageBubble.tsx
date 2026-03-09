@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { TOOL_META } from "../lib/tool-meta";
-import type { Message, ToolCall } from "../lib/types";
+import type { Message, MessageBlock, ToolCall } from "../lib/types";
 
 /** Map icon keys to Lucide components. */
 const ICON_MAP: Record<string, typeof FileText> = {
@@ -47,6 +47,43 @@ function ToolCallBadge({ tool }: { tool: ToolCall }) {
   );
 }
 
+/** Render a single chronological block. */
+function BlockRenderer({ block, index }: { block: MessageBlock; index: number }) {
+  switch (block.type) {
+    case "thinking":
+      return (
+        <ThinkingBlock
+          key={`thinking-${index}`}
+          content={block.content}
+          isStreaming={block.isStreaming}
+        />
+      );
+
+    case "text":
+      if (!block.content) return null;
+      return (
+        <div
+          key={`text-${index}`}
+          className="agentxl-prose prose prose-sm max-w-none text-gray-800 prose-p:my-1.5 prose-p:leading-relaxed prose-headings:my-2 prose-headings:text-gray-900 prose-h1:text-base prose-h1:font-semibold prose-h2:text-[13px] prose-h2:font-semibold prose-h3:text-[12px] prose-h3:font-semibold prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-li:text-[13px] prose-pre:my-2 prose-code:text-emerald-700 prose-code:bg-emerald-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:text-xs prose-pre:overflow-x-auto prose-a:text-emerald-600 prose-table:text-xs prose-strong:text-gray-900 prose-strong:font-semibold prose-blockquote:text-[12px] prose-blockquote:text-gray-500 prose-blockquote:border-gray-200 prose-blockquote:my-2 prose-hr:my-3"
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {block.content}
+          </ReactMarkdown>
+        </div>
+      );
+
+    case "tool_call":
+      return (
+        <div key={`tool-${block.tool.id}`} className="my-1.5">
+          <ToolCallBadge tool={block.tool} />
+        </div>
+      );
+
+    default:
+      return null;
+  }
+}
+
 interface MessageBubbleProps {
   message: Message;
 }
@@ -72,35 +109,44 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     );
   }
 
-  // Assistant message — clean card
+  // Assistant message — chronological blocks
+  const hasBlocks = message.blocks && message.blocks.length > 0;
+
   return (
     <div className="flex justify-start animate-message-in">
       <div className="max-w-[95%] border border-gray-100 rounded-xl px-4 py-3 bg-gray-50/60">
-        {/* Thinking blocks */}
-        {message.thinking?.map((block, i) => (
-          <ThinkingBlock
-            key={i}
-            content={block.content}
-            isStreaming={block.isStreaming}
-          />
-        ))}
-
-        {/* Tool calls — keyed by stable ID */}
-        {message.toolCalls && message.toolCalls.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {message.toolCalls.map((tool) => (
-              <ToolCallBadge key={tool.id} tool={tool} />
+        {hasBlocks ? (
+          // Render blocks in chronological order
+          message.blocks!.map((block, i) => (
+            <BlockRenderer key={i} block={block} index={i} />
+          ))
+        ) : (
+          // Fallback for messages without blocks (legacy or simple text)
+          <>
+            {message.thinking?.map((block, i) => (
+              <ThinkingBlock
+                key={i}
+                content={block.content}
+                isStreaming={block.isStreaming}
+              />
             ))}
-          </div>
-        )}
 
-        {/* Text content */}
-        {message.content && (
-          <div className="agentxl-prose prose prose-sm max-w-none text-gray-800 prose-p:my-1.5 prose-p:leading-relaxed prose-headings:my-2 prose-headings:text-gray-900 prose-h1:text-base prose-h1:font-semibold prose-h2:text-[13px] prose-h2:font-semibold prose-h3:text-[12px] prose-h3:font-semibold prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-li:text-[13px] prose-pre:my-2 prose-code:text-emerald-700 prose-code:bg-emerald-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:text-xs prose-pre:overflow-x-auto prose-a:text-emerald-600 prose-table:text-xs prose-strong:text-gray-900 prose-strong:font-semibold prose-blockquote:text-[12px] prose-blockquote:text-gray-500 prose-blockquote:border-gray-200 prose-blockquote:my-2 prose-hr:my-3">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {message.content}
-            </ReactMarkdown>
-          </div>
+            {message.toolCalls && message.toolCalls.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {message.toolCalls.map((tool) => (
+                  <ToolCallBadge key={tool.id} tool={tool} />
+                ))}
+              </div>
+            )}
+
+            {message.content && (
+              <div className="agentxl-prose prose prose-sm max-w-none text-gray-800">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
