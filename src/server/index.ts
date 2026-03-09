@@ -643,6 +643,8 @@ async function handleAgent(
   };
 
   try {
+    console.log(`[agent] workbookId=${workbookId || "(none)"} linkedFolder=${linkedFolderPath || "(none)"} cwd=${process.cwd()}`);
+
     const session = await getSession(linkedFolderPath ?? undefined);
 
     // Subscribe to session events and stream them as SSE
@@ -682,9 +684,12 @@ async function handleAgent(
     if (linkedFolderPath) {
       try {
         process.chdir(linkedFolderPath);
-      } catch {
-        // If chdir fails, tools will use the original cwd
+        console.log(`[agent] chdir → ${process.cwd()}`);
+      } catch (e) {
+        console.error(`[agent] chdir failed: ${e}`);
       }
+    } else {
+      console.log(`[agent] no linked folder — staying in ${process.cwd()}`);
     }
 
     try {

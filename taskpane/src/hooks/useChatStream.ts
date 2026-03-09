@@ -117,7 +117,7 @@ export function useChatStream(
         abortRef.current = null;
       }
     },
-    [isStreaming, onServerDown]
+    [isStreaming, onServerDown, workbookId]
   );
 
   const stopStreaming = useCallback(() => {
