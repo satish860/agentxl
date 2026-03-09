@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@mariozechner/pi-coding-agent": "^0.52.12",
+    "@mistralai/mistralai": "^1.14.1",
     "@sinclair/typebox": "^0.34.11",
     "mammoth": "^1.11.0",
     "office-addin-dev-certs": "^2.0.6",

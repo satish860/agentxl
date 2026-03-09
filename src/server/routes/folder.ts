@@ -141,6 +141,7 @@ export async function handleFolderSelect(
       ...(conversion
         ? {
             pdfConverted: conversion.converted,
+            pdfOcrConverted: conversion.ocrConverted,
             pdfCached: conversion.cached,
             pdfFailed: conversion.failed,
           }
@@ -250,6 +251,7 @@ export async function handleFolderRefresh(
       ...(conversion
         ? {
             pdfConverted: conversion.converted,
+            pdfOcrConverted: conversion.ocrConverted,
             pdfCached: conversion.cached,
             pdfFailed: conversion.failed,
           }
