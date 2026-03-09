@@ -47,6 +47,28 @@ function ToolCallBadge({ tool }: { tool: ToolCall }) {
   );
 }
 
+/** Render a status indicator block (e.g., compaction). */
+function StatusBadge({
+  label,
+  state,
+}: {
+  label: string;
+  state: "running" | "done" | "error";
+}) {
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] text-gray-500 my-1.5">
+      {state === "running" ? (
+        <Loader2 size={12} className="text-blue-400 animate-spin shrink-0" />
+      ) : state === "error" ? (
+        <AlertCircle size={12} className="text-amber-400 shrink-0" />
+      ) : (
+        <CheckCircle2 size={12} className="text-blue-400 shrink-0" />
+      )}
+      <span>{label}</span>
+    </div>
+  );
+}
+
 /** Render a single chronological block. */
 function BlockRenderer({ block, index }: { block: MessageBlock; index: number }) {
   switch (block.type) {
@@ -76,6 +98,13 @@ function BlockRenderer({ block, index }: { block: MessageBlock; index: number })
       return (
         <div key={`tool-${block.tool.id}`} className="my-1.5">
           <ToolCallBadge tool={block.tool} />
+        </div>
+      );
+
+    case "status":
+      return (
+        <div key={`status-${index}`}>
+          <StatusBadge label={block.label} state={block.state} />
         </div>
       );
 

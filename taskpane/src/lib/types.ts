@@ -28,7 +28,8 @@ export interface ToolCall {
 export type MessageBlock =
   | { type: "thinking"; content: string; isStreaming: boolean }
   | { type: "text"; content: string }
-  | { type: "tool_call"; tool: ToolCall };
+  | { type: "tool_call"; tool: ToolCall }
+  | { type: "status"; label: string; state: "running" | "done" | "error" };
 
 export interface Message {
   id: string;
@@ -74,6 +75,20 @@ export interface ToolExecutionEndEvent {
   result?: unknown;
 }
 
+/** Compaction start event. */
+export interface CompactionStartEvent {
+  type: "auto_compaction_start";
+  reason: "threshold" | "overflow";
+}
+
+/** Compaction end event. */
+export interface CompactionEndEvent {
+  type: "auto_compaction_end";
+  aborted: boolean;
+  willRetry: boolean;
+  errorMessage?: string;
+}
+
 /** Top-level SSE events streamed from POST /api/agent. */
 export type AgentSSEEvent =
   | { type: "agent_start" }
@@ -85,5 +100,7 @@ export type AgentSSEEvent =
     }
   | ToolExecutionStartEvent
   | ToolExecutionEndEvent
+  | CompactionStartEvent
+  | CompactionEndEvent
   | { type: "error"; error: string }
   | { type: string; [key: string]: unknown };

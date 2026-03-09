@@ -13,6 +13,8 @@ import type {
   AgentSSEEvent,
   ToolExecutionStartEvent,
   ToolExecutionEndEvent,
+  CompactionStartEvent,
+  CompactionEndEvent,
 } from "./types";
 import { getToolSummary } from "./tool-meta";
 
@@ -155,6 +157,35 @@ export function processSSEEvent(
       const tool = acc.toolCalls.find((t) => t.id === e.toolCallId);
       if (tool) {
         tool.status = e.isError ? "error" : "done";
+      }
+      return { action: "update_assistant", message: snapshotMessage(acc) };
+    }
+
+    case "auto_compaction_start": {
+      // Close any active text block
+      acc.activeTextIdx = -1;
+      acc.blocks.push({
+        type: "status",
+        label: "Compacting conversation history…",
+        state: "running",
+      });
+      return { action: "update_assistant", message: snapshotMessage(acc) };
+    }
+
+    case "auto_compaction_end": {
+      const e = event as CompactionEndEvent;
+      // Find and update the compaction status block
+      for (let i = acc.blocks.length - 1; i >= 0; i--) {
+        const b = acc.blocks[i];
+        if (b.type === "status" && b.state === "running") {
+          b.state = e.aborted || e.errorMessage ? "error" : "done";
+          b.label = e.aborted
+            ? "Compaction aborted"
+            : e.errorMessage
+              ? `Compaction failed: ${e.errorMessage}`
+              : "Conversation compacted";
+          break;
+        }
       }
       return { action: "update_assistant", message: snapshotMessage(acc) };
     }
