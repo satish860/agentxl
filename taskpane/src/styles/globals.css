@@ -49,6 +49,82 @@ body {
   transform: scale(0.92);
 }
 
+/* ── Agent prose — optimized for narrow taskpane (~350px) ── */
+
+.agentxl-prose {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Tables: scroll horizontally instead of overflowing */
+.agentxl-prose table {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 11px;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+.agentxl-prose th,
+.agentxl-prose td {
+  padding: 4px 8px;
+  border: 1px solid #e5e7eb;
+  white-space: normal;
+  min-width: 60px;
+}
+
+.agentxl-prose th {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Lists: tighter spacing */
+.agentxl-prose ul,
+.agentxl-prose ol {
+  padding-left: 1.2em;
+}
+
+/* Code blocks: scroll instead of overflow */
+.agentxl-prose pre {
+  overflow-x: auto;
+  font-size: 11px;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+/* Inline code */
+.agentxl-prose code:not(pre code) {
+  font-size: 11px;
+  word-break: break-all;
+}
+
+/* Headings: scale down for taskpane */
+.agentxl-prose h1 { font-size: 15px; }
+.agentxl-prose h2 { font-size: 14px; }
+.agentxl-prose h3 { font-size: 13px; }
+
+/* Blockquotes */
+.agentxl-prose blockquote {
+  padding-left: 10px;
+  margin-left: 0;
+}
+
+/* Long URLs / paths don't overflow */
+.agentxl-prose a,
+.agentxl-prose p {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Checkmark / status lists */
+.agentxl-prose li::marker {
+  color: #9ca3af;
+}
+
 /* ── Quick action chip hover ────────────────────────────── */
 
 .chip-hover {

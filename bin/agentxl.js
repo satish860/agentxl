@@ -5,13 +5,17 @@ import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { homedir } from "os";
 import { createInterface } from "readline";
+import { config as loadDotenv } from "dotenv";
+
+// Load .env from project root (before any other imports)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const projectRoot = resolve(__dirname, "..");
+loadDotenv({ path: join(projectRoot, ".env") });
 
 // ---------------------------------------------------------------------------
 // Package info
 // ---------------------------------------------------------------------------
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const pkgPath = join(__dirname, "..", "package.json");
 const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
@@ -295,7 +299,17 @@ async function start() {
     process.exit(1);
   }
 
-  // ── Step 5: Folder picker strategy ────────────────────────────────────
+  // ── Step 5: OCR status ─────────────────────────────────────────────────
+  if (process.env.AZURE_MISTRAL_ENDPOINT && process.env.AZURE_MISTRAL_API_KEY) {
+    step("✅", "OCR ready (Azure Mistral)");
+  } else if (process.env.MISTRAL_API_KEY) {
+    step("✅", "OCR ready (Mistral direct)");
+  } else {
+    step("ℹ️", "OCR not configured — scanned PDFs won't be readable");
+    step("  ", "Set AZURE_MISTRAL_ENDPOINT + AZURE_MISTRAL_API_KEY in .env");
+  }
+
+  // ── Step 6: Folder picker strategy ────────────────────────────────────
   const pickerStrategy = getFolderPickerStrategy();
   const pickerLabels = {
     "native-helper": "Native folder picker helper",
