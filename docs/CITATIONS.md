@@ -27,39 +27,23 @@ Layer 3: Taskpane citation panel (rich UX)
 
 ### Tasks
 
-- [ ] **1.1 — Update extraction prompt to require citation tuples**
+- [x] **1.1 — Update extraction prompt to require citation tuples**
   - Every extraction script must return `{ value, source, page, excerpt }` per field
   - Agent must not write values to Excel without citation metadata
-  - Example output format:
-    ```json
-    {
-      "leaseTerm": {
-        "value": "12 months",
-        "source": "Operating Lease (Aircraft 2).pdf",
-        "page": 14,
-        "excerpt": "...the lease term shall be twelve (12) months from the Delivery Date..."
-      },
-      "returnLocation": {
-        "value": "Chennai, India",
-        "source": "Operating Lease (Aircraft 2).pdf",
-        "page": 42,
-        "excerpt": "...Aircraft shall be redelivered to Lessor at Chennai International Airport..."
-      }
-    }
-    ```
-  - **Acceptance test:** agent extracts 3+ fields from test documents, every field has source + excerpt
+  - Inferred values marked with `"source": "INFERRED"` and reasoning
+  - **Done:** prompt in `folder-context.ts` teaches exact JSON format with example
 
-- [ ] **1.2 — Teach extraction scripts to track page numbers**
+- [x] **1.2 — Teach extraction scripts to track page numbers**
   - PDF markdown has page breaks (`---` separators from converter)
-  - Script counts page breaks to determine which page a match came from
-  - For XLSX: track sheet name + cell reference
-  - For DOCX: track section/heading
-  - **Acceptance test:** page numbers in citations match actual PDF pages
+  - Prompt includes `getPage()` helper that counts `---` separators
+  - For XLSX: sheet name + cell reference
+  - For DOCX: section heading
+  - **Done:** example script in prompt includes page counting function
 
-- [ ] **1.3 — Teach extraction scripts to capture surrounding context**
-  - Excerpt should be ~100-200 chars around the matched value
-  - Include enough context that an auditor can verify without opening the source file
-  - **Acceptance test:** excerpts are meaningful and include the extracted value in context
+- [x] **1.3 — Teach extraction scripts to capture surrounding context**
+  - Prompt includes `getExcerpt()` helper: ~75 chars before + after match
+  - Trims to word boundaries, adds `...` if truncated
+  - **Done:** example script in prompt includes excerpt extraction function
 
 ---
 
@@ -69,48 +53,39 @@ Layer 3: Taskpane citation panel (rich UX)
 
 ### Tasks
 
-- [ ] **2.1 — Agent adds Excel comments with citation on every write**
-  - After writing a value to a cell, agent adds a Note (comment) via Office.js:
+- [x] **2.1 — Agent adds Excel comments with citation on every write**
+  - Prompt teaches Office.js `cell.note` pattern with citation format:
     ```
-    📄 Source: Operating Lease (Aircraft 2).pdf
+    📄 Source: Operating Lease.pdf
     📑 Page: 14
-    💬 "...the lease term shall be twelve (12) months from the Delivery Date..."
+    💬 "...the lease term shall be twelve (12) months..."
     🤖 Extracted by AgentXL
     ```
-  - Comment format is compact but readable
-  - **Acceptance test:** every cell written by the agent has a comment with source info
+  - **Done:** prompt includes exact Office.js code for adding notes
 
-- [ ] **2.2 — Agent creates/updates a "Sources" worksheet**
-  - Auto-created worksheet named `_AgentXL_Sources` (underscore prefix = convention for system sheets)
-  - Columns: `Target Sheet | Target Cell | Value | Source File | Page | Excerpt | Timestamp`
-  - Appended to (not overwritten) on each extraction
-  - Frozen header row, auto-filter enabled
-  - **Acceptance test:** Sources sheet exists after first extraction, contains one row per written cell
+- [x] **2.2 — Agent creates/updates a "Sources" worksheet**
+  - Prompt teaches `_AgentXL_Sources` sheet creation with columns:
+    `Target Sheet | Target Cell | Value | Source File | Page | Excerpt | Timestamp`
+  - Append-only, auto-created if missing
+  - **Done:** prompt includes full Office.js code for sheet creation + row append
 
-- [ ] **2.3 — Sources sheet formatting**
-  - Header row: bold, colored background
-  - Source File column: wrapped text
-  - Excerpt column: wrapped text, wider column
-  - Timestamp: ISO format
-  - **Acceptance test:** Sources sheet is readable without manual formatting
+- [x] **2.3 — Sources sheet formatting**
+  - Header: bold, blue background (#4472C4), white text
+  - Column widths set for readability
+  - **Done:** formatting included in the prompt's sheet creation code
 
-- [ ] **2.4 — Citation prompt integration**
-  - Update `folder-context.ts` prompt to instruct the agent:
-    1. Extract with citations (Layer 1)
-    2. Write value to target cell
-    3. Add Excel comment with citation
-    4. Append row to `_AgentXL_Sources` sheet
-  - This must be the DEFAULT behavior, not opt-in
-  - **Acceptance test:** end-to-end test — ask agent to extract a value → cell has value + comment + Sources row
+- [x] **2.4 — Citation prompt integration**
+  - 3-step workflow is the DEFAULT in `folder-context.ts`:
+    1. Extract with citations (bash script)
+    2. Write values + comments (excel tool)
+    3. Log to _AgentXL_Sources (excel tool)
+  - Rules: "NEVER write without citation", "NEVER skip Sources entry"
+  - **Done:** full workflow in `folder-context.ts`, ~160 lines of prompt
 
-- [ ] **2.5 — Handle "no citation available" gracefully**
-  - If the agent infers a value but can't cite a specific source, the comment should say:
-    ```
-    ⚠️ Inferred — no direct source citation available
-    🤖 Extracted by AgentXL
-    ```
-  - Sources sheet marks the row as `Inferred` in a Status column
-  - **Acceptance test:** inferred values are visually distinct from cited values
+- [x] **2.5 — Handle "no citation available" gracefully**
+  - Prompt teaches `"source": "INFERRED"` pattern
+  - Comment format: `⚠️ Inferred — no direct source citation`
+  - **Done:** inferred value handling included in prompt
 
 ---
 

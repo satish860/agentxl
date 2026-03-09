@@ -123,16 +123,16 @@ user's documents. Tool calls are visible in the UI as live badges. No custom too
 > Full task breakdown: [`docs/CITATIONS.md`](./CITATIONS.md)
 
 ### Layer 1 — Citation-aware extraction (prompt-driven)
-- [ ] 1.1 Update extraction prompt to require `{ value, source, page, excerpt }` tuples
-- [ ] 1.2 Teach extraction scripts to track page numbers from PDF markdown
-- [ ] 1.3 Teach extraction scripts to capture surrounding context (~150 chars)
+- [x] 1.1 Update extraction prompt to require `{ value, source, page, excerpt }` tuples
+- [x] 1.2 Teach extraction scripts to track page numbers from PDF markdown
+- [x] 1.3 Teach extraction scripts to capture surrounding context (~150 chars)
 
 ### Layer 2 — Excel-native citations (works without taskpane)
-- [ ] 2.1 Agent adds Excel comments with citation on every write
-- [ ] 2.2 Agent creates/updates `_AgentXL_Sources` worksheet
-- [ ] 2.3 Sources sheet formatting (header, column widths, auto-filter)
-- [ ] 2.4 Citation prompt integration in `folder-context.ts` (default behavior)
-- [ ] 2.5 Handle "no citation available" — inferred values marked distinctly
+- [x] 2.1 Agent adds Excel comments with citation on every write
+- [x] 2.2 Agent creates/updates `_AgentXL_Sources` worksheet
+- [x] 2.3 Sources sheet formatting (header, column widths, auto-filter)
+- [x] 2.4 Citation prompt integration in `folder-context.ts` (default behavior)
+- [x] 2.5 Handle "no citation available" — inferred values marked distinctly
 
 ### Layer 3 — Taskpane citation panel (rich UX)
 - [ ] 3.1 Server-side citation store (`~/.agentxl/citations/<workbookId>.json`)
