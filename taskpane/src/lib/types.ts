@@ -11,11 +11,19 @@ export interface ThinkingEntry {
   isStreaming: boolean;
 }
 
+export interface ToolCall {
+  name: string;
+  status: "running" | "done" | "error";
+  /** Brief summary of what the tool is doing, e.g. file path for read */
+  summary?: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   thinking?: ThinkingEntry[];
+  toolCalls?: ToolCall[];
   timestamp: number;
 }
 
