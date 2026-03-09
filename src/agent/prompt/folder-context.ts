@@ -133,6 +133,57 @@ export function buildFolderContext(
   }
 
   // -----------------------------------------------------------------------
+  // Code-first extraction strategy
+  // -----------------------------------------------------------------------
+
+  lines.push("");
+  lines.push("⚡ EXTRACTION STRATEGY — WRITE CODE, DON'T QUERY ONE-BY-ONE:");
+  lines.push("");
+  lines.push("When extracting multiple fields or details from documents, ALWAYS write a");
+  lines.push("Node.js script via bash that reads the files and extracts everything in one shot.");
+  lines.push("Do NOT make 10+ individual read/grep calls — that's slow and wastes tokens.");
+  lines.push("");
+  lines.push("Pattern: write a script → run it → get structured JSON → write to Excel.");
+  lines.push("");
+  lines.push("Example — extracting lease terms from converted PDFs:");
+  lines.push("```");
+  lines.push("bash: node -e \"");
+  lines.push("const fs = require('fs');");
+  lines.push("const path = require('path');");
+  lines.push("");
+  lines.push("// Read all converted markdown files at once");
+  lines.push(`const cacheDir = '${folderPath}/.agentxl-cache';`);
+  lines.push("const files = fs.readdirSync(cacheDir, {recursive: true})");
+  lines.push("  .filter(f => f.endsWith('.md'));");
+  lines.push("");
+  lines.push("const results = {};");
+  lines.push("for (const file of files) {");
+  lines.push("  const text = fs.readFileSync(path.join(cacheDir, file), 'utf8');");
+  lines.push("  // Extract fields with regex or string matching");
+  lines.push("  const dateMatch = text.match(/(?:effective date|commencement)[:\\s]+(\\d{1,2}[\\s\\/.-]\\w+[\\s\\/.-]\\d{2,4})/i);");
+  lines.push("  const termMatch = text.match(/(?:term|duration|period)[:\\s]+(\\d+\\s*(?:months?|years?))/i);");
+  lines.push("  results[file] = {");
+  lines.push("    effectiveDate: dateMatch?.[1] || null,");
+  lines.push("    term: termMatch?.[1] || null,");
+  lines.push("    // Add more fields as needed");
+  lines.push("  };");
+  lines.push("}");
+  lines.push("console.log(JSON.stringify(results, null, 2));");
+  lines.push("\"");
+  lines.push("```");
+  lines.push("");
+  lines.push("Use this approach for:");
+  lines.push("- Extracting multiple fields from lease/contract documents");
+  lines.push("- Comparing values across multiple source files");
+  lines.push("- Building structured data from unstructured text");
+  lines.push("- Processing CSV/TSV files with specific filtering");
+  lines.push("");
+  lines.push("Use simple read/grep only for:");
+  lines.push("- Quick single-value lookups");
+  lines.push("- Checking if a file contains a specific term");
+  lines.push("- Reading small files in full");
+
+  // -----------------------------------------------------------------------
   // General file access
   // -----------------------------------------------------------------------
 
