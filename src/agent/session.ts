@@ -11,6 +11,7 @@ import { existsSync } from "fs";
 import {
   createAgentSession,
   createReadOnlyTools,
+  createBashTool,
   AuthStorage,
   ModelRegistry,
   SessionManager,
@@ -97,13 +98,15 @@ export async function initSession(cwd?: string): Promise<AgentSession> {
   selectedProvider = model.provider;
 
   const effectiveCwd = cwd || process.cwd();
-  const tools = createReadOnlyTools(effectiveCwd);
+  const readOnly = createReadOnlyTools(effectiveCwd);
+  const bash = createBashTool(effectiveCwd);
+  const tools = [...readOnly, bash];
 
   const { session } = await createAgentSession({
     model,
     cwd: effectiveCwd,
     thinkingLevel: "medium",
-    tools,                    // read, grep, find, ls — pointed at linked folder
+    tools,                    // read, grep, find, ls, bash — pointed at linked folder
     customTools: [excelTool], // Single Excel tool — agent writes Office.js code
     sessionManager: SessionManager.inMemory(),
     settingsManager: SettingsManager.inMemory({

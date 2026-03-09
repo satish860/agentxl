@@ -56,6 +56,8 @@ const SUPPORTED_EXTENSIONS = new Set([
   ".md",
   ".json",
   ".tsv",
+  ".docx",
+  ".doc",
 ]);
 
 /** Directory names to always skip. */
@@ -75,6 +77,7 @@ const IGNORED_DIRS = new Set([
   "System Volume Information",
   ".DS_Store",
   "Thumbs.db",
+  ".agentxl-cache",
 ]);
 
 /** Maximum directory depth to recurse into. */

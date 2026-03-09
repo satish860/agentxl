@@ -1,7 +1,7 @@
 {
   "name": "agentxl",
   "version": "1.0.0",
-  "description": "Local-first document-to-Excel agent for traceable workpapers and evidence-heavy workflows", 
+  "description": "Local-first document-to-Excel agent for traceable workpapers and evidence-heavy workflows",
   "author": "DeltaXY <hello@deltaxy.ai>",
   "license": "MIT",
   "type": "module",
@@ -47,7 +47,7 @@
     "dev:taskpane": "cd taskpane && npx vite dev",
     "start": "node bin/agentxl.js start",
     "prepublishOnly": "npm run build",
-    "test": "npx tsx tests/certs.test.ts && npx tsx tests/workbook-folder-store.test.ts && npx tsx tests/folder-scanner.test.ts && npx tsx tests/excel-bridge.test.ts && npx tsx tests/server.test.ts && npx tsx tests/session.test.ts",
+    "test": "npx tsx tests/certs.test.ts && npx tsx tests/workbook-folder-store.test.ts && npx tsx tests/folder-scanner.test.ts && npx tsx tests/excel-bridge.test.ts && npx tsx tests/document-converter.test.ts && npx tsx tests/server.test.ts && npx tsx tests/session.test.ts",
     "test:certs": "npx tsx tests/certs.test.ts",
     "test:store": "npx tsx tests/workbook-folder-store.test.ts",
     "test:scanner": "npx tsx tests/folder-scanner.test.ts",
@@ -58,7 +58,10 @@
   "dependencies": {
     "@mariozechner/pi-coding-agent": "^0.52.12",
     "@sinclair/typebox": "^0.34.11",
-    "office-addin-dev-certs": "^2.0.6"
+    "mammoth": "^1.11.0",
+    "office-addin-dev-certs": "^2.0.6",
+    "pdf-parse": "^2.4.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@microsoft/office-js": "^1.1.110",

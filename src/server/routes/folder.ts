@@ -13,6 +13,7 @@ import {
   scanAndSaveInventory,
   loadInventory,
 } from "../folder-scanner.js";
+import { convertDocuments } from "../document-converter.js";
 
 /** GET /api/folder/status */
 export function handleFolderStatus(
@@ -117,10 +118,13 @@ export async function handleFolderSelect(
 
     // Auto-scan the folder on link/update
     let inventory = null;
+    let conversion = null;
     try {
       inventory = scanAndSaveInventory(workbookId, link.folderPath);
+      // Pre-convert PDFs to Markdown (non-blocking for response)
+      conversion = await convertDocuments(inventory);
     } catch {
-      // Scan failure is non-fatal — folder is still linked
+      // Scan/conversion failure is non-fatal — folder is still linked
     }
 
     sendJson(res, 200, {
@@ -132,6 +136,13 @@ export async function handleFolderSelect(
         ? {
             totalFiles: inventory.totalFiles,
             supportedFiles: inventory.supportedFiles,
+          }
+        : {}),
+      ...(conversion
+        ? {
+            pdfConverted: conversion.converted,
+            pdfCached: conversion.cached,
+            pdfFailed: conversion.failed,
           }
         : {}),
     });
@@ -221,12 +232,28 @@ export async function handleFolderRefresh(
 
   try {
     const inventory = scanAndSaveInventory(workbookId, link.folderPath);
+
+    // Pre-convert PDFs to Markdown
+    let conversion = null;
+    try {
+      conversion = await convertDocuments(inventory);
+    } catch {
+      // Conversion failure is non-fatal
+    }
+
     sendJson(res, 200, {
       workbookId,
       folderPath: inventory.folderPath,
       scannedAt: inventory.scannedAt,
       totalFiles: inventory.totalFiles,
       supportedFiles: inventory.supportedFiles,
+      ...(conversion
+        ? {
+            pdfConverted: conversion.converted,
+            pdfCached: conversion.cached,
+            pdfFailed: conversion.failed,
+          }
+        : {}),
     });
   } catch (error) {
     sendError(

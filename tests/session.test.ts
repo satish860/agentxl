@@ -328,29 +328,21 @@ async function run() {
     );
   });
 
-  await test("session has read-only tools (read, grep, find, ls) and excel tool", async () => {
+  await test("session has read-only tools, bash, and excel tool", async () => {
     if (!hasAuth) throw new Error("No auth available");
     const session = await getSession();
     const toolNames = session.getActiveToolNames();
-    // readOnlyTools — agent can read files but not modify anything
-    assert.ok(
-      toolNames.includes("read"),
-      "should have 'read' tool"
-    );
+    // readOnlyTools + bash — agent can read files and run scripts
+    assert.ok(toolNames.includes("read"), "should have 'read' tool");
+    assert.ok(toolNames.includes("grep"), "should have 'grep' tool");
+    assert.ok(toolNames.includes("find"), "should have 'find' tool");
+    assert.ok(toolNames.includes("ls"), "should have 'ls' tool");
+    assert.ok(toolNames.includes("bash"), "should have 'bash' tool");
     // Excel custom tool — agent writes Office.js code
-    assert.ok(
-      toolNames.includes("excel"),
-      "should have 'excel' custom tool"
-    );
-    // Should NOT have write-capable file tools
-    assert.ok(
-      !toolNames.includes("edit"),
-      "should not have 'edit' tool"
-    );
-    assert.ok(
-      !toolNames.includes("write"),
-      "should not have 'write' tool"
-    );
+    assert.ok(toolNames.includes("excel"), "should have 'excel' custom tool");
+    // Should NOT have file-write tools
+    assert.ok(!toolNames.includes("edit"), "should not have 'edit' tool");
+    assert.ok(!toolNames.includes("write"), "should not have 'write' tool");
   });
 
   // =======================================================================

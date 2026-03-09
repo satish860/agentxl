@@ -5,12 +5,14 @@
  * - Tells the agent what files are available
  * - Teaches absolute-path discipline
  * - Provides file listing and usage examples
+ * - Explains document handling strategies (PDF→MD, XLSX/DOCX via code)
  *
  * Extracted as its own module because this prompt will be tuned
  * frequently as document behavior improves.
  */
 
 import type { FolderInventory } from "../../server/folder-scanner.js";
+import { listConvertedFiles } from "../../server/document-converter.js";
 
 /** Max supported files to list individually in context. */
 export const MAX_FILES_IN_CONTEXT = 50;
@@ -89,14 +91,63 @@ export function buildFolderContext(
     );
   }
 
+  // -----------------------------------------------------------------------
+  // Document handling instructions
+  // -----------------------------------------------------------------------
+
+  // PDF conversions
+  const conversions = listConvertedFiles(inventory);
+  if (conversions.length > 0) {
+    lines.push("");
+    lines.push("📄 PDF files (pre-converted to Markdown):");
+    lines.push("PDFs have been converted to readable Markdown. Read the .md version, NOT the raw PDF.");
+    for (const c of conversions) {
+      lines.push(`- ${c.source} → READ: "${folderPath}/${c.converted}"`);
+    }
+  }
+
+  // XLSX handling
+  const xlsxFiles = supported.filter((f) => f.extension === ".xlsx" || f.extension === ".xls");
+  if (xlsxFiles.length > 0) {
+    lines.push("");
+    lines.push("📊 Excel files (use code to extract):");
+    lines.push("Do NOT try to read .xlsx/.xls with the read tool — they are binary.");
+    lines.push("Write a Node.js script via bash that uses the `xlsx` npm package (already installed).");
+    lines.push("Example:");
+    lines.push("```");
+    lines.push(`bash: node -e "const XLSX = require('xlsx'); const wb = XLSX.readFile('${xlsxFiles[0].absolutePath}'); const ws = wb.Sheets[wb.SheetNames[0]]; console.log(JSON.stringify(XLSX.utils.sheet_to_json(ws), null, 2));"`);
+    lines.push("```");
+  }
+
+  // DOCX handling
+  const docxFiles = supported.filter((f) => f.extension === ".docx" || f.extension === ".doc");
+  if (docxFiles.length > 0) {
+    lines.push("");
+    lines.push("📝 Word files (use code to extract):");
+    lines.push("Do NOT try to read .docx/.doc with the read tool — they are binary.");
+    lines.push("Write a Node.js script via bash that uses the `mammoth` npm package (already installed).");
+    lines.push("Example:");
+    lines.push("```");
+    lines.push(`bash: node -e "const mammoth = require('mammoth'); mammoth.convertToMarkdown({path: '${docxFiles[0].absolutePath}'}).then(r => console.log(r.value));"`);
+    lines.push("```");
+  }
+
+  // -----------------------------------------------------------------------
+  // General file access
+  // -----------------------------------------------------------------------
+
   lines.push("");
   lines.push("How to access files:");
   lines.push(`- To list files: ls "${folderPath}"`);
   if (supported.length > 0) {
-    const example = supported[0];
-    lines.push(`- To read a file: read "${example.absolutePath}"`);
+    const textExample = supported.find(
+      (f) => ![".pdf", ".xlsx", ".xls", ".docx", ".doc"].includes(f.extension)
+    );
+    if (textExample) {
+      lines.push(`- To read a text file: read "${textExample.absolutePath}"`);
+    }
   }
-  lines.push(`- To search: grep with path "${folderPath}"`);
+  lines.push(`- To search text files: grep with path "${folderPath}"`);
   lines.push(
     'Always use the FULL ABSOLUTE PATH shown above. Never use "." or relative paths.'
   );
