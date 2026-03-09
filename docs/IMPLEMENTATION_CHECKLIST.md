@@ -1,4 +1,4 @@
-# AgentXL — Implementation Checklist
+# AgentXL - Implementation Checklist
 
 > Canonical execution checklist for the folder-first, document-to-Excel workflow.
 >
@@ -15,7 +15,7 @@
 
 ---
 
-## Phase 1 — Workbook identity and folder linking
+## Phase 1 - Workbook identity and folder linking
 
 ### 1. Workbook identity resolution
 - [x] Add workbook identity resolution so every open workbook gets an AgentXL `workbookId`
@@ -27,7 +27,7 @@
 - Reopening the same workbook returns the same `workbookId` under the same conditions
 
 **Expected outcome**
-- AgentXL can uniquely refer to “this workbook” in later APIs
+- AgentXL can uniquely refer to "this workbook" in later APIs
 
 ---
 
@@ -54,7 +54,7 @@
 - Invalid requests return clear errors
 
 **Expected outcome**
-- Taskpane can ask: “Does this workbook already have a linked folder?”
+- Taskpane can ask: "Does this workbook already have a linked folder?"
 
 ---
 
@@ -62,7 +62,7 @@
 - [x] Add a no-folder state and ready state in the taskpane
 
 **Acceptance test**
-- If no folder is linked, taskpane shows a primary “Choose folder” flow
+- If no folder is linked, taskpane shows a primary "Choose folder" flow
 - If a folder is linked, taskpane shows ready state immediately
 - User can change/relink the folder from the UI
 
@@ -71,7 +71,7 @@
 
 ---
 
-## Phase 2 — Folder scanning and agent context
+## Phase 2 - Folder scanning and agent context
 
 ### 5. Folder scanning and file inventory
 - [x] Add recursive folder scanning and basic file inventory
@@ -118,7 +118,38 @@ user's documents. Tool calls are visible in the UI as live badges. No custom too
 
 ---
 
-## Phase 3 — Review and traceability
+## Phase 3 — Citations and traceability
+
+> Full task breakdown: [`docs/CITATIONS.md`](./CITATIONS.md)
+
+### Layer 1 — Citation-aware extraction (prompt-driven)
+- [ ] 1.1 Update extraction prompt to require `{ value, source, page, excerpt }` tuples
+- [ ] 1.2 Teach extraction scripts to track page numbers from PDF markdown
+- [ ] 1.3 Teach extraction scripts to capture surrounding context (~150 chars)
+
+### Layer 2 — Excel-native citations (works without taskpane)
+- [ ] 2.1 Agent adds Excel comments with citation on every write
+- [ ] 2.2 Agent creates/updates `_AgentXL_Sources` worksheet
+- [ ] 2.3 Sources sheet formatting (header, column widths, auto-filter)
+- [ ] 2.4 Citation prompt integration in `folder-context.ts` (default behavior)
+- [ ] 2.5 Handle "no citation available" — inferred values marked distinctly
+
+### Layer 3 — Taskpane citation panel (rich UX)
+- [ ] 3.1 Server-side citation store (`~/.agentxl/citations/<workbookId>.json`)
+- [ ] 3.2 Taskpane citation panel UI (value, source, page, excerpt, confidence)
+- [ ] 3.3 Cell selection listener (Office.js `onSelectionChanged` → query citations)
+- [ ] 3.4 "Open source file" action
+- [ ] 3.5 Citation list view (all citations, filterable)
+- [ ] 3.6 Citation export (JSON/CSV)
+
+**Implementation order:** Phase A (1.1 → 2.4 → 2.1 → 2.2) → Phase B (1.2 → 1.3 → 2.3 → 2.5) → Phase C (3.1–3.6)
+
+**Success criteria:**
+- Every cell written by the agent has an Excel comment citing the source
+- `_AgentXL_Sources` sheet provides a portable audit trail
+- An auditor can trace any value WITHOUT the taskpane running
+
+---
 
 ### 8. Review-before-write flow
 - [ ] Add mapping preview before Excel writes happen
@@ -134,20 +165,7 @@ user's documents. Tool calls are visible in the UI as live badges. No custom too
 
 ---
 
-### 9. Traceability record storage
-- [ ] Store traceability records for workbook writes
-
-**Acceptance test**
-- After a write, the system stores workbook, sheet, range, value, source file, source reference, prompt, and timestamp
-- A lookup by workbook + sheet + range returns the traceability record
-- Traceability persists across server restarts
-
-**Expected outcome**
-- AgentXL can answer: “Where did this cell come from?”
-
----
-
-## Phase 4 — Quality loop
+## Phase 4 - Quality loop
 
 ### 10. Benchmark fixtures
 - [ ] Add benchmark fixtures for document-to-Excel tasks
@@ -204,6 +222,6 @@ user's documents. Tool calls are visible in the UI as live badges. No custom too
 
 ## Next task to implement
 
-**Task 8 — Review-before-write flow**
+**Task 8 - Review-before-write flow**
 
 Task 7 is complete. Do not start Task 9 until Task 8 passes acceptance testing.
