@@ -669,6 +669,10 @@ async function handleAgent(
       }
     });
 
+    // Abort any in-flight prompt before sending the new one.
+    // Pi SDK rejects concurrent prompts — this ensures a clean slate.
+    await abortSession();
+
     // Send the prompt
     await session.prompt(fullMessage);
   } catch (err) {
