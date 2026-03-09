@@ -36,6 +36,8 @@ export interface FolderStatus {
   workbookId: string;
   linked: boolean;
   folderPath?: string;
+  totalFiles?: number;
+  supportedFiles?: number;
   link?: {
     workbookId: string;
     folderPath: string;

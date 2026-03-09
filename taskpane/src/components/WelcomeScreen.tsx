@@ -1,4 +1,4 @@
-import { Search, FileSpreadsheet, FolderOpen, Shield } from "lucide-react";
+import { Search, FileSpreadsheet, FolderOpen, Shield, FileText } from "lucide-react";
 import { type ConfigStatus } from "../lib/api";
 
 const QUICK_ACTIONS = [
@@ -23,6 +23,8 @@ interface WelcomeScreenProps {
   status: ConfigStatus;
   workbookId: string | null;
   linkedFolderPath: string;
+  totalFiles?: number;
+  supportedFiles?: number;
   onQuickAction: (prompt: string) => void;
   onChangeFolder: () => void;
 }
@@ -32,6 +34,8 @@ export function WelcomeScreen({
   status,
   workbookId,
   linkedFolderPath,
+  totalFiles,
+  supportedFiles,
   onQuickAction,
   onChangeFolder,
 }: WelcomeScreenProps) {
@@ -50,6 +54,17 @@ export function WelcomeScreen({
       <div className="w-full max-w-[280px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-left mb-5">
         <p className="text-[11px] text-gray-400 mb-1">Linked folder</p>
         <p className="text-[12px] text-gray-700 break-all">{linkedFolderPath}</p>
+        {typeof supportedFiles === "number" && typeof totalFiles === "number" && (
+          <div className="flex items-center gap-1.5 mt-2">
+            <FileText size={12} className="text-emerald-600 shrink-0" />
+            <p className="text-[11px] text-gray-500">
+              {supportedFiles} supported file{supportedFiles !== 1 ? "s" : ""}{" "}
+              <span className="text-gray-400">
+                of {totalFiles} total
+              </span>
+            </p>
+          </div>
+        )}
         <button
           onClick={onChangeFolder}
           className="mt-3 text-[12px] font-medium text-emerald-600 hover:text-emerald-700"

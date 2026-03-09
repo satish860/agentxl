@@ -177,6 +177,8 @@ export function App() {
             status={status}
             workbookId={workbookId}
             linkedFolderPath={folderStatus!.folderPath!}
+            totalFiles={folderStatus!.totalFiles}
+            supportedFiles={folderStatus!.supportedFiles}
             onQuickAction={handleQuickAction}
             onChangeFolder={() => setIsEditingFolder(true)}
           />

@@ -213,11 +213,18 @@ function handleFolderStatus(
     return;
   }
 
+  const inventory = loadInventory(workbookId);
   sendJson(res, 200, {
     workbookId,
     linked: true,
     folderPath: link.folderPath,
     link,
+    ...(inventory
+      ? {
+          totalFiles: inventory.totalFiles,
+          supportedFiles: inventory.supportedFiles,
+        }
+      : {}),
   });
 }
 
