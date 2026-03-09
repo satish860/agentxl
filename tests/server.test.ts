@@ -470,6 +470,109 @@ async function run() {
     });
 
     // =======================================================================
+    // Folder scanning API
+    // =======================================================================
+    console.log("\n  📡 Folder scanning API\n");
+
+    // Create a real test folder for scanning
+    const scanTestFolder = mkdtempSync(join(tmpdir(), "agentxl-scan-api-"));
+    writeFileSync(join(scanTestFolder, "report.pdf"), "pdf content");
+    writeFileSync(join(scanTestFolder, "data.csv"), "a,b\n1,2");
+    writeFileSync(join(scanTestFolder, "notes.txt"), "some notes");
+    writeFileSync(join(scanTestFolder, "photo.jpg"), "fake jpg");
+    mkdirSync(join(scanTestFolder, "sub"));
+    writeFileSync(join(scanTestFolder, "sub", "deep.xlsx"), "fake xlsx");
+
+    await test("POST /api/folder/select auto-scans and returns file counts", async () => {
+      const res = await httpPost("/api/folder/select", {
+        workbookId: "wb_scan_test",
+        folderPath: scanTestFolder,
+        workbookName: "ScanTest.xlsx",
+      });
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(json.linked, true);
+      assert.equal(json.totalFiles, 5);
+      assert.equal(json.supportedFiles, 4); // pdf, csv, txt, xlsx
+    });
+
+    await test("GET /api/folder/files returns inventory for linked workbook", async () => {
+      const res = await httpGet("/api/folder/files?workbookId=wb_scan_test");
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(json.workbookId, "wb_scan_test");
+      assert.equal(json.totalFiles, 5);
+      assert.equal(json.supportedFiles, 4);
+      assert.ok(Array.isArray(json.files));
+      assert.equal(json.files.length, 5);
+
+      // Check file entry structure
+      const pdfFile = json.files.find((f: any) => f.name === "report.pdf");
+      assert.ok(pdfFile, "should find report.pdf");
+      assert.equal(pdfFile.extension, ".pdf");
+      assert.equal(pdfFile.supported, true);
+      assert.equal(typeof pdfFile.sizeBytes, "number");
+      assert.equal(typeof pdfFile.modifiedAt, "string");
+      assert.equal(typeof pdfFile.relativePath, "string");
+    });
+
+    await test("GET /api/folder/files includes subdirectory files", async () => {
+      const res = await httpGet("/api/folder/files?workbookId=wb_scan_test");
+      const json = JSON.parse(res.body);
+      const deepFile = json.files.find((f: any) => f.name === "deep.xlsx");
+      assert.ok(deepFile, "should find deep.xlsx in subdirectory");
+      assert.equal(deepFile.relativePath, "sub/deep.xlsx");
+      assert.equal(deepFile.supported, true);
+    });
+
+    await test("GET /api/folder/files returns 400 without workbookId", async () => {
+      const res = await httpGet("/api/folder/files");
+      assert.equal(res.status, 400);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("workbookId"));
+    });
+
+    await test("GET /api/folder/files returns 404 for unlinked workbook", async () => {
+      const res = await httpGet("/api/folder/files?workbookId=wb_no_link");
+      assert.equal(res.status, 404);
+    });
+
+    await test("POST /api/folder/refresh rescans and updates inventory", async () => {
+      // Add a new file
+      writeFileSync(join(scanTestFolder, "new-report.pdf"), "new pdf");
+
+      const res = await httpPost("/api/folder/refresh", {
+        workbookId: "wb_scan_test",
+      });
+      assert.equal(res.status, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(json.totalFiles, 6);
+      assert.equal(json.supportedFiles, 5);
+
+      // Verify the inventory was persisted
+      const filesRes = await httpGet("/api/folder/files?workbookId=wb_scan_test");
+      const filesJson = JSON.parse(filesRes.body);
+      assert.equal(filesJson.totalFiles, 6);
+    });
+
+    await test("POST /api/folder/refresh returns 400 without workbookId", async () => {
+      const res = await httpPost("/api/folder/refresh", {});
+      assert.equal(res.status, 400);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("workbookId"));
+    });
+
+    await test("POST /api/folder/refresh returns 404 for unlinked workbook", async () => {
+      const res = await httpPost("/api/folder/refresh", {
+        workbookId: "wb_no_link",
+      });
+      assert.equal(res.status, 404);
+    });
+
+    // Clean up scan test folder
+    rmSync(scanTestFolder, { recursive: true, force: true });
+
+    // =======================================================================
     // POST /api/agent (stub)
     // =======================================================================
     console.log("\n  📡 POST /api/agent\n");

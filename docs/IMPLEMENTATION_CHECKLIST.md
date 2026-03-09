@@ -74,7 +74,7 @@
 ## Phase 2 — Folder scanning and agent context
 
 ### 5. Folder scanning and file inventory
-- [ ] Add recursive folder scanning and basic file inventory
+- [x] Add recursive folder scanning and basic file inventory
 
 **Acceptance test**
 - Selecting a folder returns file count
@@ -200,6 +200,6 @@
 
 ## Next task to implement
 
-**Task 5 — Folder scanning and file inventory**
+**Task 6 — Folder-aware agent requests**
 
-Task 4 is complete. Do not start Task 6 until Task 5 passes acceptance testing.
+Task 5 is complete. Do not start Task 7 until Task 6 passes acceptance testing.

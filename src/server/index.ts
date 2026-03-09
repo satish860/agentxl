@@ -16,6 +16,7 @@ import {
   setWorkbookFolderLink,
 } from "./workbook-folder-store.js";
 import { pickLocalFolder } from "./folder-picker.js";
+import { scanAndSaveInventory, loadInventory } from "./folder-scanner.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -291,17 +292,117 @@ async function handleFolderSelect(
       source: typeof body.source === "string" ? body.source : null,
     });
 
+    // Auto-scan the folder on link/update
+    let inventory = null;
+    try {
+      inventory = scanAndSaveInventory(workbookId, link.folderPath);
+    } catch {
+      // Scan failure is non-fatal — folder is still linked
+    }
+
     sendJson(res, 200, {
       workbookId,
       linked: true,
       folderPath: link.folderPath,
       link,
+      ...(inventory
+        ? {
+            totalFiles: inventory.totalFiles,
+            supportedFiles: inventory.supportedFiles,
+          }
+        : {}),
     });
   } catch (error) {
     sendError(
       res,
       400,
       error instanceof Error ? error.message : "Failed to save folder mapping"
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Route: GET /api/folder/files
+// ---------------------------------------------------------------------------
+
+function handleFolderFiles(
+  req: IncomingMessage,
+  res: ServerResponse
+): void {
+  const rawUrl = req.url ?? "/";
+  const url = new URL(rawUrl, "https://localhost");
+  const workbookId = url.searchParams.get("workbookId")?.trim();
+
+  if (!workbookId) {
+    sendError(res, 400, "Missing workbookId query parameter");
+    return;
+  }
+
+  const link = getWorkbookFolderLink(workbookId);
+  if (!link) {
+    sendError(res, 404, "No folder linked for this workbook. Link a folder first.");
+    return;
+  }
+
+  const inventory = loadInventory(workbookId);
+  if (!inventory) {
+    sendError(res, 404, "No inventory available. Refresh the folder to scan files.");
+    return;
+  }
+
+  sendJson(res, 200, {
+    workbookId,
+    folderPath: inventory.folderPath,
+    scannedAt: inventory.scannedAt,
+    totalFiles: inventory.totalFiles,
+    supportedFiles: inventory.supportedFiles,
+    files: inventory.files,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Route: POST /api/folder/refresh
+// ---------------------------------------------------------------------------
+
+async function handleFolderRefresh(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  const body = await parseJsonBody(req);
+
+  if (!body || typeof body !== "object") {
+    sendError(res, 400, "Missing request body");
+    return;
+  }
+
+  const workbookId =
+    typeof body.workbookId === "string" ? body.workbookId.trim() : "";
+
+  if (!workbookId) {
+    sendError(res, 400, "Missing workbookId in request body");
+    return;
+  }
+
+  const link = getWorkbookFolderLink(workbookId);
+  if (!link) {
+    sendError(res, 404, "No folder linked for this workbook. Link a folder first.");
+    return;
+  }
+
+  try {
+    const inventory = scanAndSaveInventory(workbookId, link.folderPath);
+    sendJson(res, 200, {
+      workbookId,
+      folderPath: inventory.folderPath,
+      scannedAt: inventory.scannedAt,
+      totalFiles: inventory.totalFiles,
+      supportedFiles: inventory.supportedFiles,
+    });
+  } catch (error) {
+    sendError(
+      res,
+      500,
+      error instanceof Error ? error.message : "Failed to scan folder"
     );
   }
 }
@@ -480,6 +581,8 @@ const API_ROUTES: Record<string, string> = {
   "/api/folder/status": "GET",
   "/api/folder/pick": "POST",
   "/api/folder/select": "POST",
+  "/api/folder/files": "GET",
+  "/api/folder/refresh": "POST",
   "/api/agent": "POST",
   "/api/config/status": "GET",
 };
@@ -539,6 +642,16 @@ async function handleRequest(
 
   if (url === "/api/folder/select" && method === "POST") {
     await handleFolderSelect(req, res);
+    return;
+  }
+
+  if (url === "/api/folder/files" && method === "GET") {
+    handleFolderFiles(req, res);
+    return;
+  }
+
+  if (url === "/api/folder/refresh" && method === "POST") {
+    await handleFolderRefresh(req, res);
     return;
   }
 
