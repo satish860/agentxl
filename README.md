@@ -185,28 +185,32 @@ That is the product.
 
 AgentXL is designed around a folder-first workflow:
 
-1. **Point AgentXL at a local folder** containing source documents
-2. **Ask a question or give an instruction**
-3. **Let the agent search and read the relevant files**
-4. **Review the grounded result** with citations or source traceability
-5. **Write the output into Excel** as a workpaper, schedule, or exception list
+1. **Link a local folder** — point AgentXL at a folder of source documents (PDFs, CSVs, Excel files, text)
+2. **AgentXL scans the folder** — builds an inventory of supported files, shows counts in the UI
+3. **Ask a question or give an instruction** — the agent knows what files are available
+4. **The agent searches and reads the relevant files** — using `read`, `grep`, `find`, `ls` tools (visible as live badges in the UI)
+5. **Review the grounded result** — answers cite the source file and content
+6. **Write the output into Excel** — as a workpaper, schedule, or exception list *(coming next)*
 
-This keeps the product centered on evidence and output quality, not generic chat UI.
+The agent's working directory is set to your linked folder. When you say "list the files," it lists *your documents*, not the AgentXL project.
 
 ---
 
 ## Current Build Status
 
-This repository is moving toward that document-first workflow.
-
 | Area | Status |
 |------|--------|
-| Excel taskpane shell | ✅ Present |
-| Local server + auth flow | ✅ Present |
-| Model connection | ✅ Present |
-| Folder-first document workflow | In progress |
-| Agentic file search | Planned / next |
-| Source traceability into Excel | Planned |
+| Excel taskpane shell | ✅ Done |
+| Local server + auth flow | ✅ Done |
+| Model connection | ✅ Done |
+| Workbook identity resolution | ✅ Done |
+| Folder linking + native picker | ✅ Done |
+| Folder scanning + file inventory | ✅ Done |
+| Folder-aware agent (cwd, context) | ✅ Done |
+| Agentic file search (read, grep, find, ls) | ✅ Done |
+| Tool call visibility in UI | ✅ Done |
+| Source traceability into Excel | 🔜 Next |
+| Excel write tools | Planned |
 | Eval-driven extraction improvement loop | Planned |
 
 ---
@@ -428,24 +432,33 @@ git clone https://github.com/satish860/agentxl.git
 cd agentxl
 npm install
 npm run build
-npm test               # 64 tests
+npm test               # 101 unit/integration tests
+npm run test:e2e       # 12 end-to-end tests (Playwright)
 node bin/agentxl.js start
 ```
 
 ### Project Structure
 
 ```text
-bin/agentxl.js                  CLI entry point
-src/server/index.ts             HTTPS server
-src/server/certs.ts             Certificate generation
-src/agent/session.ts            Pi SDK agent session
-src/agent/models.ts             Model selection
-taskpane/src/app.tsx            Taskpane UI orchestrator
-taskpane/src/hooks/             useAgentStatus, useChatStream
-taskpane/src/components/        UI components
-taskpane/src/lib/               API client, types, stream handler
-manifest/manifest.xml           Office add-in manifest
-tests/                          Acceptance + E2E tests (Playwright)
+bin/agentxl.js                       CLI entry point
+bin/agentxl-folder-picker.exe        Native folder picker (Windows)
+src/server/index.ts                  HTTPS server + API endpoints
+src/server/certs.ts                  Certificate generation
+src/server/workbook-identity.ts      Workbook identity resolution
+src/server/workbook-folder-store.ts  Workbook → folder mapping (JSON)
+src/server/folder-scanner.ts         Recursive file scanner + inventory
+src/server/folder-picker.ts          Native/PowerShell folder picker
+src/agent/session.ts                 Pi SDK agent session (cwd-aware)
+src/agent/models.ts                  Model selection
+taskpane/src/app.tsx                 Taskpane UI orchestrator
+taskpane/src/hooks/                  useAgentStatus, useChatStream,
+                                     useWorkbookIdentity, useFolderLink
+taskpane/src/components/             WelcomeScreen, FolderLinkScreen,
+                                     MessageBubble (tool call badges),
+                                     ChatInput, ThinkingBlock
+taskpane/src/lib/                    API client, stream handler, types
+manifest/manifest.xml                Office add-in manifest
+tests/                               105 tests (unit + integration + e2e)
 ```
 
 ---
@@ -455,8 +468,8 @@ tests/                          Acceptance + E2E tests (Playwright)
 | Module | What | Status |
 |--------|------|--------|
 | **Module 1** | Local taskpane shell, auth, and streaming chat | ✅ Done |
-| **Module 2** | Folder-first document ingestion and agentic file search | 🔜 Next |
-| **Module 3** | Source extraction, traceability, and Excel mapping | Planned |
+| **Module 2** | Folder-first workflow: link folders, scan files, agent reads documents | ✅ Done |
+| **Module 3** | Source extraction, traceable citations, and Excel mapping | 🔜 Next |
 | **Module 4** | Eval loop, failure analysis, and workflow hardening | Planned |
 
 ---
@@ -466,7 +479,8 @@ tests/                          Acceptance + E2E tests (Playwright)
 Contributions welcome. MIT license.
 
 ```bash
-npm test    # 64 tests should pass
+npm test          # 101 tests should pass
+npm run test:e2e  # 12 e2e tests should pass
 ```
 
 If you contribute, keep the philosophy simple:
