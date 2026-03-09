@@ -585,10 +585,12 @@ async function handleAgent(
 
   // Resolve folder context from workbookId
   const contextParts: string[] = [];
+  let linkedFolderPath: string | null = null;
 
   if (workbookId) {
     const link = getWorkbookFolderLink(workbookId);
     if (link) {
+      linkedFolderPath = link.folderPath;
       const inventory = loadInventory(workbookId);
       if (inventory) {
         contextParts.push(buildFolderContext(link.folderPath, inventory));
@@ -641,7 +643,7 @@ async function handleAgent(
   };
 
   try {
-    const session = await getSession();
+    const session = await getSession(linkedFolderPath ?? undefined);
 
     // Subscribe to session events and stream them as SSE
     unsubscribe = session.subscribe((event) => {

@@ -10,7 +10,7 @@ import { homedir } from "os";
 import { existsSync } from "fs";
 import {
   createAgentSession,
-  readOnlyTools,
+  createReadOnlyTools,
   AuthStorage,
   ModelRegistry,
   SessionManager,
@@ -49,6 +49,9 @@ let modelRegistry = new ModelRegistry(authStorage);
 /** Active agent session (null until first prompt) */
 let currentSession: AgentSession | null = null;
 
+/** The cwd the current session was created with */
+let currentSessionCwd: string | null = null;
+
 /** Provider selected for the active session */
 let selectedProvider: string | null = null;
 
@@ -72,10 +75,12 @@ function rebuildAuth(): void {
 
 /**
  * Initialize a new agent session.
- * Picks the best available model, creates a Pi SDK session with no built-in
- * tools (Excel-only agent — custom tools come in Module 2).
+ * Picks the best available model, creates a Pi SDK session with read-only
+ * tools pointed at the given working directory (linked folder).
+ *
+ * @param cwd - Working directory for file tools. Defaults to process.cwd().
  */
-export async function initSession(): Promise<AgentSession> {
+export async function initSession(cwd?: string): Promise<AgentSession> {
   // Refresh to pick up any new keys
   modelRegistry.refresh();
 
@@ -90,10 +95,14 @@ export async function initSession(): Promise<AgentSession> {
   // Track the selected provider
   selectedProvider = model.provider;
 
+  const effectiveCwd = cwd || process.cwd();
+  const tools = createReadOnlyTools(effectiveCwd);
+
   const { session } = await createAgentSession({
     model,
+    cwd: effectiveCwd,
     thinkingLevel: "medium",
-    tools: readOnlyTools,    // read, grep, find, ls — agent can read files
+    tools,                    // read, grep, find, ls — pointed at linked folder
     customTools: [],          // Excel tools come later
     sessionManager: SessionManager.inMemory(),
     settingsManager: SettingsManager.inMemory({
@@ -104,17 +113,31 @@ export async function initSession(): Promise<AgentSession> {
   });
 
   currentSession = session;
+  currentSessionCwd = effectiveCwd;
   return session;
 }
 
 /**
  * Get the current session, or create one if none exists.
+ * If `cwd` is provided and differs from the current session's cwd,
+ * the session is recreated so file tools point to the correct folder.
+ *
+ * @param cwd - Working directory for file tools (linked folder path).
  */
-export async function getSession(): Promise<AgentSession> {
+export async function getSession(cwd?: string): Promise<AgentSession> {
+  const effectiveCwd = cwd || process.cwd();
+
+  // Recreate session if the working directory changed
+  if (currentSession && currentSessionCwd !== effectiveCwd) {
+    currentSession.dispose();
+    currentSession = null;
+    currentSessionCwd = null;
+  }
+
   if (currentSession) {
     return currentSession;
   }
-  return initSession();
+  return initSession(effectiveCwd);
 }
 
 /**
@@ -151,6 +174,7 @@ export function resetSession(): void {
   if (currentSession) {
     currentSession.dispose();
     currentSession = null;
+    currentSessionCwd = null;
   }
   rebuildAuth();
 }
