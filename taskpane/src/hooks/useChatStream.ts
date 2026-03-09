@@ -12,7 +12,8 @@
 import { useState, useCallback, useRef } from "react";
 import { getExcelContext, streamAgent } from "../lib/api";
 import { createAccumulator, processSSEEvent } from "../lib/stream-handler";
-import type { Message, AgentSSEEvent } from "../lib/types";
+import { executeExcelCode } from "../lib/excel-executor";
+import type { Message, AgentSSEEvent, ToolExecutionStartEvent } from "../lib/types";
 
 export interface ChatStreamState {
   messages: Message[];
@@ -87,8 +88,24 @@ export function useChatStream(
           context,
           workbookId,
           (event) => {
-            const result = processSSEEvent(event as AgentSSEEvent, acc);
+            const typed = event as AgentSSEEvent;
+            const result = processSSEEvent(typed, acc);
             applyResult(result);
+
+            // When the agent calls the `excel` tool, execute the Office.js
+            // code in the browser and POST the result back to the server.
+            if (
+              typed.type === "tool_execution_start" &&
+              (typed as ToolExecutionStartEvent).toolName === "excel"
+            ) {
+              const e = typed as ToolExecutionStartEvent;
+              const code = e.args?.code;
+              if (typeof code === "string" && e.toolCallId) {
+                executeExcelCode(e.toolCallId, code).catch((err) => {
+                  console.error("[excel] execution failed:", err);
+                });
+              }
+            }
           },
           controller.signal
         );

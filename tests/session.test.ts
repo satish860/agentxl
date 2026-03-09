@@ -328,7 +328,7 @@ async function run() {
     );
   });
 
-  await test("session has read-only tools (read, grep, find, ls)", async () => {
+  await test("session has read-only tools (read, grep, find, ls) and excel tool", async () => {
     if (!hasAuth) throw new Error("No auth available");
     const session = await getSession();
     const toolNames = session.getActiveToolNames();
@@ -337,7 +337,12 @@ async function run() {
       toolNames.includes("read"),
       "should have 'read' tool"
     );
-    // Should NOT have write-capable tools
+    // Excel custom tool — agent writes Office.js code
+    assert.ok(
+      toolNames.includes("excel"),
+      "should have 'excel' custom tool"
+    );
+    // Should NOT have write-capable file tools
     assert.ok(
       !toolNames.includes("edit"),
       "should not have 'edit' tool"

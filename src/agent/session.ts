@@ -18,6 +18,7 @@ import {
   type AgentSession,
 } from "@mariozechner/pi-coding-agent";
 import { getDefaultModel } from "./models.js";
+import { excelTool } from "./tools/excel.js";
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -103,7 +104,7 @@ export async function initSession(cwd?: string): Promise<AgentSession> {
     cwd: effectiveCwd,
     thinkingLevel: "medium",
     tools,                    // read, grep, find, ls — pointed at linked folder
-    customTools: [],          // Excel tools come later
+    customTools: [excelTool], // Single Excel tool — agent writes Office.js code
     sessionManager: SessionManager.inMemory(),
     settingsManager: SettingsManager.inMemory({
       compaction: { enabled: false },

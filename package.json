@@ -47,7 +47,7 @@
     "dev:taskpane": "cd taskpane && npx vite dev",
     "start": "node bin/agentxl.js start",
     "prepublishOnly": "npm run build",
-    "test": "npx tsx tests/certs.test.ts && npx tsx tests/workbook-folder-store.test.ts && npx tsx tests/folder-scanner.test.ts && npx tsx tests/server.test.ts && npx tsx tests/session.test.ts",
+    "test": "npx tsx tests/certs.test.ts && npx tsx tests/workbook-folder-store.test.ts && npx tsx tests/folder-scanner.test.ts && npx tsx tests/excel-bridge.test.ts && npx tsx tests/server.test.ts && npx tsx tests/session.test.ts",
     "test:certs": "npx tsx tests/certs.test.ts",
     "test:store": "npx tsx tests/workbook-folder-store.test.ts",
     "test:scanner": "npx tsx tests/folder-scanner.test.ts",

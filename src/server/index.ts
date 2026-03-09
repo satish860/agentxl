@@ -35,6 +35,7 @@ import {
   handleFolderRefresh,
 } from "./routes/folder.js";
 import { handleAgent, handleConfigStatus } from "./routes/agent.js";
+import { handleExcelResult } from "./routes/excel.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -76,6 +77,7 @@ const API_ROUTES: Record<string, string> = {
   "/api/folder/refresh": "POST",
   "/api/agent": "POST",
   "/api/config/status": "GET",
+  "/api/excel/result": "POST",
 };
 
 // ---------------------------------------------------------------------------
@@ -146,6 +148,11 @@ async function handleRequest(
 
   if (url === "/api/agent" && method === "POST") {
     await handleAgent(req, res);
+    return;
+  }
+
+  if (url === "/api/excel/result" && method === "POST") {
+    await handleExcelResult(req, res);
     return;
   }
 

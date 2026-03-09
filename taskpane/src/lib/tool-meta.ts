@@ -18,6 +18,7 @@ export const TOOL_META: Record<string, ToolMeta> = {
   grep: { label: "Searching files", iconKey: "search" },
   find: { label: "Finding files", iconKey: "folder-open" },
   ls: { label: "Listing directory", iconKey: "folder-open" },
+  excel: { label: "Excel", iconKey: "file-text" },
 };
 
 /** Get the display label for a tool, with fallback. */
@@ -44,6 +45,9 @@ export function getToolSummary(
   }
   if (toolName === "ls" && typeof args.path === "string") {
     return args.path;
+  }
+  if (toolName === "excel" && typeof args.description === "string") {
+    return args.description;
   }
   return undefined;
 }

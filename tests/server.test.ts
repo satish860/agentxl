@@ -620,6 +620,33 @@ async function run() {
     });
 
     // =======================================================================
+    // POST /api/excel/result — Excel bridge
+    // =======================================================================
+    console.log("\n  📡 Excel bridge API\n");
+
+    await test("POST /api/excel/result returns 400 without toolCallId", async () => {
+      const res = await httpPost("/api/excel/result", { result: "ok" });
+      assert.equal(res.status, 400);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("toolCallId"));
+    });
+
+    await test("POST /api/excel/result returns 404 for unknown toolCallId", async () => {
+      const res = await httpPost("/api/excel/result", {
+        toolCallId: "nonexistent-id",
+        result: "ok",
+      });
+      assert.equal(res.status, 404);
+      const json = JSON.parse(res.body);
+      assert.ok(json.error.includes("No pending execution"));
+    });
+
+    await test("GET /api/excel/result returns 405", async () => {
+      const res = await httpGet("/api/excel/result");
+      assert.equal(res.status, 405);
+    });
+
+    // =======================================================================
     // GET /taskpane/* — Static file serving
     // =======================================================================
     console.log("\n  📁 Static file serving (/taskpane/*)\n");
