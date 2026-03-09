@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, unlinkSync } from "fs";
 import { homedir } from "os";
-import { dirname, join } from "path";
+import { join } from "path";
+import { writeJsonFileAtomic, readJsonFile } from "./json-store.js";
 
 export interface WorkbookFolderLink {
   workbookId: string;
@@ -53,39 +54,24 @@ export function getWorkbookLinksPath(): string {
   return join(getAgentXLDataDir(), "workbook-links.json");
 }
 
-function ensureParentDir(path: string): void {
-  mkdirSync(dirname(path), { recursive: true });
-}
-
 function emptyStore(): WorkbookFolderStoreFile {
   return { version: 1, links: {} };
 }
 
 function readStore(): WorkbookFolderStoreFile {
   const path = getWorkbookLinksPath();
-  if (!existsSync(path)) return emptyStore();
-
-  try {
-    const raw = readFileSync(path, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<WorkbookFolderStoreFile>;
-    if (parsed.version !== 1 || !parsed.links || typeof parsed.links !== "object") {
-      return emptyStore();
-    }
-    return {
-      version: 1,
-      links: parsed.links as Record<string, WorkbookFolderLink>,
-    };
-  } catch {
+  const parsed = readJsonFile<Partial<WorkbookFolderStoreFile>>(path);
+  if (!parsed || parsed.version !== 1 || !parsed.links || typeof parsed.links !== "object") {
     return emptyStore();
   }
+  return {
+    version: 1,
+    links: parsed.links as Record<string, WorkbookFolderLink>,
+  };
 }
 
 function writeStore(store: WorkbookFolderStoreFile): void {
-  const path = getWorkbookLinksPath();
-  ensureParentDir(path);
-  const tempPath = `${path}.tmp`;
-  writeFileSync(tempPath, JSON.stringify(store, null, 2), "utf-8");
-  renameSync(tempPath, path);
+  writeJsonFileAtomic(getWorkbookLinksPath(), store);
 }
 
 export function getWorkbookFolderLink(workbookId: string): WorkbookFolderLink | null {

@@ -1,6 +1,7 @@
-import { readdirSync, statSync, existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "fs";
-import { join, extname, relative, basename, dirname } from "path";
+import { readdirSync, statSync, existsSync } from "fs";
+import { join, extname, relative, basename } from "path";
 import { getAgentXLDataDir } from "./workbook-folder-store.js";
+import { writeJsonFileAtomic, readJsonFile } from "./json-store.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -130,7 +131,6 @@ export function scanFolder(folderPath: string): FolderInventory {
     try {
       entries = readdirSync(dir);
     } catch {
-      // Permission denied or other read error — skip this directory
       return;
     }
 
@@ -143,7 +143,6 @@ export function scanFolder(folderPath: string): FolderInventory {
       try {
         entryStat = statSync(fullPath);
       } catch {
-        // Broken symlink or permission error — skip
         continue;
       }
 
@@ -157,7 +156,6 @@ export function scanFolder(folderPath: string): FolderInventory {
       if (!entryStat.isFile()) continue;
 
       const ext = extname(entry).toLowerCase();
-      // Skip files with no extension or hidden files
       if (!ext && isHidden(entry)) continue;
 
       files.push({
@@ -199,41 +197,29 @@ function getInventoryPath(workbookId: string): string {
   return join(getAgentXLDataDir(), "inventories", `${workbookId}.json`);
 }
 
-/**
- * Save a folder inventory to disk for a given workbook.
- */
-export function saveInventory(workbookId: string, inventory: FolderInventory): void {
-  const path = getInventoryPath(workbookId);
-  mkdirSync(dirname(path), { recursive: true });
+/** Save a folder inventory to disk for a given workbook. */
+export function saveInventory(
+  workbookId: string,
+  inventory: FolderInventory
+): void {
   const data: PersistedInventory = { version: 1, inventory };
-  const tempPath = `${path}.tmp`;
-  writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf-8");
-  renameSync(tempPath, path);
+  writeJsonFileAtomic(getInventoryPath(workbookId), data);
 }
 
-/**
- * Load a previously saved folder inventory for a given workbook.
- * Returns null if no inventory exists or if it's invalid.
- */
+/** Load a previously saved folder inventory. Returns null if not found. */
 export function loadInventory(workbookId: string): FolderInventory | null {
-  const path = getInventoryPath(workbookId);
-  if (!existsSync(path)) return null;
-
-  try {
-    const raw = readFileSync(path, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<PersistedInventory>;
-    if (parsed.version !== 1 || !parsed.inventory) return null;
-    return parsed.inventory;
-  } catch {
-    return null;
-  }
+  const parsed = readJsonFile<Partial<PersistedInventory>>(
+    getInventoryPath(workbookId)
+  );
+  if (!parsed || parsed.version !== 1 || !parsed.inventory) return null;
+  return parsed.inventory;
 }
 
-/**
- * Scan a folder, save the inventory, and return it.
- * This is the main entry point for folder scanning.
- */
-export function scanAndSaveInventory(workbookId: string, folderPath: string): FolderInventory {
+/** Scan a folder, save the inventory, and return it. */
+export function scanAndSaveInventory(
+  workbookId: string,
+  folderPath: string
+): FolderInventory {
   const inventory = scanFolder(folderPath);
   saveInventory(workbookId, inventory);
   return inventory;

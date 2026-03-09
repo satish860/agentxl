@@ -1,31 +1,36 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { FileText, Search, FolderOpen, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import {
+  FileText,
+  Search,
+  FolderOpen,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import { ThinkingBlock } from "./ThinkingBlock";
+import { TOOL_META } from "../lib/tool-meta";
 import type { Message, ToolCall } from "../lib/types";
 
-const TOOL_ICONS: Record<string, typeof FileText> = {
-  read: FileText,
-  grep: Search,
-  find: FolderOpen,
-  ls: FolderOpen,
-};
-
-const TOOL_LABELS: Record<string, string> = {
-  read: "Reading file",
-  grep: "Searching files",
-  find: "Finding files",
-  ls: "Listing directory",
+/** Map icon keys to Lucide components. */
+const ICON_MAP: Record<string, typeof FileText> = {
+  "file-text": FileText,
+  search: Search,
+  "folder-open": FolderOpen,
 };
 
 function ToolCallBadge({ tool }: { tool: ToolCall }) {
-  const Icon = TOOL_ICONS[tool.name] ?? FileText;
-  const label = TOOL_LABELS[tool.name] ?? tool.name;
+  const meta = TOOL_META[tool.name];
+  const Icon = meta ? ICON_MAP[meta.iconKey] ?? FileText : FileText;
+  const label = meta?.label ?? tool.name;
 
   return (
     <div className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] text-gray-600">
       {tool.status === "running" ? (
-        <Loader2 size={12} className="text-emerald-500 animate-spin shrink-0" />
+        <Loader2
+          size={12}
+          className="text-emerald-500 animate-spin shrink-0"
+        />
       ) : tool.status === "error" ? (
         <AlertCircle size={12} className="text-red-400 shrink-0" />
       ) : (
@@ -34,7 +39,9 @@ function ToolCallBadge({ tool }: { tool: ToolCall }) {
       <Icon size={12} className="text-gray-400 shrink-0" />
       <span>{label}</span>
       {tool.summary && (
-        <span className="text-gray-400 truncate max-w-[120px]">{tool.summary}</span>
+        <span className="text-gray-400 truncate max-w-[120px]">
+          {tool.summary}
+        </span>
       )}
     </div>
   );
@@ -78,11 +85,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           />
         ))}
 
-        {/* Tool calls */}
+        {/* Tool calls — keyed by stable ID */}
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-2">
-            {message.toolCalls.map((tool, i) => (
-              <ToolCallBadge key={i} tool={tool} />
+            {message.toolCalls.map((tool) => (
+              <ToolCallBadge key={tool.id} tool={tool} />
             ))}
           </div>
         )}

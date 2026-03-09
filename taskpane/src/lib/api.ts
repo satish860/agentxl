@@ -1,19 +1,31 @@
 /**
  * API client for communicating with the AgentXL server.
+ *
+ * Organized by domain:
+ * - Config (auth status)
+ * - Workbook identity
+ * - Folder linking/scanning
+ * - Agent streaming
+ *
+ * Office.js access is delegated to office-adapter.ts.
  */
 
+import {
+  readExcelContext,
+  readWorkbookIdentityInput,
+  getWorkbookNameFromUrl,
+} from "./office-adapter";
+
 const BASE = window.location.origin;
+
+// ---------------------------------------------------------------------------
+// Types (shared between client and API responses)
+// ---------------------------------------------------------------------------
 
 export interface ConfigStatus {
   authenticated: boolean;
   provider: string | null;
   version: string;
-}
-
-export async function getConfigStatus(): Promise<ConfigStatus> {
-  const res = await fetch(`${BASE}/api/config/status`);
-  if (!res.ok) throw new Error(`Status check failed: ${res.status}`);
-  return res.json();
 }
 
 export interface ExcelContext {
@@ -55,17 +67,15 @@ export interface FolderPickResult {
   folderPath: string | null;
 }
 
-function getWorkbookNameFromUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-
-  const normalized = trimmed.replace(/\\/g, "/");
-  const lastSegment = normalized.split("/").filter(Boolean).pop();
-  return lastSegment && lastSegment.length > 0 ? lastSegment : null;
+export interface SSEEvent {
+  type: string;
+  [key: string]: unknown;
 }
 
-/** Friendly display names for provider IDs. */
+// ---------------------------------------------------------------------------
+// Provider labels
+// ---------------------------------------------------------------------------
+
 const PROVIDER_LABELS: Record<string, string> = {
   anthropic: "Claude",
   "openai-codex": "ChatGPT",
@@ -82,70 +92,35 @@ export function getProviderLabel(provider: string | null): string {
   return PROVIDER_LABELS[provider] ?? provider;
 }
 
-/**
- * Get current Excel context via Office.js (if available).
- */
+// ---------------------------------------------------------------------------
+// Re-exports from office-adapter (backwards compatibility)
+// ---------------------------------------------------------------------------
+
+export { getWorkbookNameFromUrl };
+
+/** Get current Excel context. Delegates to office-adapter. */
 export async function getExcelContext(): Promise<ExcelContext | undefined> {
-  try {
-    const win = window as any;
-    if (typeof win.Excel === "undefined") return undefined;
-
-    return await win.Excel.run(async (ctx: any) => {
-      const sheet = ctx.workbook.worksheets.getActiveWorksheet();
-      const range = ctx.workbook.getSelectedRange();
-      sheet.load("name");
-      range.load("address");
-      await ctx.sync();
-      return {
-        activeSheet: sheet.name,
-        selectedRange: range.address,
-      };
-    });
-  } catch {
-    return undefined;
-  }
+  return readExcelContext();
 }
 
-/**
- * Build workbook identity input for server-side workbook resolution.
- * In Excel, this uses Office.js context. In browser-only mode, it falls back
- * to a stable preview identity so the flow still works during development.
- */
+/** Build workbook identity input. Delegates to office-adapter. */
 export async function getWorkbookIdentityInput(): Promise<WorkbookIdentityInput> {
-  const win = window as any;
-  const office = win.Office;
-  const workbookUrl =
-    typeof office?.context?.document?.url === "string"
-      ? office.context.document.url
-      : null;
-  let workbookName = getWorkbookNameFromUrl(workbookUrl);
-
-  try {
-    if (typeof win.Excel !== "undefined") {
-      const excelName = await win.Excel.run(async (ctx: any) => {
-        const workbook = ctx.workbook as any;
-        if (typeof workbook.load === "function") {
-          workbook.load("name");
-          await ctx.sync();
-        }
-        return typeof workbook.name === "string" ? workbook.name : null;
-      });
-
-      if (typeof excelName === "string" && excelName.trim().length > 0) {
-        workbookName = excelName.trim();
-      }
-    }
-  } catch {
-    // Ignore Office.js workbook-name failures — URL/browser fallback is enough.
-  }
-
-  return {
-    workbookName: workbookName ?? document.title ?? "AgentXL Workbook",
-    workbookUrl,
-    host: typeof office?.context?.host === "string" ? office.context.host : "browser",
-    source: typeof win.Excel !== "undefined" ? "excel-taskpane" : "browser-preview",
-  };
+  return readWorkbookIdentityInput();
 }
+
+// ---------------------------------------------------------------------------
+// Config API
+// ---------------------------------------------------------------------------
+
+export async function getConfigStatus(): Promise<ConfigStatus> {
+  const res = await fetch(`${BASE}/api/config/status`);
+  if (!res.ok) throw new Error(`Status check failed: ${res.status}`);
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Workbook API
+// ---------------------------------------------------------------------------
 
 export async function resolveWorkbookIdentity(
   input: WorkbookIdentityInput
@@ -157,20 +132,32 @@ export async function resolveWorkbookIdentity(
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: "Workbook resolve failed" }));
-    throw new Error(body.error || `Workbook resolve failed: HTTP ${res.status}`);
+    const body = await res
+      .json()
+      .catch(() => ({ error: "Workbook resolve failed" }));
+    throw new Error(
+      body.error || `Workbook resolve failed: HTTP ${res.status}`
+    );
   }
 
   return res.json();
 }
 
-export async function getFolderStatus(workbookId: string): Promise<FolderStatus> {
+// ---------------------------------------------------------------------------
+// Folder API
+// ---------------------------------------------------------------------------
+
+export async function getFolderStatus(
+  workbookId: string
+): Promise<FolderStatus> {
   const res = await fetch(
     `${BASE}/api/folder/status?workbookId=${encodeURIComponent(workbookId)}`
   );
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: "Folder status failed" }));
+    const body = await res
+      .json()
+      .catch(() => ({ error: "Folder status failed" }));
     throw new Error(body.error || `Folder status failed: HTTP ${res.status}`);
   }
 
@@ -187,7 +174,9 @@ export async function pickFolder(
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: "Folder picker failed" }));
+    const body = await res
+      .json()
+      .catch(() => ({ error: "Folder picker failed" }));
     throw new Error(body.error || `Folder picker failed: HTTP ${res.status}`);
   }
 
@@ -213,26 +202,23 @@ export async function selectFolder(
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: "Folder selection failed" }));
-    throw new Error(body.error || `Folder selection failed: HTTP ${res.status}`);
+    const body = await res
+      .json()
+      .catch(() => ({ error: "Folder selection failed" }));
+    throw new Error(
+      body.error || `Folder selection failed: HTTP ${res.status}`
+    );
   }
 
   return res.json();
 }
 
-export interface SSEEvent {
-  type: string;
-  [key: string]: any;
-}
+// ---------------------------------------------------------------------------
+// Agent API (SSE streaming)
+// ---------------------------------------------------------------------------
 
 /**
  * Send a message to the agent and stream SSE events back.
- *
- * @param message - User message text
- * @param context - Optional Excel context
- * @param workbookId - Optional workbook ID for folder context resolution
- * @param onEvent - Callback for each SSE event
- * @param signal - AbortSignal for cancellation
  */
 export async function streamAgent(
   message: string,
@@ -249,7 +235,9 @@ export async function streamAgent(
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: "Request failed" }));
+    const body = await res
+      .json()
+      .catch(() => ({ error: "Request failed" }));
     throw new Error(body.error || `HTTP ${res.status}`);
   }
 
@@ -267,7 +255,7 @@ export async function streamAgent(
 
     // Parse SSE lines: "data: {...}\n\n"
     const lines = buffer.split("\n");
-    buffer = lines.pop() ?? ""; // Keep incomplete last line
+    buffer = lines.pop() ?? "";
 
     for (const line of lines) {
       const trimmed = line.trim();

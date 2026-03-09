@@ -12,6 +12,8 @@ export interface ThinkingEntry {
 }
 
 export interface ToolCall {
+  /** Stable ID from the Pi SDK event, used for reconciliation. */
+  id: string;
   name: string;
   status: "running" | "done" | "error";
   /** Brief summary of what the tool is doing, e.g. file path for read */
@@ -31,10 +33,9 @@ export interface Message {
 // SSE events from /api/agent
 //
 // These match the Pi SDK agent event shapes. The server forwards them as-is.
-// Only the types the client cares about are defined here.
 // ---------------------------------------------------------------------------
 
-/** Delta sub-events inside a message_update (from pi-ai AssistantMessageEvent). */
+/** Delta sub-events inside a message_update (from Pi SDK AssistantMessageEvent). */
 export type AssistantMessageEvent =
   | { type: "text_start"; contentIndex: number }
   | { type: "text_delta"; contentIndex: number; delta: string }
@@ -42,12 +43,35 @@ export type AssistantMessageEvent =
   | { type: "thinking_start"; contentIndex: number }
   | { type: "thinking_delta"; contentIndex: number; delta: string }
   | { type: "thinking_end"; contentIndex: number; content: string }
-  | { type: string; [key: string]: unknown }; // catch-all for events we don't handle
+  | { type: string; [key: string]: unknown };
+
+/** Tool execution start event. */
+export interface ToolExecutionStartEvent {
+  type: "tool_execution_start";
+  toolCallId: string;
+  toolName: string;
+  args?: Record<string, unknown>;
+}
+
+/** Tool execution end event. */
+export interface ToolExecutionEndEvent {
+  type: "tool_execution_end";
+  toolCallId: string;
+  toolName: string;
+  isError?: boolean;
+  result?: unknown;
+}
 
 /** Top-level SSE events streamed from POST /api/agent. */
 export type AgentSSEEvent =
   | { type: "agent_start" }
   | { type: "agent_end" }
-  | { type: "message_update"; assistantMessageEvent: AssistantMessageEvent; message: unknown }
+  | {
+      type: "message_update";
+      assistantMessageEvent: AssistantMessageEvent;
+      message: unknown;
+    }
+  | ToolExecutionStartEvent
+  | ToolExecutionEndEvent
   | { type: "error"; error: string }
-  | { type: string; [key: string]: unknown }; // other Pi SDK events we forward but don't use
+  | { type: string; [key: string]: unknown };

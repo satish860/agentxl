@@ -5,7 +5,15 @@
  * and doesn't bury protocol handling inside UI rendering.
  */
 
-import type { Message, ThinkingEntry, ToolCall, AgentSSEEvent } from "./types";
+import type {
+  Message,
+  ThinkingEntry,
+  ToolCall,
+  AgentSSEEvent,
+  ToolExecutionStartEvent,
+  ToolExecutionEndEvent,
+} from "./types";
+import { getToolLabel, getToolSummary } from "./tool-meta";
 
 /** Mutable accumulator for an in-progress assistant response. */
 export interface StreamAccumulator {
@@ -33,34 +41,6 @@ export type StreamResult =
   | { action: "add_system_error"; message: Message }
   | { action: "agent_end" }
   | { action: "none" };
-
-/** Friendly labels for built-in tool names. */
-const TOOL_LABELS: Record<string, string> = {
-  read: "Reading file",
-  grep: "Searching files",
-  find: "Finding files",
-  ls: "Listing directory",
-};
-
-/** Extract a brief summary from tool args (e.g. file path for read). */
-function toolSummary(toolName: string, args: any): string | undefined {
-  if (!args) return undefined;
-  if (toolName === "read" && typeof args.path === "string") {
-    // Show just the filename, not the full path
-    const parts = args.path.replace(/\\/g, "/").split("/");
-    return parts[parts.length - 1] || args.path;
-  }
-  if (toolName === "grep" && typeof args.pattern === "string") {
-    return `"${args.pattern}"`;
-  }
-  if (toolName === "find" && typeof args.path === "string") {
-    return args.path;
-  }
-  if (toolName === "ls" && typeof args.path === "string") {
-    return args.path;
-  }
-  return undefined;
-}
 
 /**
  * Process a single SSE event and return what the UI should do.
@@ -90,7 +70,10 @@ export function processSSEEvent(
         case "thinking_delta":
           if (acc.currentThinkingIdx >= 0) {
             acc.thinking[acc.currentThinkingIdx].content += ame.delta;
-            return { action: "update_assistant", message: snapshotMessage(acc) };
+            return {
+              action: "update_assistant",
+              message: snapshotMessage(acc),
+            };
           }
           return { action: "none" };
 
@@ -101,7 +84,10 @@ export function processSSEEvent(
               acc.thinking[acc.currentThinkingIdx].content = ame.content;
             }
             acc.currentThinkingIdx = -1;
-            return { action: "update_assistant", message: snapshotMessage(acc) };
+            return {
+              action: "update_assistant",
+              message: snapshotMessage(acc),
+            };
           }
           return { action: "none" };
 
@@ -111,27 +97,23 @@ export function processSSEEvent(
     }
 
     case "tool_execution_start": {
-      const name = (event as any).toolName ?? "tool";
-      const args = (event as any).args;
+      const e = event as ToolExecutionStartEvent;
       acc.toolCalls.push({
-        name,
+        id: e.toolCallId,
+        name: e.toolName,
         status: "running",
-        summary: toolSummary(name, args),
+        summary: getToolSummary(e.toolName, e.args),
       });
       return { action: "update_assistant", message: snapshotMessage(acc) };
     }
 
     case "tool_execution_end": {
-      const toolCallId = (event as any).toolCallId;
-      const toolName = (event as any).toolName ?? "tool";
-      const isError = (event as any).isError === true;
+      const e = event as ToolExecutionEndEvent;
 
-      // Find the matching running tool call and mark it done
-      const idx = acc.toolCalls.findIndex(
-        (t) => t.name === toolName && t.status === "running"
-      );
+      // Match by stable toolCallId — not best-effort name matching
+      const idx = acc.toolCalls.findIndex((t) => t.id === e.toolCallId);
       if (idx >= 0) {
-        acc.toolCalls[idx].status = isError ? "error" : "done";
+        acc.toolCalls[idx].status = e.isError ? "error" : "done";
       }
       return { action: "update_assistant", message: snapshotMessage(acc) };
     }
@@ -142,7 +124,8 @@ export function processSSEEvent(
         message: {
           id: crypto.randomUUID(),
           role: "system",
-          content: event.error || "An error occurred",
+          content:
+            (event as { error?: string }).error || "An error occurred",
           timestamp: Date.now(),
         },
       };
