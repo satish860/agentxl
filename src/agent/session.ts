@@ -110,7 +110,7 @@ export async function initSession(cwd?: string): Promise<AgentSession> {
     customTools: [excelTool], // Single Excel tool — agent writes Office.js code
     sessionManager: SessionManager.inMemory(),
     settingsManager: SettingsManager.inMemory({
-      compaction: { enabled: false },
+      compaction: { enabled: true },
     }),
     authStorage,
     modelRegistry,
