@@ -675,8 +675,29 @@ async function handleAgent(
     // Pi SDK rejects concurrent prompts — this ensures a clean slate.
     await abortSession();
 
-    // Send the prompt
-    await session.prompt(fullMessage);
+    // Change working directory to the linked folder so Pi SDK tools
+    // (ls, read, grep, find) operate on the user's documents, not
+    // the AgentXL project root. Safe because Node.js is single-threaded.
+    const originalCwd = process.cwd();
+    if (linkedFolderPath) {
+      try {
+        process.chdir(linkedFolderPath);
+      } catch {
+        // If chdir fails, tools will use the original cwd
+      }
+    }
+
+    try {
+      // Send the prompt
+      await session.prompt(fullMessage);
+    } finally {
+      // Restore original cwd
+      try {
+        process.chdir(originalCwd);
+      } catch {
+        // Best effort restore
+      }
+    }
   } catch (err) {
     completed = true;
     cleanup();
