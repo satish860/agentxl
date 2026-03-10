@@ -4,6 +4,20 @@ AgentXL 1.1.0 upgrades the Pi SDK integration, fixes Excel citation comments, al
 
 ## Install
 
+### For testers on Windows
+
+1. Download:
+   - `AgentXL-Windows-Payload-1.1.0.zip`
+2. Extract it to a normal folder such as `Desktop\\AgentXL`
+3. Double-click:
+   - `Start AgentXL.cmd`
+4. Wait for the message that the server is running
+5. In Excel, add the extracted `manifest` folder as a Trusted Add-in Catalog
+6. Restart Excel and add AgentXL from **Insert -> My Add-ins -> SHARED FOLDER**
+
+If sign-in is needed, run:
+- `AgentXL Login.cmd`
+
 ### npm
 
 ```bash
@@ -11,16 +25,14 @@ npm install -g agentxl
 agentxl start
 ```
 
-### Windows
+### Windows package details
 
-Download the Windows release asset:
-- `AgentXL-Windows-Payload-1.1.0.zip`
-
-This release currently includes the self-contained Windows payload built from the installer pipeline. It contains:
+This Windows package is self-contained. It includes:
 - bundled Node.js runtime
 - built AgentXL app
 - production dependencies
-- manifest and install scripts
+- manifest folder
+- simple launcher scripts
 
 ## Highlights
 

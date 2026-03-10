@@ -52,6 +52,28 @@ No server. No cloud account with us. No classic RAG stack. You bring your own AI
 
 ## Quick Start
 
+## Testing AgentXL on Windows (no coding required)
+
+If you are testing AgentXL and do **not** want to use npm or the command line, use this path:
+
+1. Open the GitHub Releases page:
+   - https://github.com/satish860/agentxl/releases
+2. Download the latest Windows asset:
+   - `AgentXL-Windows-Payload-<version>.zip`
+   - or `AgentXL-Setup-<version>.exe` when available
+3. Extract the zip to a normal folder like:
+   - `Desktop\\AgentXL`
+4. Double-click:
+   - `Start AgentXL.cmd`
+5. Wait until the window says:
+   - `Server running at https://localhost:3001`
+6. Open Excel and add AgentXL using the extracted `manifest` folder as the Trusted Add-in Catalog path
+
+If AgentXL asks you to sign in first, double-click:
+- `AgentXL Login.cmd`
+
+After that, your tester can open Excel, launch AgentXL, pick a document folder, and try the workflow.
+
 ### 1. Install
 
 **Option A — npm**
@@ -68,16 +90,15 @@ Download the latest Windows asset from:
 
 - https://github.com/satish860/agentxl/releases
 
-Preferred asset when available:
-- `AgentXL-Setup-<version>.exe`
-
-Current release builds may also include a self-contained Windows payload zip for manual distribution/testing.
+Windows asset options:
+- `AgentXL-Setup-<version>.exe` → best for normal users
+- `AgentXL-Windows-Payload-<version>.zip` → extract and run `Start AgentXL.cmd`
 
 The Windows package is self-contained. It:
 - bundles its own Node.js runtime
 - bundles the built AgentXL app and production dependencies
-- copies `manifest.xml` into a stable local folder for Excel catalog setup
-- creates shortcuts for Start/Login/Open Taskpane
+- includes a `manifest` folder for Excel setup
+- includes simple Windows launchers like `Start AgentXL.cmd`
 - does not require a separate Node.js installation on the target machine
 
 ### 2. Start
