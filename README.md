@@ -60,15 +60,24 @@ No server. No cloud account with us. No classic RAG stack. You bring your own AI
 npm install -g agentxl
 ```
 
-**Option B — Windows installer**
+This is the simplest cross-platform install path.
 
-Use the packaged `AgentXL-Setup-<version>.exe`.
+**Option B — GitHub Releases (Windows)**
 
-The installer is self-contained. It:
+Download the latest Windows asset from:
+
+- https://github.com/satish860/agentxl/releases
+
+Preferred asset when available:
+- `AgentXL-Setup-<version>.exe`
+
+Current release builds may also include a self-contained Windows payload zip for manual distribution/testing.
+
+The Windows package is self-contained. It:
 - bundles its own Node.js runtime
 - bundles the built AgentXL app and production dependencies
 - copies `manifest.xml` into a stable local folder for Excel catalog setup
-- creates Start Menu shortcuts for Start/Login/Open Taskpane
+- creates shortcuts for Start/Login/Open Taskpane
 - does not require a separate Node.js installation on the target machine
 
 ### 2. Start
@@ -110,7 +119,7 @@ You should see the AgentXL UI. This confirms the server, HTTPS, and UI all work 
 1. **Excel** → **File** → **Options** → **Trust Center** → **Trust Center Settings**
 2. Click **Trusted Add-in Catalogs**
 3. Add the catalog path printed in your terminal
-   - Windows installer default: `C:\Program Files\AgentXL\manifest`
+   - Windows install default: `C:\Program Files\AgentXL\manifest`
    - npm install flow: use the path printed by `agentxl start`
 4. Check **Show in Menu** → **OK** → **OK**
 5. **Restart Excel**
@@ -407,7 +416,7 @@ From the repo root:
 npm run prepare:installer:win
 ```
 
-This creates a **self-contained** installer payload in:
+This creates a **self-contained** Windows payload in:
 
 ```text
 release/windows/payload
@@ -418,7 +427,11 @@ It includes:
 - production `node_modules`
 - a bundled Node.js runtime
 
-To compile the `.exe` installer, install **Inno Setup 6** and run:
+Published GitHub releases can attach either:
+- a final installer: `AgentXL-Setup-<version>.exe`
+- or a self-contained payload zip: `AgentXL-Windows-Payload-<version>.zip`
+
+To compile the final `.exe` installer, install **Inno Setup 6** and run:
 
 ```bash
 npm run build:installer:win
@@ -430,7 +443,7 @@ The compiled installer is written to:
 release/windows/dist
 ```
 
-For a fuller release workflow, see:
+For release/publish steps, see:
 
 ```text
 docs/RELEASING.md
