@@ -33,3 +33,6 @@ nul
 # Logs
 *.log
 npm-debug.log*
+
+# Release artifacts
+release/

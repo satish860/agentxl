@@ -54,9 +54,22 @@ No server. No cloud account with us. No classic RAG stack. You bring your own AI
 
 ### 1. Install
 
+**Option A — npm**
+
 ```bash
 npm install -g agentxl
 ```
+
+**Option B — Windows installer**
+
+Use the packaged `AgentXL-Setup-<version>.exe`.
+
+The installer is self-contained. It:
+- bundles its own Node.js runtime
+- bundles the built AgentXL app and production dependencies
+- copies `manifest.xml` into a stable local folder for Excel catalog setup
+- creates Start Menu shortcuts for Start/Login/Open Taskpane
+- does not require a separate Node.js installation on the target machine
 
 ### 2. Start
 
@@ -97,6 +110,8 @@ You should see the AgentXL UI. This confirms the server, HTTPS, and UI all work 
 1. **Excel** → **File** → **Options** → **Trust Center** → **Trust Center Settings**
 2. Click **Trusted Add-in Catalogs**
 3. Add the catalog path printed in your terminal
+   - Windows installer default: `C:\Program Files\AgentXL\manifest`
+   - npm install flow: use the path printed by `agentxl start`
 4. Check **Show in Menu** → **OK** → **OK**
 5. **Restart Excel**
 6. **Insert** → **My Add-ins** → **SHARED FOLDER** tab → **AgentXL** → **Add**
@@ -383,6 +398,43 @@ agentxl start --port 3002
 ```
 
 > If you change the port, update `manifest/manifest.xml` to match.
+
+### Building the Windows installer
+
+From the repo root:
+
+```bash
+npm run prepare:installer:win
+```
+
+This creates a **self-contained** installer payload in:
+
+```text
+release/windows/payload
+```
+
+It includes:
+- the built app
+- production `node_modules`
+- a bundled Node.js runtime
+
+To compile the `.exe` installer, install **Inno Setup 6** and run:
+
+```bash
+npm run build:installer:win
+```
+
+The compiled installer is written to:
+
+```text
+release/windows/dist
+```
+
+For a fuller release workflow, see:
+
+```text
+docs/RELEASING.md
+```
 
 ### "No model available"
 

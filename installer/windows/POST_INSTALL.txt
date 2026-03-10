@@ -1,0 +1,10 @@
+AgentXL is installed with a bundled Node.js runtime.
+
+1. Launch "Start AgentXL" from the Start Menu.
+2. In Excel, open Trust Center -> Trusted Add-in Catalogs.
+3. Add this folder as a catalog:
+   {app}\manifest
+4. Restart Excel.
+5. Insert -> My Add-ins -> SHARED FOLDER -> AgentXL.
+
+No separate Node.js installation is required for the installed app.

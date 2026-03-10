@@ -54,7 +54,7 @@ Layer 3: Taskpane citation panel (rich UX)
 ### Tasks
 
 - [x] **2.1 — Agent adds Excel comments with citation on every write**
-  - Prompt teaches Office.js `cell.note` pattern with citation format:
+  - Prompt teaches Office.js `worksheet.comments.add(cellAddress, content)` pattern with citation format:
     ```
     📄 Source: Operating Lease.pdf
     📑 Page: 14

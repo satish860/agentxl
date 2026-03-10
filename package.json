@@ -1,6 +1,6 @@
 {
   "name": "agentxl",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Local-first document-to-Excel agent for traceable workpapers and evidence-heavy workflows",
   "author": "DeltaXY <hello@deltaxy.ai>",
   "license": "MIT",
@@ -44,6 +44,11 @@
     "build:server": "tsc",
     "build:taskpane": "cd taskpane && npx vite build",
     "build:folder-picker:win": "dotnet publish ./tools/folder-picker-win/agentxl-folder-picker.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained false -o ./bin",
+    "prepare:installer:win": "npm run build && node ./scripts/prepare-installer-win.mjs",
+    "build:installer:win": "powershell -ExecutionPolicy Bypass -File ./scripts/build-installer-win.ps1",
+    "release:check": "npm test && npm run build && npm pack",
+    "release:check:win": "powershell -ExecutionPolicy Bypass -File ./scripts/release-check-win.ps1",
+    "release:publish:npm": "npm publish",
     "dev:taskpane": "cd taskpane && npx vite dev",
     "start": "node bin/agentxl.js start",
     "prepublishOnly": "npm run build",
@@ -56,7 +61,7 @@
     "test:e2e": "npx tsx tests/e2e.test.ts"
   },
   "dependencies": {
-    "@mariozechner/pi-coding-agent": "^0.52.12",
+    "@mariozechner/pi-coding-agent": "^0.57.1",
     "@mistralai/mistralai": "^1.14.1",
     "@sinclair/typebox": "^0.34.11",
     "dotenv": "^17.3.1",

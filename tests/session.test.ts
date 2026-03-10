@@ -216,7 +216,7 @@ async function run() {
     if (!hasAuth) throw new Error("No auth available");
     // Create a fresh registry from resolved auth
     const authPath = existsSync(AGENTXL_AUTH) ? AGENTXL_AUTH : PI_AUTH;
-    const testAuth = new AuthStorage(authPath);
+    const testAuth = AuthStorage.create(authPath);
     const testRegistry = new ModelRegistry(testAuth);
     const model = getDefaultModel(testRegistry);
     assert.ok(model, "should return a model");
@@ -227,7 +227,7 @@ async function run() {
   await test("getDefaultModel prefers subscriptions over API keys", async () => {
     if (!hasAuth) throw new Error("No auth available");
     const authPath = existsSync(AGENTXL_AUTH) ? AGENTXL_AUTH : PI_AUTH;
-    const testAuth = new AuthStorage(authPath);
+    const testAuth = AuthStorage.create(authPath);
     const testRegistry = new ModelRegistry(testAuth);
     const model = getDefaultModel(testRegistry);
     assert.ok(model);
@@ -252,7 +252,7 @@ async function run() {
 
   await test("getDefaultModel returns null with empty registry", async () => {
     // Create isolated AuthStorage with no credentials
-    const emptyAuth = new AuthStorage(join(homedir(), ".agentxl", "empty-auth-test.json"));
+    const emptyAuth = AuthStorage.create(join(homedir(), ".agentxl", "empty-auth-test.json"));
     const emptyRegistry = new ModelRegistry(emptyAuth);
     const model = getDefaultModel(emptyRegistry);
     assert.equal(model, null, "should return null with no auth");
@@ -280,7 +280,7 @@ async function run() {
     resetSession(); // clear any prior session
     const provider = getAuthProvider();
     const authPath = existsSync(AGENTXL_AUTH) ? AGENTXL_AUTH : PI_AUTH;
-    const testAuth = new AuthStorage(authPath);
+    const testAuth = AuthStorage.create(authPath);
     const testRegistry = new ModelRegistry(testAuth);
     const model = getDefaultModel(testRegistry);
     assert.equal(

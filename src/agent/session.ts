@@ -45,7 +45,7 @@ function resolveAuthPath(): string {
 // Singletons — rebuilt on resetSession() to pick up auth changes
 // ---------------------------------------------------------------------------
 
-let authStorage = new AuthStorage(resolveAuthPath());
+let authStorage = AuthStorage.create(resolveAuthPath());
 let modelRegistry = new ModelRegistry(authStorage);
 
 /** Active agent session (null until first prompt) */
@@ -66,7 +66,7 @@ let selectedProvider: string | null = null;
  * Called by resetSession() so runtime auth changes are picked up.
  */
 function rebuildAuth(): void {
-  authStorage = new AuthStorage(resolveAuthPath());
+  authStorage = AuthStorage.create(resolveAuthPath());
   modelRegistry = new ModelRegistry(authStorage);
   selectedProvider = null;
 }
@@ -86,7 +86,8 @@ export async function initSession(cwd?: string): Promise<AgentSession> {
   // Refresh to pick up any new keys
   modelRegistry.refresh();
 
-  const model = getDefaultModel(modelRegistry);
+  const effectiveCwd = cwd || process.cwd();
+  const model = getDefaultModel(modelRegistry, effectiveCwd);
   if (!model) {
     throw new Error(
       "No model available. Run 'agentxl login' to set up authentication " +
@@ -96,8 +97,6 @@ export async function initSession(cwd?: string): Promise<AgentSession> {
 
   // Track the selected provider
   selectedProvider = model.provider;
-
-  const effectiveCwd = cwd || process.cwd();
   const readOnly = createReadOnlyTools(effectiveCwd);
   const bash = createBashTool(effectiveCwd);
   const tools = [...readOnly, bash];
@@ -165,7 +164,7 @@ export function getAuthProvider(): string | null {
 
   // No session yet — preview what getDefaultModel() would pick
   modelRegistry.refresh();
-  const model = getDefaultModel(modelRegistry);
+  const model = getDefaultModel(modelRegistry, currentSessionCwd ?? process.cwd());
   return model?.provider ?? null;
 }
 

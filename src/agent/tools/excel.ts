@@ -37,6 +37,7 @@ IMPORTANT RULES:
 - To read properties, call \`.load("propertyName")\` then \`await context.sync()\` before accessing.
 - Return a value to send results back (e.g., cell values, sheet names).
 - For writes, return a confirmation string describing what was written.
+- Do NOT use \`range.note\` or \`cell.note\` for citations/comments. In this runtime, use \`worksheet.comments.add(cellAddress, content)\`.
 
 COMMON PATTERNS:
 
@@ -54,6 +55,19 @@ const sheet = context.workbook.worksheets.getActiveWorksheet();
 sheet.getRange("A1").values = [["Revenue", "Q1", "Q2"], [100, 200, 300]];
 await context.sync();
 return "Wrote 2 rows to A1:C2";
+\`\`\`
+
+Add or replace a citation comment:
+\`\`\`
+const sheet = context.workbook.worksheets.getActiveWorksheet();
+const address = "B5";
+try {
+  sheet.comments.getItemByCell(address).delete();
+  await context.sync();
+} catch {}
+sheet.comments.add(address, "📄 Source: Lease.pdf\n📑 Page: 14\n💬 ...quoted excerpt...\n🤖 Extracted by AgentXL");
+await context.sync();
+return "Added citation comment to B5";
 \`\`\`
 
 Get all sheet names:

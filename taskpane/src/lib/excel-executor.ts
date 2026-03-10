@@ -34,6 +34,16 @@ export async function executeExcelCode(
 
     const Excel = win.Excel as any;
 
+    // Guard against unsupported pseudo-APIs that fail silently.
+    if (/\.\s*note\s*=/.test(code)) {
+      await postResult(toolCallId, {
+        error:
+          "Unsupported Office.js pattern: `range.note` / `cell.note` does not create a visible Excel comment in this runtime. " +
+          "Use `worksheet.comments.add(cellAddress, content)` instead, and delete any existing comment first if needed.",
+      });
+      return;
+    }
+
     // Execute the code inside Excel.run()
     const result = await Excel.run(async (context: any) => {
       // Create an async function from the code string.

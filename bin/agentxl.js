@@ -95,19 +95,18 @@ async function checkAuth() {
   const piAuthPath = join(homedir(), ".pi", "agent", "auth.json");
   const agentxlAuthPath = join(homedir(), ".agentxl", "auth.json");
   const authPath = existsSync(piAuthPath) ? piAuthPath : agentxlAuthPath;
-  const authStorage = new AuthStorage(authPath);
+  const authStorage = AuthStorage.create(authPath);
 
   return authStorage.list().length > 0;
 }
 
 async function runAuthFlow() {
   const { AuthStorage } = await import("@mariozechner/pi-coding-agent");
-  const { getOAuthProviders } = await import("@mariozechner/pi-ai");
 
   const piAuthPath = join(homedir(), ".pi", "agent", "auth.json");
   const agentxlAuthPath = join(homedir(), ".agentxl", "auth.json");
   const authPath = existsSync(piAuthPath) ? piAuthPath : agentxlAuthPath;
-  const authStorage = new AuthStorage(authPath);
+  const authStorage = AuthStorage.create(authPath);
 
   // Check if already authenticated
   if (authStorage.list().length > 0) {
@@ -134,7 +133,7 @@ async function runAuthFlow() {
 `);
 
   // Build choices — OAuth providers + API key
-  const oauthProviders = getOAuthProviders();
+  const oauthProviders = authStorage.getOAuthProviders();
   const choices = [];
   for (const p of oauthProviders) {
     choices.push({ type: "oauth", id: p.id, name: p.name, provider: p });
