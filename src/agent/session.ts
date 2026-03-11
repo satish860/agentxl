@@ -13,6 +13,7 @@ import {
   createReadOnlyTools,
   createBashTool,
   AuthStorage,
+  DefaultResourceLoader,
   ModelRegistry,
   SessionManager,
   SettingsManager,
@@ -20,6 +21,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import { getDefaultModel } from "./models.js";
 import { excelTool } from "./tools/excel.js";
+import { AGENTXL_SYSTEM_PROMPT } from "./prompt/system-prompt.js";
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -101,16 +103,32 @@ export async function initSession(cwd?: string): Promise<AgentSession> {
   const bash = createBashTool(effectiveCwd);
   const tools = [...readOnly, bash];
 
+  const settingsManager = SettingsManager.inMemory({
+    compaction: { enabled: true },
+  });
+
+  // Build a ResourceLoader that appends AgentXL's behavioral rules
+  // on top of Pi's built-in system prompt (tool docs, skills, AGENTS.md).
+  const resourceLoader = new DefaultResourceLoader({
+    cwd: effectiveCwd,
+    settingsManager,
+    appendSystemPrompt: AGENTXL_SYSTEM_PROMPT,
+    noExtensions: true,
+    noSkills: true,
+    noPromptTemplates: true,
+    noThemes: true,
+  });
+  await resourceLoader.reload();
+
   const { session } = await createAgentSession({
     model,
     cwd: effectiveCwd,
     thinkingLevel: "medium",
     tools,                    // read, grep, find, ls, bash — pointed at linked folder
     customTools: [excelTool], // Single Excel tool — agent writes Office.js code
+    resourceLoader,           // Pi base prompt + AgentXL append
     sessionManager: SessionManager.inMemory(),
-    settingsManager: SettingsManager.inMemory({
-      compaction: { enabled: true },
-    }),
+    settingsManager,
     authStorage,
     modelRegistry,
   });
