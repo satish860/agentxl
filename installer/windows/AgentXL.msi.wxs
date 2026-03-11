@@ -35,7 +35,7 @@
       Id="ExtractPayload"
       Sequence="execute"
       Before="ExtractPayload"
-      Value="&quot;[System64Folder]tar.exe&quot; -xzf &quot;[INSTALLFOLDER]agentxl-payload.tar.gz&quot; -C &quot;[INSTALLFOLDER]&quot;" />
+      Value="&quot;[System64Folder]tar.exe&quot; -xzf &quot;[INSTALLFOLDER]agentxl-payload.tar.gz&quot; -C &quot;[INSTALLFOLDER].&quot;" />
     <CustomAction
       Id="ExtractPayload"
       BinaryKey="WixCA"
@@ -49,13 +49,13 @@
       Id="RunInstallScript"
       Sequence="execute"
       Before="RunInstallScript"
-      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]install-agentxl.ps1&quot; -InstallDir &quot;[INSTALLFOLDER]&quot;" />
+      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]install-agentxl.ps1&quot; -InstallDir &quot;[INSTALLFOLDER].&quot;" />
     <CustomAction
       Id="RunInstallScript"
       BinaryKey="WixCA"
       DllEntry="WixQuietExec64"
       Execute="deferred"
-      Return="check"
+      Return="ignore"
       Impersonate="no" />
 
     <!-- ─── Install: remove archive to free disk space ─────────────────── -->

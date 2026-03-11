@@ -70,6 +70,7 @@
     "office-addin-dev-certs": "^2.0.6",
     "office-addin-dev-settings": "^3.0.6",
     "pdf-parse": "^2.4.5",
+    "semver": "^7.7.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

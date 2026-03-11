@@ -28,9 +28,12 @@ if (-not (Test-Path $manifestPath)) {
 }
 
 Write-Host "Configuring Office for AgentXL..."
-& $runtimeNode $enableScript $manifestPath --machine-cert
+& $runtimeNode $enableScript $manifestPath --machine-cert 2>&1
 if ($LASTEXITCODE -ne 0) {
-  throw "Could not configure Office for AgentXL."
+  Write-Host "WARNING: Automatic Office configuration failed (exit code $LASTEXITCODE)."
+  Write-Host "You can configure Office manually using the manifest folder after install."
+  Write-Host "See INSTALLATION_INFO.txt for details."
+  # Do not abort — the rest of the install (launchers, manifest copy) is still useful.
 }
 
 $startCmd = @'

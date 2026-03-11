@@ -280,7 +280,18 @@ function writePortableWindowsLaunchers() {
 }
 
 async function main() {
+  // Preserve the cache directory (contains downloaded Node.js runtime)
+  const cacheExists = existsSync(cacheDir);
+  const cacheTmp = join(dirname(releaseDir), "windows-cache-tmp");
+  if (cacheExists) {
+    rmSync(cacheTmp, { recursive: true, force: true });
+    cpSync(cacheDir, cacheTmp, { recursive: true });
+  }
   rmSync(releaseDir, { recursive: true, force: true });
+  if (cacheExists) {
+    cpSync(cacheTmp, cacheDir, { recursive: true });
+    rmSync(cacheTmp, { recursive: true, force: true });
+  }
   mkdirSync(appDir, { recursive: true });
   mkdirSync(runtimeDir, { recursive: true });
 
