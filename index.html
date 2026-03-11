@@ -308,64 +308,80 @@
         margin-bottom: 40px;
       }
 
-      .paths {
+      .steps {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        gap: 0;
+      }
+
+      .step-item {
+        display: grid;
+        grid-template-columns: 48px 1fr;
         gap: 20px;
+        padding: 24px 0;
+        border-top: 1px solid var(--line);
       }
 
-      .path-card {
-        padding: 28px;
-        border-radius: 18px;
-        background: white;
-        border: 1px solid var(--line);
-        text-decoration: none;
-        color: inherit;
-        transition: transform 0.15s ease, box-shadow 0.2s ease;
+      .step-item:first-child {
+        border-top: none;
+        padding-top: 0;
       }
 
-      .path-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 12px 36px oklch(0.18 0.02 165 / 0.08);
+      .step-num {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: var(--forest);
+        color: white;
+        font: 700 16px/1 var(--sans);
       }
 
-      .path-tag {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 8px;
-        font: 600 11px/1 var(--sans);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        margin-bottom: 16px;
-      }
-
-      .path-tag.recommended {
-        background: var(--forest-light);
-        color: var(--forest);
-      }
-
-      .path-tag.technical {
-        background: oklch(0.95 0 0);
-        color: var(--muted);
-      }
-
-      .path-card h3 {
+      .step-body h3 {
         font: 600 17px/1.3 var(--sans);
         color: var(--ink);
-        margin-bottom: 10px;
+        margin-bottom: 8px;
       }
 
-      .path-card p {
-        font: 400 14px/1.7 var(--sans);
+      .step-body p {
+        font: 400 15px/1.7 var(--sans);
         color: var(--body);
       }
 
-      .path-card code {
+      .step-body a {
+        color: var(--forest);
+        font-weight: 600;
+      }
+
+      .step-body code {
         font: 500 13px/1 "SFMono-Regular", "Cascadia Code", Consolas, monospace;
         background: var(--forest-light);
         padding: 3px 8px;
         border-radius: 6px;
         color: var(--forest);
+      }
+
+      .steps-note {
+        margin-top: 28px;
+        padding: 16px 20px;
+        border-radius: 14px;
+        background: var(--forest-fade);
+        border: 1px solid var(--line);
+        font: 400 14px/1.6 var(--sans);
+        color: var(--body);
+      }
+
+      .steps-note strong {
+        color: var(--ink);
+      }
+
+      .steps-note code {
+        font: 500 13px/1 "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+        background: white;
+        padding: 2px 7px;
+        border-radius: 6px;
+        color: var(--forest);
+        border: 1px solid var(--line);
       }
 
       /* ─── Example ─────────────────────────────────────── */
@@ -476,9 +492,9 @@
         <p class="hero-sub">
           AgentXL reads your source documents, finds the evidence, and maps it into Excel — with traceability back to the exact file. Local-first. No cloud upload. Your model, your data.
         </p>
-        <a class="hero-cta" href="https://github.com/satish860/agentxl/releases/latest">
+        <a class="hero-cta" href="https://github.com/satish860/agentxl/releases/download/v1.1.0/AgentXL-Windows-Payload-1.1.0.zip">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download for Windows
+          Download AgentXL (.zip, 95 MB)
         </a>
         <p class="hero-aside">
           Or install with npm: <code>npm i -g agentxl</code> · <a href="https://github.com/satish860/agentxl#readme">Full docs</a>
@@ -554,25 +570,46 @@
 
     <section class="start" id="start">
       <div class="wrap">
-        <div class="start-label">Get started</div>
-        <p class="start-headline">Running in under two minutes. No account with us required.</p>
+        <div class="start-label">Setup — 3 steps, 2 minutes</div>
+        <p class="start-headline">Download, extract, double-click.</p>
 
-        <div class="paths">
-          <a class="path-card" href="https://github.com/satish860/agentxl/releases/latest">
-            <div class="path-tag recommended">Recommended</div>
-            <h3>Windows download</h3>
-            <p>
-              Download the latest release, install or extract it, and launch <strong>AgentXL onboarding</strong>. It configures Office, opens Excel, and walks you through connecting your model provider and choosing your first folder.
-            </p>
-          </a>
+        <div class="steps">
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>Download and extract</h3>
+              <p>
+                <a href="https://github.com/satish860/agentxl/releases/download/v1.1.0/AgentXL-Windows-Payload-1.1.0.zip">Download the .zip file</a> (95 MB).
+                Right-click → <strong>Extract All</strong> to a normal folder like <code>Desktop\AgentXL</code>.
+              </p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>Sign in once</h3>
+              <p>
+                Open the extracted folder. Double-click <strong>AgentXL Login.cmd</strong>.
+                A browser opens — sign in with Claude, ChatGPT, or GitHub Copilot.
+                Close the browser tab when done.
+              </p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Launch</h3>
+              <p>
+                Double-click <strong>Launch AgentXL Onboarding.cmd</strong>.
+                Excel opens with the AgentXL panel on the right.
+                Pick your document folder and ask a question.
+              </p>
+            </div>
+          </div>
+        </div>
 
-          <a class="path-card" href="https://www.npmjs.com/package/agentxl">
-            <div class="path-tag technical">Technical</div>
-            <h3>npm install</h3>
-            <p>
-              Install globally with <code>npm i -g agentxl</code>, then run <code>agentxl start</code>. Works cross-platform. You bring your own model credentials — Claude, ChatGPT, Copilot, or an API key.
-            </p>
-          </a>
+        <div class="steps-note">
+          <strong>Not on Windows?</strong> Install with <code>npm i -g agentxl</code> then run <code>agentxl start</code>.
         </div>
       </div>
     </section>
