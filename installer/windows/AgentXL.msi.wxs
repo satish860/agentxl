@@ -12,10 +12,25 @@
              Description="AgentXL — document-to-Excel agent"
              Comments="Reads source documents and maps them into Excel with traceability." />
 
-    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+                  Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="low" />
 
-    <!-- After install: extract payload archive -->
+    <!-- ─── Upgrade: clean old extracted payload before re-extracting ──── -->
+    <SetProperty
+      Id="CleanOldPayload"
+      Sequence="execute"
+      Before="CleanOldPayload"
+      Value="&quot;[System64Folder]cmd.exe&quot; /c rmdir /s /q &quot;[INSTALLFOLDER]app&quot; &amp; rmdir /s /q &quot;[INSTALLFOLDER]runtime&quot;" />
+    <CustomAction
+      Id="CleanOldPayload"
+      BinaryKey="WixCA"
+      DllEntry="WixQuietExec64"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <!-- ─── Install: extract payload archive ───────────────────────────── -->
     <SetProperty
       Id="ExtractPayload"
       Sequence="execute"
@@ -29,7 +44,7 @@
       Return="check"
       Impersonate="no" />
 
-    <!-- After extract: run install-agentxl.ps1 -->
+    <!-- ─── Install: configure Excel add-in ────────────────────────────── -->
     <SetProperty
       Id="RunInstallScript"
       Sequence="execute"
@@ -43,7 +58,7 @@
       Return="check"
       Impersonate="no" />
 
-    <!-- After extract: remove the archive to free disk space -->
+    <!-- ─── Install: remove archive to free disk space ─────────────────── -->
     <SetProperty
       Id="CleanupArchive"
       Sequence="execute"
@@ -57,7 +72,7 @@
       Return="ignore"
       Impersonate="no" />
 
-    <!-- Uninstall: run uninstall script -->
+    <!-- ─── Uninstall: run cleanup script ──────────────────────────────── -->
     <SetProperty
       Id="RunUninstallScript"
       Sequence="execute"
@@ -71,16 +86,35 @@
       Return="ignore"
       Impersonate="no" />
 
-    <!-- Launch from finish dialog -->
-    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch AgentXL" />
+    <!-- ─── Uninstall: remove extracted dirs ───────────────────────────── -->
+    <SetProperty
+      Id="CleanExtractedDirs"
+      Sequence="execute"
+      Before="CleanExtractedDirs"
+      Value="&quot;[System64Folder]cmd.exe&quot; /c rmdir /s /q &quot;[INSTALLFOLDER]app&quot; &amp; rmdir /s /q &quot;[INSTALLFOLDER]runtime&quot;" />
+    <CustomAction
+      Id="CleanExtractedDirs"
+      BinaryKey="WixCA"
+      DllEntry="WixQuietExec64"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <!-- ─── Finish dialog: launch AgentXL ──────────────────────────────── -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch AgentXL in Excel" />
     <Property Id="WixShellExecTarget" Value="[#LaunchOnboardingFile]" />
     <CustomAction Id="LaunchOnboarding" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
 
+    <!-- ─── Execution sequence ─────────────────────────────────────────── -->
     <InstallExecuteSequence>
-      <Custom Action="ExtractPayload" After="InstallFiles">NOT Installed OR REINSTALL</Custom>
-      <Custom Action="RunInstallScript" After="ExtractPayload">NOT Installed OR REINSTALL</Custom>
-      <Custom Action="CleanupArchive" After="RunInstallScript">NOT Installed OR REINSTALL</Custom>
-      <Custom Action="RunUninstallScript" Before="RemoveFiles">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+      <!-- On install or upgrade: clean old → extract → configure → cleanup archive -->
+      <Custom Action="CleanOldPayload" After="InstallFiles">NOT REMOVE~="ALL"</Custom>
+      <Custom Action="ExtractPayload" After="CleanOldPayload">NOT REMOVE~="ALL"</Custom>
+      <Custom Action="RunInstallScript" After="ExtractPayload">NOT REMOVE~="ALL"</Custom>
+      <Custom Action="CleanupArchive" After="RunInstallScript">NOT REMOVE~="ALL"</Custom>
+      <!-- On uninstall: run cleanup script, then remove extracted dirs -->
+      <Custom Action="RunUninstallScript" Before="RemoveFiles">REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+      <Custom Action="CleanExtractedDirs" After="RunUninstallScript">REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
     </InstallExecuteSequence>
 
     <UI>
@@ -91,7 +125,7 @@
       </Publish>
     </UI>
 
-    <!-- Directory structure -->
+    <!-- ─── Directory structure ────────────────────────────────────────── -->
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="AgentXL">
@@ -104,7 +138,7 @@
       <Directory Id="DesktopFolder" />
     </Directory>
 
-    <!-- Main feature -->
+    <!-- ─── Main feature ──────────────────────────────────────────────── -->
     <Feature Id="MainFeature" Title="AgentXL" Level="1">
       <ComponentRef Id="PayloadArchive" />
       <ComponentRef Id="CmpInstallScript" />
@@ -114,14 +148,13 @@
       <ComponentRef Id="CmpLaunchOnboarding" />
       <ComponentRef Id="CmpStartAgentXL" />
       <ComponentRef Id="CmpAgentXLLogin" />
-      <ComponentRef Id="CmpOpenTaskpane" />
       <ComponentRef Id="CmpOpenExcel" />
       <ComponentRef Id="ManifestFiles" />
       <ComponentRef Id="StartMenuShortcuts" />
       <ComponentRef Id="DesktopShortcut" />
     </Feature>
 
-    <!-- Payload archive (the big file) -->
+    <!-- ─── Files ─────────────────────────────────────────────────────── -->
     <DirectoryRef Id="INSTALLFOLDER">
       <Component Id="PayloadArchive" Guid="*" Win64="yes">
         <File Id="PayloadTarGz" KeyPath="yes" Source="$(var.StagingRoot)\agentxl-payload.tar.gz" />
@@ -149,9 +182,6 @@
       <Component Id="CmpAgentXLLogin" Guid="*" Win64="yes">
         <File Id="AgentXLLoginFile" KeyPath="yes" Source="$(var.StagingRoot)\AgentXL Login.cmd" />
       </Component>
-      <Component Id="CmpOpenTaskpane" Guid="*" Win64="yes">
-        <File Id="OpenTaskpaneFile" KeyPath="yes" Source="$(var.StagingRoot)\Open AgentXL Taskpane.cmd" />
-      </Component>
       <Component Id="CmpOpenExcel" Guid="*" Win64="yes">
         <File Id="OpenExcelFile" KeyPath="yes" Source="$(var.StagingRoot)\Open Excel with AgentXL.cmd" />
       </Component>
@@ -163,21 +193,19 @@
       </Component>
     </DirectoryRef>
 
-    <!-- Start Menu shortcuts -->
+    <!-- ─── Start Menu ────────────────────────────────────────────────── -->
     <DirectoryRef Id="AgentXLMenuDir">
       <Component Id="StartMenuShortcuts" Guid="*" Win64="yes">
         <Shortcut Id="LaunchShortcut" Name="AgentXL" Target="[#LaunchOnboardingFile]"
                   Description="Start AgentXL and open Excel" WorkingDirectory="INSTALLFOLDER" />
         <Shortcut Id="LoginShortcut" Name="AgentXL Login" Target="[#AgentXLLoginFile]"
                   Description="Sign in to your AI provider" WorkingDirectory="INSTALLFOLDER" />
-        <Shortcut Id="ServerShortcut" Name="Start AgentXL Server" Target="[#StartAgentXLFile]"
-                  Description="Start the local AgentXL server" WorkingDirectory="INSTALLFOLDER" />
         <RemoveFolder Id="RemoveMenuDir" On="uninstall" />
         <RegistryValue Root="HKCU" Key="Software\DeltaXY\AgentXL" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </DirectoryRef>
 
-    <!-- Desktop shortcut -->
+    <!-- ─── Desktop ───────────────────────────────────────────────────── -->
     <DirectoryRef Id="DesktopFolder">
       <Component Id="DesktopShortcut" Guid="*" Win64="yes">
         <Shortcut Id="DesktopLaunchShortcut" Name="AgentXL" Target="[#LaunchOnboardingFile]"

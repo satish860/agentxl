@@ -178,12 +178,6 @@ function writePortableWindowsLaunchers() {
     "",
   ].join("\r\n");
 
-  const openTaskpaneCmd = [
-    "@echo off",
-    "start \"\" \"https://localhost:3001/taskpane/\"",
-    "",
-  ].join("\r\n");
-
   const openExcelCmd = [
     "@echo off",
     "set ROOT=%~dp0",
@@ -262,7 +256,6 @@ function writePortableWindowsLaunchers() {
 
   writeFileSync(join(payloadDir, "Start AgentXL.cmd"), startCmd, "utf-8");
   writeFileSync(join(payloadDir, "AgentXL Login.cmd"), loginCmd, "utf-8");
-  writeFileSync(join(payloadDir, "Open AgentXL Taskpane.cmd"), openTaskpaneCmd, "utf-8");
   writeFileSync(join(payloadDir, "Open Excel with AgentXL.cmd"), openExcelCmd, "utf-8");
   writeFileSync(join(payloadDir, "Launch AgentXL Onboarding.cmd"), onboardingCmd, "utf-8");
 
