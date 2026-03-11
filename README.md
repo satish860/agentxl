@@ -64,15 +64,18 @@ If you are testing AgentXL and do **not** want to use npm or the command line, u
 3. Extract the zip to a normal folder like:
    - `Desktop\\AgentXL`
 4. Double-click:
-   - `Start AgentXL.cmd`
-5. Wait until the window says:
-   - `Server running at https://localhost:3001`
-6. Open Excel and add AgentXL using the extracted `manifest` folder as the Trusted Add-in Catalog path
+   - `Open Excel with AgentXL.cmd`
+5. If sign-in is needed, double-click:
+   - `AgentXL Login.cmd`
+6. Wait for Excel to open with AgentXL available
 
-If AgentXL asks you to sign in first, double-click:
-- `AgentXL Login.cmd`
+The Windows flow now tries to automate:
+- trusting the localhost Office certificate
+- registering the add-in with Office
+- enabling localhost loopback when needed
+- opening Excel with AgentXL sideloaded
 
-After that, your tester can open Excel, launch AgentXL, pick a document folder, and try the workflow.
+After that, your tester can pick a document folder and try the workflow.
 
 ### 1. Install
 
@@ -137,10 +140,17 @@ You should see the AgentXL UI. This confirms the server, HTTPS, and UI all work 
 
 ### 5. Add to Excel (one-time setup)
 
+**Windows installer / Windows release path:**
+- AgentXL now tries to automate this step for you.
+- Fastest path: run `Open Excel with AgentXL.cmd`
+- If Excel was already open, close it and open it again.
+
+**Fallback if Office blocks automatic registration:**
 1. **Excel** → **File** → **Options** → **Trust Center** → **Trust Center Settings**
 2. Click **Trusted Add-in Catalogs**
-3. Add the catalog path printed in your terminal
+3. Add the catalog path
    - Windows install default: `C:\Program Files\AgentXL\manifest`
+   - Windows zip default: the extracted `manifest` folder
    - npm install flow: use the path printed by `agentxl start`
 4. Check **Show in Menu** → **OK** → **OK**
 5. **Restart Excel**

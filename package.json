@@ -67,6 +67,7 @@
     "dotenv": "^17.3.1",
     "mammoth": "^1.11.0",
     "office-addin-dev-certs": "^2.0.6",
+    "office-addin-dev-settings": "^3.0.6",
     "pdf-parse": "^2.4.5",
     "xlsx": "^0.18.5"
   },

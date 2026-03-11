@@ -465,9 +465,9 @@
           </div>
 
           <div class="quick-note">
-            <strong>Important:</strong> after install, there is still one manual Excel step.
-            You need to add the <span class="inline-code">manifest</span> folder once in
-            <strong>Excel → Trust Center → Trusted Add-in Catalogs</strong>.
+            <strong>Good news:</strong> the Windows flow now tries to automate Excel add-in setup.
+            Use <span class="inline-code">Open Excel with AgentXL.cmd</span> first.
+            If Office blocks automatic registration on a specific machine, there is still a manual fallback.
           </div>
         </div>
 
@@ -479,11 +479,11 @@
           </div>
           <div class="metric">
             <strong>2</strong>
-            <span>Double-click <span class="inline-code">Start AgentXL.cmd</span></span>
+            <span>Double-click <span class="inline-code">Open Excel with AgentXL.cmd</span></span>
           </div>
           <div class="metric">
             <strong>3</strong>
-            <span>Add the extracted <span class="inline-code">manifest</span> folder in Excel once</span>
+            <span>Only use the manual Excel fallback if Office blocks the automatic setup</span>
           </div>
         </aside>
       </section>
@@ -514,22 +514,22 @@
             <div class="step">
               <div class="step-badge">3</div>
               <div>
-                <strong>Start AgentXL</strong>
-                <p>Double-click <code>Start AgentXL.cmd</code> and wait until the window says the server is running.</p>
+                <strong>Open Excel with AgentXL</strong>
+                <p>Double-click <code>Open Excel with AgentXL.cmd</code>. This starts AgentXL, configures Office, and opens Excel.</p>
               </div>
             </div>
             <div class="step">
               <div class="step-badge">4</div>
               <div>
-                <strong>If sign-in is needed, run login</strong>
-                <p>Double-click <code>AgentXL Login.cmd</code> and complete the browser sign-in flow.</p>
+                <strong>If sign-in is needed, run login once</strong>
+                <p>Double-click <code>AgentXL Login.cmd</code>, complete the browser sign-in, then retry <code>Open Excel with AgentXL.cmd</code>.</p>
               </div>
             </div>
             <div class="step">
               <div class="step-badge">5</div>
               <div>
-                <strong>Add AgentXL to Excel once</strong>
-                <p>In Excel, add the extracted <code>manifest</code> folder in <strong>Trusted Add-in Catalogs</strong>, restart Excel, then add AgentXL from <strong>SHARED FOLDER</strong>.</p>
+                <strong>Manual fallback only if needed</strong>
+                <p>If Office blocks the automatic setup on that machine, add the extracted <code>manifest</code> folder in <strong>Trusted Add-in Catalogs</strong>, restart Excel, then add AgentXL from <strong>SHARED FOLDER</strong>.</p>
               </div>
             </div>
           </div>
@@ -553,9 +553,9 @@
           <div class="warning-banner">
             <strong>Do users still have to add the Excel add-in manually?</strong>
             <p>
-              <strong>Yes — currently they do.</strong> After install, the user still needs to add the
-              AgentXL <code>manifest</code> folder once in Excel’s Trusted Add-in Catalogs,
-              then restart Excel and add AgentXL from <strong>Insert → My Add-ins → SHARED FOLDER</strong>.
+              <strong>Usually no on Windows now.</strong> The new Windows flow tries to trust the certificate,
+              register the add-in with Office, enable loopback, and open Excel directly.
+              <strong>But keep a manual fallback</strong> for locked-down Office environments.
             </p>
           </div>
         </article>
@@ -606,7 +606,7 @@
             </div>
             <div class="faq-item">
               <strong>Do I still need to do anything manually in Excel?</strong>
-              <p>Yes. One time only: add the <code>manifest</code> folder in Trusted Add-in Catalogs, restart Excel, then add AgentXL from SHARED FOLDER.</p>
+              <p>Usually not on Windows now. Start with <code>Open Excel with AgentXL.cmd</code>. If Office blocks automatic setup on that machine, use the manual Trusted Add-in Catalog fallback.</p>
             </div>
             <div class="faq-item">
               <strong>Where do I download the latest build?</strong>

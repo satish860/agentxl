@@ -10,13 +10,18 @@ AgentXL 1.1.0 upgrades the Pi SDK integration, fixes Excel citation comments, al
    - `AgentXL-Windows-Payload-1.1.0.zip`
 2. Extract it to a normal folder such as `Desktop\\AgentXL`
 3. Double-click:
-   - `Start AgentXL.cmd`
-4. Wait for the message that the server is running
-5. In Excel, add the extracted `manifest` folder as a Trusted Add-in Catalog
-6. Restart Excel and add AgentXL from **Insert -> My Add-ins -> SHARED FOLDER**
+   - `Open Excel with AgentXL.cmd`
+4. If sign-in is needed, run:
+   - `AgentXL Login.cmd`
+5. Retry `Open Excel with AgentXL.cmd`
 
-If sign-in is needed, run:
-- `AgentXL Login.cmd`
+The Windows flow now tries to automate:
+- trusting the localhost Office certificate
+- registering AgentXL with Office
+- enabling localhost loopback when needed
+- opening Excel with AgentXL sideloaded
+
+If a locked-down Office environment blocks automatic setup, use the manual manifest fallback.
 
 ### npm
 

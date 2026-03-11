@@ -102,6 +102,7 @@ function prepareAppPayload() {
     "package-lock.json",
     "README.md",
     "LICENSE",
+    "scripts/enable-excel-addin.mjs",
   ];
 
   for (const rel of requiredPaths) {
@@ -112,6 +113,7 @@ function prepareAppPayload() {
   copyInto(join(root, "dist"), join(appDir, "dist"));
   copyInto(join(root, "taskpane", "dist"), join(appDir, "taskpane", "dist"));
   copyInto(join(root, "manifest"), join(appDir, "manifest"));
+  copyInto(join(root, "scripts", "enable-excel-addin.mjs"), join(appDir, "scripts", "enable-excel-addin.mjs"));
   copyInto(join(root, "package.json"), join(appDir, "package.json"));
   copyInto(join(root, "package-lock.json"), join(appDir, "package-lock.json"));
   copyInto(join(root, "README.md"), join(appDir, "README.md"));
@@ -160,6 +162,7 @@ function writePortableWindowsLaunchers() {
   const startCmd = [
     "@echo off",
     "set ROOT=%~dp0",
+    "\"%ROOT%runtime\\node.exe\" \"%ROOT%app\\scripts\\enable-excel-addin.mjs\" \"%ROOT%app\\manifest\\manifest.xml\" >nul 2>nul",
     "pushd \"%ROOT%app\"",
     "\"%ROOT%runtime\\node.exe\" \"%ROOT%app\\bin\\agentxl.js\" start %*",
     "popd",
@@ -181,6 +184,15 @@ function writePortableWindowsLaunchers() {
     "",
   ].join("\r\n");
 
+  const openExcelCmd = [
+    "@echo off",
+    "set ROOT=%~dp0",
+    "start \"AgentXL Server\" cmd /c \"\"%ROOT%Start AgentXL.cmd\"\"",
+    "timeout /t 4 /nobreak >nul",
+    "\"%ROOT%runtime\\node.exe\" \"%ROOT%app\\scripts\\enable-excel-addin.mjs\" \"%ROOT%app\\manifest\\manifest.xml\" --open-excel",
+    "",
+  ].join("\r\n");
+
   const manifestRoot = join(payloadDir, "manifest");
   mkdirSync(manifestRoot, { recursive: true });
   copyInto(join(appDir, "manifest", "manifest.xml"), join(manifestRoot, "manifest.xml"));
@@ -188,19 +200,23 @@ function writePortableWindowsLaunchers() {
   writeFileSync(join(payloadDir, "Start AgentXL.cmd"), startCmd, "utf-8");
   writeFileSync(join(payloadDir, "AgentXL Login.cmd"), loginCmd, "utf-8");
   writeFileSync(join(payloadDir, "Open AgentXL Taskpane.cmd"), openTaskpaneCmd, "utf-8");
+  writeFileSync(join(payloadDir, "Open Excel with AgentXL.cmd"), openExcelCmd, "utf-8");
 
   const info = [
     "AgentXL portable Windows build",
     "",
-    "Quick start:",
-    "1. Double-click 'Start AgentXL.cmd'",
-    "2. Wait for the terminal to say the server is running",
-    "3. In Excel, open Trusted Add-in Catalogs",
-    `4. Add this folder: ${manifestRoot}`,
-    "5. Restart Excel",
-    "6. Insert -> My Add-ins -> SHARED FOLDER -> AgentXL",
+    "Fastest path:",
+    "1. Double-click 'Open Excel with AgentXL.cmd'",
+    "2. If sign-in is needed, run 'AgentXL Login.cmd' once and retry",
+    "3. Wait for Excel to open with AgentXL available",
     "",
-    "If you need to sign in first, run 'AgentXL Login.cmd'.",
+    "What this does automatically:",
+    "- trusts the localhost Office certificate",
+    "- registers AgentXL with Office for development",
+    "- enables localhost loopback when needed",
+    "- opens Excel with AgentXL sideloaded",
+    "",
+    `Manifest location: ${manifestRoot}`,
     "",
   ].join("\r\n");
   writeFileSync(join(payloadDir, "INSTALLATION_INFO.txt"), info, "utf-8");
