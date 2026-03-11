@@ -28,6 +28,7 @@ The Windows installer artifacts are self-contained. They bundle:
 - a bundled Node.js runtime
 - Excel manifest files and shortcuts
 - post-install Office registration helpers
+- onboarding launchers for the first Excel session
 
 ### Prepare payload
 
@@ -59,6 +60,7 @@ The MSI:
 - installs the self-contained payload
 - runs the Office setup helper during install
 - offers a finish-screen checkbox to launch AgentXL onboarding in Excel
+- should be the preferred user-facing Windows artifact once WiX is available
 
 ### Build the `.exe`
 

@@ -73,9 +73,15 @@ This confirms:
 - taskpane UI is reachable
 
 ### 4.3 Excel setup
-One-time sideloading via Trusted Add-in Catalog:
+Preferred Windows path:
+1. launch the installer or Windows release build
+2. run **Launch AgentXL onboarding**
+3. let AgentXL try to trust the localhost cert, register the add-in, enable loopback, and open Excel
+4. if the taskpane is not already visible, click **AgentXL** on the Excel ribbon
+
+Fallback path for locked-down Office environments:
 1. open Excel settings
-2. add catalog path
+2. add catalog path in Trusted Add-in Catalogs
 3. restart Excel
 4. insert AgentXL add-in
 
@@ -90,10 +96,12 @@ It should be:
 > **Choose the folder with the supporting documents.**
 
 ### Ideal first-run taskpane state
-The user opens AgentXL in Excel and sees:
-- workbook context is available
-- primary call to action: choose a local folder
-- concise explanation that AgentXL searches source files and maps answers into Excel
+The user opens AgentXL in Excel and sees a simple 3-step onboarding flow:
+- **Connect** → sign in with their model provider if needed
+- **Folder** → choose the local folder with supporting documents
+- **Ask** → ask a grounded question about the selected folder
+
+The screen should still make workbook context visible and explain that AgentXL searches source files and maps answers into Excel.
 
 ### Desired emotional outcome
 **Relief**
@@ -193,7 +201,7 @@ The taskpane shows:
 
 ### 7.5 Ready for question
 Folder selected and workbook context available.
-The user can now ask grounded questions.
+The taskpane shows the final onboarding step (**Ask**) and the user can now ask grounded questions.
 
 ### 7.6 Searching files
 AgentXL shows that it is looking through the folder.
@@ -223,8 +231,12 @@ Examples:
 ## 8. Welcome Experience
 
 ### Current implementation
-Current taskpane still behaves more like a chat shell.
-This is a transitional state.
+Taskpane onboarding now has a clearer guided shell:
+- **Connect**
+- **Folder**
+- **Ask**
+
+The broader product is still evolving beyond a chat shell, but first run is now more explicit and user-guided.
 
 ### Target welcome screen
 The welcome screen should communicate:

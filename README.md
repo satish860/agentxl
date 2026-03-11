@@ -62,13 +62,16 @@ If you are testing AgentXL and do **not** want to use npm or the command line, u
    - `AgentXL-Setup-<version>.msi` when available
    - `AgentXL-Setup-<version>.exe` when available
    - or `AgentXL-Windows-Payload-<version>.zip`
-3. If you downloaded the zip, extract it to a normal folder like:
+3. If you downloaded the `.msi` or `.exe`, install AgentXL and launch:
+   - `Launch AgentXL onboarding`
+   from the Start Menu
+4. If you downloaded the `.zip`, extract it to a normal folder like:
    - `Desktop\\AgentXL`
-4. Launch onboarding:
+   then double-click:
    - `Launch AgentXL Onboarding.cmd`
-   - or `Open Excel with AgentXL.cmd`
-5. If sign-in is needed, double-click:
-   - `AgentXL Login.cmd`
+5. If sign-in is needed, run:
+   - `AgentXL Login`
+   - or `AgentXL Login.cmd`
 6. Wait for Excel to open, then click **AgentXL** on the **Home** tab if the task pane is not already visible
 
 The Windows flow now tries to automate:
@@ -103,8 +106,8 @@ Windows asset options:
 The Windows package is self-contained. It:
 - bundles its own Node.js runtime
 - bundles the built AgentXL app and production dependencies
-- includes a `manifest` folder for Excel setup
-- includes simple Windows launchers like `Start AgentXL.cmd`
+- includes a `manifest` folder for Excel setup fallback
+- includes onboarding launchers such as `Launch AgentXL Onboarding.cmd`
 - does not require a separate Node.js installation on the target machine
 
 ### 2. Start
@@ -145,7 +148,9 @@ You should see the AgentXL UI. This confirms the server, HTTPS, and UI all work 
 
 **Windows installer / Windows release path:**
 - AgentXL now tries to automate this step for you.
-- Fastest path: run `Launch AgentXL Onboarding.cmd`
+- Fastest path:
+  - installer: run `Launch AgentXL onboarding` from the Start Menu
+  - zip: run `Launch AgentXL Onboarding.cmd`
 - If Excel was already open, close it and open it again.
 - If the task pane is not already visible, click **AgentXL** on Excel's **Home** tab.
 
@@ -162,7 +167,13 @@ You should see the AgentXL UI. This confirms the server, HTTPS, and UI all work 
 
 ### 6. Start from a document folder
 
-Open Excel, launch **AgentXL**, then use a workflow like:
+Open Excel, launch **AgentXL**, and the first-run taskpane now guides the user through:
+
+1. **Connect** — sign in with your model provider if needed
+2. **Folder** — choose the local folder with supporting documents
+3. **Ask** — send a grounded question about that folder
+
+From there, the working flow is:
 
 1. select the workbook you want to populate
 2. point AgentXL at a local folder of supporting files
@@ -430,10 +441,13 @@ When you ask the agent about your documents or workbook, the relevant content is
 ### Add-in doesn't appear in Excel
 
 1. Is the server running?
-2. Did you add the catalog path in Trust Center → Trusted Add-in Catalogs?
-3. Did you check **Show in Menu**?
-4. Did you restart Excel?
-5. Look in **Insert → My Add-ins → SHARED FOLDER**
+2. Did you try the automated Windows onboarding path first?
+   - Start Menu: `Launch AgentXL onboarding`
+   - zip build: `Launch AgentXL Onboarding.cmd`
+3. If automatic setup failed, did you add the catalog path in Trust Center → Trusted Add-in Catalogs?
+4. Did you check **Show in Menu**?
+5. Did you restart Excel?
+6. Look in **Insert → My Add-ins → SHARED FOLDER**
 
 ### Port 3001 is already in use
 
