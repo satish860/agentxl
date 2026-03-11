@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AgentXL — Turn documents into traceable Excel workpapers</title>
+    <meta
+      name="description"
+      content="AgentXL helps you search local source documents and map grounded answers into Excel with traceability."
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: oklch(0.98 0.008 145);
+        --panel: oklch(0.995 0.004 145);
+        --panel-2: oklch(0.97 0.01 145);
+        --ink: oklch(0.23 0.02 165);
+        --muted: oklch(0.48 0.015 165);
+        --line: oklch(0.88 0.012 155);
+        --brand: oklch(0.62 0.16 156);
+        --brand-deep: oklch(0.49 0.13 158);
+        --warm: oklch(0.84 0.06 82);
+        --shadow: 0 24px 80px color-mix(in oklab, var(--brand) 12%, transparent);
+        --radius-xl: 28px;
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        --max: 1180px;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, color-mix(in oklab, var(--brand) 10%, transparent), transparent 34%),
+          radial-gradient(circle at top right, color-mix(in oklab, var(--warm) 20%, transparent), transparent 28%),
+          linear-gradient(180deg, oklch(0.985 0.01 145), oklch(0.97 0.01 145));
+      }
+
+      a { color: inherit; }
+      .shell {
+        width: min(calc(100% - 32px), var(--max));
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 22px 0 10px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+        color: white;
+        font-weight: 700;
+        font-size: 18px;
+        box-shadow: var(--shadow);
+        font-family: "Segoe UI", Arial, sans-serif;
+      }
+
+      .brand-copy strong {
+        display: block;
+        font: 700 1rem/1 "Segoe UI", Arial, sans-serif;
+        letter-spacing: 0.02em;
+      }
+
+      .brand-copy span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-family: "Segoe UI", Arial, sans-serif;
+      }
+
+      .nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .nav a,
+      .pill,
+      .button {
+        border-radius: 999px;
+        font: 600 0.94rem/1 "Segoe UI", Arial, sans-serif;
+        text-decoration: none;
+      }
+
+      .nav a {
+        padding: 12px 16px;
+        color: var(--muted);
+        background: color-mix(in oklab, white 75%, var(--brand) 3%);
+        border: 1px solid var(--line);
+      }
+
+      .hero {
+        padding: 36px 0 30px;
+        display: grid;
+        grid-template-columns: 1.25fr 0.9fr;
+        gap: 28px;
+        align-items: stretch;
+      }
+
+      .hero-main,
+      .hero-side,
+      .card,
+      .faq {
+        background: color-mix(in oklab, white 92%, var(--brand) 2%);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow);
+      }
+
+      .hero-main {
+        padding: 42px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-main::after {
+        content: "";
+        position: absolute;
+        inset: auto -40px -55px auto;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        background: radial-gradient(circle, color-mix(in oklab, var(--warm) 50%, white), transparent 68%);
+        opacity: 0.7;
+        pointer-events: none;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: color-mix(in oklab, var(--brand) 10%, white);
+        color: var(--brand-deep);
+        border: 1px solid color-mix(in oklab, var(--brand) 30%, white);
+        font: 700 0.8rem/1 "Segoe UI", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 22px 0 16px;
+        font-size: clamp(2.5rem, 6vw, 5.3rem);
+        line-height: 0.95;
+        letter-spacing: -0.045em;
+        max-width: 10ch;
+      }
+
+      .hero-main p {
+        margin: 0;
+        max-width: 42rem;
+        font-size: 1.15rem;
+        line-height: 1.7;
+        color: color-mix(in oklab, var(--ink) 82%, var(--muted));
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 28px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 52px;
+        padding: 0 20px;
+        border: 1px solid transparent;
+      }
+
+      .button.primary {
+        background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+        color: white;
+        box-shadow: 0 18px 40px color-mix(in oklab, var(--brand) 30%, transparent);
+      }
+
+      .button.secondary {
+        background: white;
+        color: var(--ink);
+        border-color: var(--line);
+      }
+
+      .quick-note {
+        margin-top: 22px;
+        padding: 16px 18px;
+        border-left: 4px solid var(--brand);
+        background: color-mix(in oklab, var(--brand) 6%, white);
+        border-radius: 0 var(--radius-md) var(--radius-md) 0;
+        font: 500 0.98rem/1.6 "Segoe UI", Arial, sans-serif;
+      }
+
+      .hero-side {
+        padding: 24px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .side-kicker {
+        color: var(--muted);
+        font: 700 0.8rem/1 "Segoe UI", Arial, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .metric {
+        padding: 18px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, color-mix(in oklab, white 85%, var(--warm) 12%), white);
+        border: 1px solid color-mix(in oklab, var(--warm) 35%, white);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 2rem;
+        line-height: 1;
+        margin-bottom: 8px;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font: 500 0.95rem/1.5 "Segoe UI", Arial, sans-serif;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 18px;
+        padding: 10px 0 24px;
+      }
+
+      .span-7 { grid-column: span 7; }
+      .span-5 { grid-column: span 5; }
+      .span-4 { grid-column: span 4; }
+      .span-6 { grid-column: span 6; }
+      .span-12 { grid-column: span 12; }
+
+      .card,
+      .faq {
+        padding: 26px;
+      }
+
+      .card h2,
+      .faq h2 {
+        margin: 0 0 14px;
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+        letter-spacing: -0.03em;
+      }
+
+      .card p,
+      .faq p,
+      .card li,
+      .faq li {
+        color: color-mix(in oklab, var(--ink) 82%, var(--muted));
+        font: 500 1rem/1.7 "Segoe UI", Arial, sans-serif;
+      }
+
+      .steps {
+        display: grid;
+        gap: 14px;
+        margin-top: 16px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 14px;
+        align-items: start;
+        padding: 14px 0;
+        border-top: 1px solid color-mix(in oklab, var(--line) 85%, white);
+      }
+
+      .step:first-child { border-top: 0; padding-top: 0; }
+
+      .step-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: color-mix(in oklab, var(--brand) 12%, white);
+        color: var(--brand-deep);
+        font: 800 1rem/1 "Segoe UI", Arial, sans-serif;
+      }
+
+      .step strong,
+      .faq strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--ink);
+      }
+
+      .inline-code,
+      code {
+        font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+        font-size: 0.92em;
+        background: color-mix(in oklab, var(--brand) 8%, white);
+        border: 1px solid color-mix(in oklab, var(--brand) 18%, white);
+        border-radius: 10px;
+        padding: 2px 8px;
+      }
+
+      .download-stack {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .download-item {
+        display: block;
+        padding: 18px;
+        border-radius: 18px;
+        background: white;
+        border: 1px solid var(--line);
+        text-decoration: none;
+      }
+
+      .download-item strong {
+        display: block;
+        margin-bottom: 6px;
+        font: 700 1.05rem/1.2 "Segoe UI", Arial, sans-serif;
+      }
+
+      .download-item span {
+        color: var(--muted);
+        font: 500 0.95rem/1.6 "Segoe UI", Arial, sans-serif;
+      }
+
+      .warning-banner {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, color-mix(in oklab, var(--warm) 28%, white), color-mix(in oklab, var(--warm) 14%, white));
+        border: 1px solid color-mix(in oklab, var(--warm) 45%, white);
+      }
+
+      .warning-banner strong {
+        display: block;
+        margin-bottom: 6px;
+        font: 700 1rem/1.3 "Segoe UI", Arial, sans-serif;
+      }
+
+      .faq-list {
+        display: grid;
+        gap: 18px;
+      }
+
+      .faq-item {
+        padding-top: 16px;
+        border-top: 1px solid color-mix(in oklab, var(--line) 85%, white);
+      }
+
+      .faq-item:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .footer {
+        padding: 16px 0 42px;
+        color: var(--muted);
+        font: 500 0.95rem/1.7 "Segoe UI", Arial, sans-serif;
+      }
+
+      @media (max-width: 980px) {
+        .hero,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .span-7,
+        .span-5,
+        .span-4,
+        .span-6,
+        .span-12 {
+          grid-column: auto;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .hero-main,
+        .hero-side,
+        .card,
+        .faq {
+          padding: 22px;
+        }
+
+        .cta-row,
+        .nav {
+          width: 100%;
+        }
+
+        .button,
+        .nav a {
+          width: 100%;
+        }
+
+        h1 { max-width: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="https://github.com/satish860/agentxl">
+          <div class="brand-mark">AX</div>
+          <div class="brand-copy">
+            <strong>AgentXL</strong>
+            <span>Document-to-Excel agent</span>
+          </div>
+        </a>
+
+        <nav class="nav">
+          <a href="https://github.com/satish860/agentxl/releases/latest">Download</a>
+          <a href="https://github.com/satish860/agentxl#readme">Readme</a>
+          <a href="https://github.com/satish860/agentxl">GitHub</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <div class="hero-main">
+          <div class="eyebrow">Built for testers, auditors, diligence teams</div>
+          <h1>Turn document folders into traceable Excel workpapers.</h1>
+          <p>
+            AgentXL searches your local supporting documents, reads the right files,
+            answers grounded questions, and helps map the result into Excel.
+            It is local-first, evidence-focused, and designed for workflows where the
+            source of truth lives in documents.
+          </p>
+
+          <div class="cta-row">
+            <a class="button primary" href="https://github.com/satish860/agentxl/releases/latest">
+              Download latest release
+            </a>
+            <a class="button secondary" href="#tester-steps">
+              See tester steps
+            </a>
+          </div>
+
+          <div class="quick-note">
+            <strong>Important:</strong> after install, there is still one manual Excel step.
+            You need to add the <span class="inline-code">manifest</span> folder once in
+            <strong>Excel → Trust Center → Trusted Add-in Catalogs</strong>.
+          </div>
+        </div>
+
+        <aside class="hero-side">
+          <div class="side-kicker">Fastest path for non-technical testers</div>
+          <div class="metric">
+            <strong>1</strong>
+            <span>Download the latest Windows release asset</span>
+          </div>
+          <div class="metric">
+            <strong>2</strong>
+            <span>Double-click <span class="inline-code">Start AgentXL.cmd</span></span>
+          </div>
+          <div class="metric">
+            <strong>3</strong>
+            <span>Add the extracted <span class="inline-code">manifest</span> folder in Excel once</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <article class="card span-7" id="tester-steps">
+          <h2>Tester steps for Windows</h2>
+          <p>
+            If you are testing AgentXL and do not want to use npm or developer tools,
+            follow these exact steps.
+          </p>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-badge">1</div>
+              <div>
+                <strong>Download the latest release</strong>
+                <p>Open the latest GitHub release and download the Windows asset.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-badge">2</div>
+              <div>
+                <strong>Extract the zip to a normal folder</strong>
+                <p>For example: <code>Desktop\AgentXL</code></p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-badge">3</div>
+              <div>
+                <strong>Start AgentXL</strong>
+                <p>Double-click <code>Start AgentXL.cmd</code> and wait until the window says the server is running.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-badge">4</div>
+              <div>
+                <strong>If sign-in is needed, run login</strong>
+                <p>Double-click <code>AgentXL Login.cmd</code> and complete the browser sign-in flow.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-badge">5</div>
+              <div>
+                <strong>Add AgentXL to Excel once</strong>
+                <p>In Excel, add the extracted <code>manifest</code> folder in <strong>Trusted Add-in Catalogs</strong>, restart Excel, then add AgentXL from <strong>SHARED FOLDER</strong>.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card span-5">
+          <h2>Download options</h2>
+          <p>Choose the path that fits your tester or user.</p>
+
+          <div class="download-stack">
+            <a class="download-item" href="https://github.com/satish860/agentxl/releases/latest">
+              <strong>Windows release download</strong>
+              <span>Best for testers. Look for <code>AgentXL-Windows-Payload-*.zip</code> or the installer <code>AgentXL-Setup-*.exe</code> when available.</span>
+            </a>
+            <a class="download-item" href="https://www.npmjs.com/package/agentxl">
+              <strong>npm package</strong>
+              <span>Best for technical users. Install with <code>npm install -g agentxl</code>.</span>
+            </a>
+          </div>
+
+          <div class="warning-banner">
+            <strong>Do users still have to add the Excel add-in manually?</strong>
+            <p>
+              <strong>Yes — currently they do.</strong> After install, the user still needs to add the
+              AgentXL <code>manifest</code> folder once in Excel’s Trusted Add-in Catalogs,
+              then restart Excel and add AgentXL from <strong>Insert → My Add-ins → SHARED FOLDER</strong>.
+            </p>
+          </div>
+        </article>
+
+        <article class="card span-4">
+          <h2>What AgentXL does</h2>
+          <p>
+            AgentXL is not a generic spreadsheet chatbot. It is built for work where:
+          </p>
+          <ul>
+            <li>supporting evidence lives in local documents</li>
+            <li>the final output belongs in Excel</li>
+            <li>the answer must be traceable back to source files</li>
+          </ul>
+        </article>
+
+        <article class="card span-4">
+          <h2>Best first test</h2>
+          <p>Give your tester one workbook and one real folder of support files. Then ask them to try:</p>
+          <ul>
+            <li>link a folder</li>
+            <li>ask a grounded question</li>
+            <li>inspect the answer</li>
+            <li>check where the answer came from</li>
+          </ul>
+        </article>
+
+        <article class="card span-4">
+          <h2>Example prompt</h2>
+          <p>
+            <code>Extract the cash balance from the bank statement folder and map it to the cash workpaper.</code>
+          </p>
+          <p>
+            That is the core experience AgentXL is built for.
+          </p>
+        </article>
+
+        <section class="faq span-12">
+          <h2>Quick answers</h2>
+          <div class="faq-list">
+            <div class="faq-item">
+              <strong>Do I need a separate AgentXL account?</strong>
+              <p>No. You use your own model provider credentials.</p>
+            </div>
+            <div class="faq-item">
+              <strong>Do I need Node.js to run the Windows release zip?</strong>
+              <p>No. The current Windows package is self-contained and includes its own Node runtime.</p>
+            </div>
+            <div class="faq-item">
+              <strong>Do I still need to do anything manually in Excel?</strong>
+              <p>Yes. One time only: add the <code>manifest</code> folder in Trusted Add-in Catalogs, restart Excel, then add AgentXL from SHARED FOLDER.</p>
+            </div>
+            <div class="faq-item">
+              <strong>Where do I download the latest build?</strong>
+              <p>Use the latest release page: <a href="https://github.com/satish860/agentxl/releases/latest">github.com/satish860/agentxl/releases/latest</a></p>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <footer class="footer">
+        AgentXL by DeltaXY · <a href="https://github.com/satish860/agentxl">GitHub</a> · <a href="https://github.com/satish860/agentxl/releases/latest">Latest release</a>
+      </footer>
+    </div>
+  </body>
+</html>
