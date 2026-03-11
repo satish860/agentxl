@@ -199,7 +199,8 @@
 
       /* ─── Download button ─────────────────────────────── */
 
-      .step a.download-btn {
+      .step a.download-btn,
+      a.download-btn {
         display: inline-flex;
         align-items: center;
         gap: 10px;
@@ -207,14 +208,14 @@
         padding: 14px 28px;
         border-radius: 10px;
         background: var(--green);
-        color: white;
+        color: #ffffff !important;
         font: 600 15px/1 var(--sans);
         text-decoration: none;
-        border-bottom: none;
+        border-bottom: none !important;
         transition: opacity 0.15s;
       }
 
-      .step a.download-btn:hover { opacity: 0.9; border-bottom: none; }
+      .step a.download-btn:hover { opacity: 0.9; border-bottom: none !important; }
 
       .download-btn svg {
         width: 18px; height: 18px;
@@ -391,13 +392,13 @@
       <div class="step">
         <div class="step-num">1</div>
         <div>
-          <h3>Download and extract</h3>
-          <a class="download-btn" href="https://github.com/satish860/agentxl/releases/download/v1.1.1/AgentXL-Windows-Payload-1.1.1.zip">
+          <h3>Download and install</h3>
+          <a class="download-btn" href="https://github.com/satish860/agentxl/releases/download/v1.1.1/AgentXL-Setup-1.1.1.exe">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download AgentXL (.zip)
+            Download AgentXL Installer
           </a>
-          <p class="download-size">Windows portable · ~218 MB · No install needed</p>
-          <p>Extract the zip to a folder like <code>Desktop\AgentXL</code> and double-click <strong>Launch AgentXL Onboarding.cmd</strong>. Includes Node.js — no other setup needed.</p>
+          <p class="download-size">Windows installer · ~216 MB</p>
+          <p>Run <strong>AgentXL-Setup-1.1.1.exe</strong> and follow the prompts. Installs everything including Node.js — no other setup needed.</p>
           <div class="warn">
             <strong>Windows SmartScreen:</strong> If you see "Windows protected your PC", click <strong>More info</strong> → <strong>Run anyway</strong>. The scripts are not code-signed yet.
           </div>
