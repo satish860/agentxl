@@ -116,17 +116,16 @@ export async function handleFolderSelect(
       source: typeof b.source === "string" ? b.source : null,
     });
 
-    // Auto-scan the folder on link/update
+    // Auto-scan the folder on link/update (fast — just reads directory)
     let inventory = null;
-    let conversion = null;
     try {
       inventory = scanAndSaveInventory(workbookId, link.folderPath);
-      // Pre-convert PDFs to Markdown (non-blocking for response)
-      conversion = await convertDocuments(inventory);
     } catch {
-      // Scan/conversion failure is non-fatal — folder is still linked
+      // Scan failure is non-fatal — folder is still linked
     }
 
+    // Respond immediately so the user isn't blocked.
+    // PDF conversion runs in the background after the response.
     sendJson(res, 200, {
       workbookId,
       linked: true,
@@ -138,15 +137,16 @@ export async function handleFolderSelect(
             supportedFiles: inventory.supportedFiles,
           }
         : {}),
-      ...(conversion
-        ? {
-            pdfConverted: conversion.converted,
-            pdfOcrConverted: conversion.ocrConverted,
-            pdfCached: conversion.cached,
-            pdfFailed: conversion.failed,
-          }
-        : {}),
     });
+
+    // Fire-and-forget: convert PDFs to markdown in the background.
+    // The agent reads from .agentxl-cache/ at prompt time, so conversions
+    // that finish after this response are still picked up.
+    if (inventory) {
+      convertDocuments(inventory).catch((err) => {
+        console.error("[folder] background PDF conversion error:", err);
+      });
+    }
   } catch (error) {
     sendError(
       res,
@@ -234,28 +234,18 @@ export async function handleFolderRefresh(
   try {
     const inventory = scanAndSaveInventory(workbookId, link.folderPath);
 
-    // Pre-convert PDFs to Markdown
-    let conversion = null;
-    try {
-      conversion = await convertDocuments(inventory);
-    } catch {
-      // Conversion failure is non-fatal
-    }
-
+    // Respond immediately with the scan results
     sendJson(res, 200, {
       workbookId,
       folderPath: inventory.folderPath,
       scannedAt: inventory.scannedAt,
       totalFiles: inventory.totalFiles,
       supportedFiles: inventory.supportedFiles,
-      ...(conversion
-        ? {
-            pdfConverted: conversion.converted,
-            pdfOcrConverted: conversion.ocrConverted,
-            pdfCached: conversion.cached,
-            pdfFailed: conversion.failed,
-          }
-        : {}),
+    });
+
+    // Fire-and-forget: convert PDFs in the background
+    convertDocuments(inventory).catch((err) => {
+      console.error("[folder] background PDF conversion error:", err);
     });
   } catch (error) {
     sendError(
