@@ -8,52 +8,79 @@
     Manufacturer="DeltaXY"
     UpgradeCode="{7C60A5D6-1C96-4BE3-A2BE-5A29A8FBE8B2}">
 
-    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64"
+             Description="AgentXL — document-to-Excel agent"
+             Comments="Reads source documents and maps them into Excel with traceability." />
+
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
-    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="low" />
 
-    <Property Id="ARPNOMODIFY" Value="1" />
-    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch AgentXL onboarding in Excel" />
-    <Property Id="WixShellExecTarget" Value="[#LaunchAgentXLOnboardingCmdFile]" />
-
-    <Feature Id="MainFeature" Title="AgentXL" Level="1">
-      <ComponentRef Id="InstallerScriptsComponent" />
-      <ComponentRef Id="LauncherFilesComponent" />
-      <ComponentRef Id="ProgramMenuShortcutsComponent" />
-      <ComponentGroupRef Id="AgentXLPayloadComponents" />
-    </Feature>
-
-    <CustomAction Id="LaunchOnboarding" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
-
+    <!-- After install: extract payload archive -->
     <SetProperty
-      Id="RunInstallAgentXL"
+      Id="ExtractPayload"
       Sequence="execute"
-      Before="RunInstallAgentXL"
-      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[#InstallAgentXLScript]&quot; -InstallDir &quot;[INSTALLFOLDER]&quot;" />
+      Before="ExtractPayload"
+      Value="&quot;[System64Folder]tar.exe&quot; -xzf &quot;[INSTALLFOLDER]agentxl-payload.tar.gz&quot; -C &quot;[INSTALLFOLDER]&quot;" />
     <CustomAction
-      Id="RunInstallAgentXL"
+      Id="ExtractPayload"
       BinaryKey="WixCA"
       DllEntry="WixQuietExec64"
       Execute="deferred"
       Return="check"
       Impersonate="no" />
 
+    <!-- After extract: run install-agentxl.ps1 -->
     <SetProperty
-      Id="RunUninstallAgentXL"
+      Id="RunInstallScript"
       Sequence="execute"
-      Before="RunUninstallAgentXL"
-      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[#UninstallAgentXLScript]&quot;" />
+      Before="RunInstallScript"
+      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]install-agentxl.ps1&quot; -InstallDir &quot;[INSTALLFOLDER]&quot;" />
     <CustomAction
-      Id="RunUninstallAgentXL"
+      Id="RunInstallScript"
+      BinaryKey="WixCA"
+      DllEntry="WixQuietExec64"
+      Execute="deferred"
+      Return="check"
+      Impersonate="no" />
+
+    <!-- After extract: remove the archive to free disk space -->
+    <SetProperty
+      Id="CleanupArchive"
+      Sequence="execute"
+      Before="CleanupArchive"
+      Value="&quot;[System64Folder]cmd.exe&quot; /c del /q &quot;[INSTALLFOLDER]agentxl-payload.tar.gz&quot;" />
+    <CustomAction
+      Id="CleanupArchive"
       BinaryKey="WixCA"
       DllEntry="WixQuietExec64"
       Execute="deferred"
       Return="ignore"
       Impersonate="no" />
 
+    <!-- Uninstall: run uninstall script -->
+    <SetProperty
+      Id="RunUninstallScript"
+      Sequence="execute"
+      Before="RunUninstallScript"
+      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]uninstall-agentxl.ps1&quot;" />
+    <CustomAction
+      Id="RunUninstallScript"
+      BinaryKey="WixCA"
+      DllEntry="WixQuietExec64"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <!-- Launch from finish dialog -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch AgentXL" />
+    <Property Id="WixShellExecTarget" Value="[#LaunchOnboardingFile]" />
+    <CustomAction Id="LaunchOnboarding" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
+
     <InstallExecuteSequence>
-      <Custom Action="RunInstallAgentXL" After="InstallFiles">NOT Installed</Custom>
-      <Custom Action="RunUninstallAgentXL" Before="RemoveFiles">REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE</Custom>
+      <Custom Action="ExtractPayload" After="InstallFiles">NOT Installed OR REINSTALL</Custom>
+      <Custom Action="RunInstallScript" After="ExtractPayload">NOT Installed OR REINSTALL</Custom>
+      <Custom Action="CleanupArchive" After="RunInstallScript">NOT Installed OR REINSTALL</Custom>
+      <Custom Action="RunUninstallScript" Before="RemoveFiles">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
     </InstallExecuteSequence>
 
     <UI>
@@ -64,77 +91,100 @@
       </Publish>
     </UI>
 
+    <!-- Directory structure -->
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="AgentXL">
-          <Directory Id="APPDIR" Name="app" />
-          <Directory Id="RUNTIMEDIR" Name="runtime" />
           <Directory Id="MANIFESTDIR" Name="manifest" />
         </Directory>
       </Directory>
       <Directory Id="ProgramMenuFolder">
-        <Directory Id="AgentXLProgramMenuDir" Name="AgentXL" />
+        <Directory Id="AgentXLMenuDir" Name="AgentXL" />
       </Directory>
+      <Directory Id="DesktopFolder" />
     </Directory>
 
+    <!-- Main feature -->
+    <Feature Id="MainFeature" Title="AgentXL" Level="1">
+      <ComponentRef Id="PayloadArchive" />
+      <ComponentRef Id="CmpInstallScript" />
+      <ComponentRef Id="CmpUninstallScript" />
+      <ComponentRef Id="CmpPostInstallTxt" />
+      <ComponentRef Id="CmpInstallationInfo" />
+      <ComponentRef Id="CmpLaunchOnboarding" />
+      <ComponentRef Id="CmpStartAgentXL" />
+      <ComponentRef Id="CmpAgentXLLogin" />
+      <ComponentRef Id="CmpOpenTaskpane" />
+      <ComponentRef Id="CmpOpenExcel" />
+      <ComponentRef Id="ManifestFiles" />
+      <ComponentRef Id="StartMenuShortcuts" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <!-- Payload archive (the big file) -->
     <DirectoryRef Id="INSTALLFOLDER">
-      <Component Id="InstallerScriptsComponent" Guid="*" Win64="yes">
-        <File Id="InstallAgentXLScript" KeyPath="yes" Source="$(var.PayloadRoot)\install-agentxl.ps1" />
-        <File Id="UninstallAgentXLScript" Source="$(var.PayloadRoot)\uninstall-agentxl.ps1" />
-        <File Id="PostInstallTextFile" Source="$(var.PayloadRoot)\POST_INSTALL.txt" />
-        <File Id="InstallationInfoFile" Source="$(var.PayloadRoot)\INSTALLATION_INFO.txt" />
+      <Component Id="PayloadArchive" Guid="*" Win64="yes">
+        <File Id="PayloadTarGz" KeyPath="yes" Source="$(var.StagingRoot)\agentxl-payload.tar.gz" />
       </Component>
 
-      <Component Id="LauncherFilesComponent" Guid="*" Win64="yes">
-        <File Id="StartAgentXLCmdFile" KeyPath="yes" Source="$(var.PayloadRoot)\Start AgentXL.cmd" />
-        <File Id="AgentXLLoginCmdFile" Source="$(var.PayloadRoot)\AgentXL Login.cmd" />
-        <File Id="OpenAgentXLTaskpaneCmdFile" Source="$(var.PayloadRoot)\Open AgentXL Taskpane.cmd" />
-        <File Id="OpenExcelWithAgentXLCmdFile" Source="$(var.PayloadRoot)\Open Excel with AgentXL.cmd" />
-        <File Id="LaunchAgentXLOnboardingCmdFile" Source="$(var.PayloadRoot)\Launch AgentXL Onboarding.cmd" />
+      <Component Id="CmpInstallScript" Guid="*" Win64="yes">
+        <File Id="InstallScript" KeyPath="yes" Source="$(var.StagingRoot)\install-agentxl.ps1" />
+      </Component>
+      <Component Id="CmpUninstallScript" Guid="*" Win64="yes">
+        <File Id="UninstallScript" KeyPath="yes" Source="$(var.StagingRoot)\uninstall-agentxl.ps1" />
+      </Component>
+      <Component Id="CmpPostInstallTxt" Guid="*" Win64="yes">
+        <File Id="PostInstallTxt" KeyPath="yes" Source="$(var.StagingRoot)\POST_INSTALL.txt" />
+      </Component>
+      <Component Id="CmpInstallationInfo" Guid="*" Win64="yes">
+        <File Id="InstallationInfoTxt" KeyPath="yes" Source="$(var.StagingRoot)\INSTALLATION_INFO.txt" />
+      </Component>
+
+      <Component Id="CmpLaunchOnboarding" Guid="*" Win64="yes">
+        <File Id="LaunchOnboardingFile" KeyPath="yes" Source="$(var.StagingRoot)\Launch AgentXL Onboarding.cmd" />
+      </Component>
+      <Component Id="CmpStartAgentXL" Guid="*" Win64="yes">
+        <File Id="StartAgentXLFile" KeyPath="yes" Source="$(var.StagingRoot)\Start AgentXL.cmd" />
+      </Component>
+      <Component Id="CmpAgentXLLogin" Guid="*" Win64="yes">
+        <File Id="AgentXLLoginFile" KeyPath="yes" Source="$(var.StagingRoot)\AgentXL Login.cmd" />
+      </Component>
+      <Component Id="CmpOpenTaskpane" Guid="*" Win64="yes">
+        <File Id="OpenTaskpaneFile" KeyPath="yes" Source="$(var.StagingRoot)\Open AgentXL Taskpane.cmd" />
+      </Component>
+      <Component Id="CmpOpenExcel" Guid="*" Win64="yes">
+        <File Id="OpenExcelFile" KeyPath="yes" Source="$(var.StagingRoot)\Open Excel with AgentXL.cmd" />
       </Component>
     </DirectoryRef>
 
-    <DirectoryRef Id="AgentXLProgramMenuDir">
-      <Component Id="ProgramMenuShortcutsComponent" Guid="*" Win64="yes">
-        <Shortcut
-          Id="LaunchOnboardingShortcut"
-          Name="Launch AgentXL onboarding"
-          Description="Start AgentXL and open Excel for first-run onboarding"
-          Target="[#LaunchAgentXLOnboardingCmdFile]"
-          WorkingDirectory="INSTALLFOLDER" />
-        <Shortcut
-          Id="OpenExcelShortcut"
-          Name="Open Excel with AgentXL"
-          Description="Start AgentXL and open Excel"
-          Target="[#OpenExcelWithAgentXLCmdFile]"
-          WorkingDirectory="INSTALLFOLDER" />
-        <Shortcut
-          Id="StartAgentXLShortcut"
-          Name="Start AgentXL"
-          Description="Start the local AgentXL server"
-          Target="[#StartAgentXLCmdFile]"
-          WorkingDirectory="INSTALLFOLDER" />
-        <Shortcut
-          Id="AgentXLLoginShortcut"
-          Name="AgentXL Login"
-          Description="Authenticate AgentXL with your model provider"
-          Target="[#AgentXLLoginCmdFile]"
-          WorkingDirectory="INSTALLFOLDER" />
-        <Shortcut
-          Id="OpenTaskpaneShortcut"
-          Name="Open AgentXL Taskpane"
-          Description="Open the local taskpane URL in your browser"
-          Target="[#OpenAgentXLTaskpaneCmdFile]"
-          WorkingDirectory="INSTALLFOLDER" />
-        <Shortcut
-          Id="InstallationInfoShortcut"
-          Name="Installation Info"
-          Description="Open AgentXL installation instructions"
-          Target="[#InstallationInfoFile]"
-          WorkingDirectory="INSTALLFOLDER" />
-        <RemoveFolder Id="RemoveAgentXLProgramMenuDir" On="uninstall" />
-        <RegistryValue Root="HKLM" Key="Software\DeltaXY\AgentXL" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+    <DirectoryRef Id="MANIFESTDIR">
+      <Component Id="ManifestFiles" Guid="*" Win64="yes">
+        <File Id="ManifestXml" KeyPath="yes" Source="$(var.StagingRoot)\manifest\manifest.xml" />
       </Component>
     </DirectoryRef>
+
+    <!-- Start Menu shortcuts -->
+    <DirectoryRef Id="AgentXLMenuDir">
+      <Component Id="StartMenuShortcuts" Guid="*" Win64="yes">
+        <Shortcut Id="LaunchShortcut" Name="AgentXL" Target="[#LaunchOnboardingFile]"
+                  Description="Start AgentXL and open Excel" WorkingDirectory="INSTALLFOLDER" />
+        <Shortcut Id="LoginShortcut" Name="AgentXL Login" Target="[#AgentXLLoginFile]"
+                  Description="Sign in to your AI provider" WorkingDirectory="INSTALLFOLDER" />
+        <Shortcut Id="ServerShortcut" Name="Start AgentXL Server" Target="[#StartAgentXLFile]"
+                  Description="Start the local AgentXL server" WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveMenuDir" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\DeltaXY\AgentXL" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Desktop shortcut -->
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="*" Win64="yes">
+        <Shortcut Id="DesktopLaunchShortcut" Name="AgentXL" Target="[#LaunchOnboardingFile]"
+                  Description="Start AgentXL and open Excel" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\DeltaXY\AgentXL" Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
   </Product>
 </Wix>
