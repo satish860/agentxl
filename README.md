@@ -59,15 +59,17 @@ If you are testing AgentXL and do **not** want to use npm or the command line, u
 1. Open the GitHub Releases page:
    - https://github.com/satish860/agentxl/releases
 2. Download the latest Windows asset:
-   - `AgentXL-Windows-Payload-<version>.zip`
-   - or `AgentXL-Setup-<version>.exe` when available
-3. Extract the zip to a normal folder like:
+   - `AgentXL-Setup-<version>.msi` when available
+   - `AgentXL-Setup-<version>.exe` when available
+   - or `AgentXL-Windows-Payload-<version>.zip`
+3. If you downloaded the zip, extract it to a normal folder like:
    - `Desktop\\AgentXL`
-4. Double-click:
-   - `Open Excel with AgentXL.cmd`
+4. Launch onboarding:
+   - `Launch AgentXL Onboarding.cmd`
+   - or `Open Excel with AgentXL.cmd`
 5. If sign-in is needed, double-click:
    - `AgentXL Login.cmd`
-6. Wait for Excel to open with AgentXL available
+6. Wait for Excel to open, then click **AgentXL** on the **Home** tab if the task pane is not already visible
 
 The Windows flow now tries to automate:
 - trusting the localhost Office certificate
@@ -94,8 +96,9 @@ Download the latest Windows asset from:
 - https://github.com/satish860/agentxl/releases
 
 Windows asset options:
-- `AgentXL-Setup-<version>.exe` → best for normal users
-- `AgentXL-Windows-Payload-<version>.zip` → extract and run `Start AgentXL.cmd`
+- `AgentXL-Setup-<version>.msi` → best for guided Windows onboarding
+- `AgentXL-Setup-<version>.exe` → installer alternative
+- `AgentXL-Windows-Payload-<version>.zip` → portable fallback; extract and run `Launch AgentXL Onboarding.cmd`
 
 The Windows package is self-contained. It:
 - bundles its own Node.js runtime
@@ -142,8 +145,9 @@ You should see the AgentXL UI. This confirms the server, HTTPS, and UI all work 
 
 **Windows installer / Windows release path:**
 - AgentXL now tries to automate this step for you.
-- Fastest path: run `Open Excel with AgentXL.cmd`
+- Fastest path: run `Launch AgentXL Onboarding.cmd`
 - If Excel was already open, close it and open it again.
+- If the task pane is not already visible, click **AgentXL** on Excel's **Home** tab.
 
 **Fallback if Office blocks automatic registration:**
 1. **Excel** → **File** → **Options** → **Trust Center** → **Trust Center Settings**
@@ -458,17 +462,24 @@ It includes:
 - production `node_modules`
 - a bundled Node.js runtime
 
-Published GitHub releases can attach either:
-- a final installer: `AgentXL-Setup-<version>.exe`
+Published GitHub releases can attach:
+- an MSI installer: `AgentXL-Setup-<version>.msi`
+- an EXE installer: `AgentXL-Setup-<version>.exe`
 - or a self-contained payload zip: `AgentXL-Windows-Payload-<version>.zip`
 
-To compile the final `.exe` installer, install **Inno Setup 6** and run:
+To compile the MSI installer, install **WiX Toolset 3.14** and run:
+
+```bash
+npm run build:msi:win
+```
+
+To compile the EXE installer, install **Inno Setup 6** and run:
 
 ```bash
 npm run build:installer:win
 ```
 
-The compiled installer is written to:
+Compiled installers are written to:
 
 ```text
 release/windows/dist

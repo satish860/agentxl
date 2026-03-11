@@ -31,13 +31,14 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "..\..\release\windows\payload\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
+Name: "{autoprograms}\AgentXL\Launch AgentXL onboarding"; Filename: "{app}\Launch AgentXL Onboarding.cmd"
 Name: "{autoprograms}\AgentXL\Open Excel with AgentXL"; Filename: "{app}\Open Excel with AgentXL.cmd"
 Name: "{autoprograms}\AgentXL\Start AgentXL"; Filename: "{app}\Start AgentXL.cmd"
 Name: "{autoprograms}\AgentXL\AgentXL Login"; Filename: "{app}\AgentXL Login.cmd"
 Name: "{autoprograms}\AgentXL\Open AgentXL Taskpane"; Filename: "{app}\Open AgentXL Taskpane.cmd"
 Name: "{autoprograms}\AgentXL\Open AgentXL Manifest Folder"; Filename: "{sys}\explorer.exe"; Parameters: '"{app}\manifest"'
 Name: "{autoprograms}\AgentXL\Installation Info"; Filename: "{app}\INSTALLATION_INFO.txt"
-Name: "{autodesktop}\Open Excel with AgentXL"; Filename: "{app}\Open Excel with AgentXL.cmd"; Tasks: desktopicon
+Name: "{autodesktop}\Launch AgentXL onboarding"; Filename: "{app}\Launch AgentXL Onboarding.cmd"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional icons:"

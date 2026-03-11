@@ -1,9 +1,9 @@
 AgentXL is installed with a bundled Node.js runtime.
 
 Fastest path:
-1. Launch "Open Excel with AgentXL" from the Start Menu.
+1. Launch "Launch AgentXL onboarding" from the Start Menu.
 2. If sign-in is needed, run "AgentXL Login" once.
-3. Wait for Excel to open with AgentXL available.
+3. Wait for Excel to open, then click AgentXL on the Home tab if the pane is not already visible.
 
 The installer already tried to:
 - trust the localhost Office certificate

@@ -193,6 +193,13 @@ function writePortableWindowsLaunchers() {
     "",
   ].join("\r\n");
 
+  const onboardingCmd = [
+    "@echo off",
+    "set ROOT=%~dp0",
+    "call \"%ROOT%Open Excel with AgentXL.cmd\"",
+    "",
+  ].join("\r\n");
+
   const manifestRoot = join(payloadDir, "manifest");
   mkdirSync(manifestRoot, { recursive: true });
   copyInto(join(appDir, "manifest", "manifest.xml"), join(manifestRoot, "manifest.xml"));
@@ -201,14 +208,15 @@ function writePortableWindowsLaunchers() {
   writeFileSync(join(payloadDir, "AgentXL Login.cmd"), loginCmd, "utf-8");
   writeFileSync(join(payloadDir, "Open AgentXL Taskpane.cmd"), openTaskpaneCmd, "utf-8");
   writeFileSync(join(payloadDir, "Open Excel with AgentXL.cmd"), openExcelCmd, "utf-8");
+  writeFileSync(join(payloadDir, "Launch AgentXL Onboarding.cmd"), onboardingCmd, "utf-8");
 
   const info = [
     "AgentXL portable Windows build",
     "",
     "Fastest path:",
-    "1. Double-click 'Open Excel with AgentXL.cmd'",
+    "1. Double-click 'Launch AgentXL Onboarding.cmd'",
     "2. If sign-in is needed, run 'AgentXL Login.cmd' once and retry",
-    "3. Wait for Excel to open with AgentXL available",
+    "3. Wait for Excel to open, then click AgentXL on the Home tab if the pane is not already visible",
     "",
     "What this does automatically:",
     "- trusts the localhost Office certificate",

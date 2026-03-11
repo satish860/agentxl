@@ -62,10 +62,17 @@ timeout /t 4 /nobreak >nul
 "%ROOT%runtime\node.exe" "%ROOT%app\scripts\enable-excel-addin.mjs" "%ROOT%app\manifest\manifest.xml" --open-excel --machine-cert
 '@
 
+$onboardingCmd = @'
+@echo off
+set ROOT=%~dp0
+call "%ROOT%Open Excel with AgentXL.cmd"
+'@
+
 Set-Content -Path (Join-Path $InstallDir 'Start AgentXL.cmd') -Value $startCmd -Encoding ASCII
 Set-Content -Path (Join-Path $InstallDir 'AgentXL Login.cmd') -Value $loginCmd -Encoding ASCII
 Set-Content -Path (Join-Path $InstallDir 'Open AgentXL Taskpane.cmd') -Value $openTaskpaneCmd -Encoding ASCII
 Set-Content -Path (Join-Path $InstallDir 'Open Excel with AgentXL.cmd') -Value $openExcelCmd -Encoding ASCII
+Set-Content -Path (Join-Path $InstallDir 'Launch AgentXL Onboarding.cmd') -Value $onboardingCmd -Encoding ASCII
 
 $catalogPath = Join-Path $InstallDir 'manifest'
 New-Item -ItemType Directory -Force -Path $catalogPath | Out-Null
@@ -78,7 +85,7 @@ Bundled runtime:
   $runtimeNode
 
 Fastest path:
-  $(Join-Path $InstallDir 'Open Excel with AgentXL.cmd')
+  $(Join-Path $InstallDir 'Launch AgentXL Onboarding.cmd')
 
 Login command:
   $(Join-Path $InstallDir 'AgentXL Login.cmd')
@@ -92,6 +99,7 @@ Manifest mirror folder:
   $catalogPath
 
 If Excel was already open during install, close Excel and open it again.
+If the AgentXL pane is not already visible, click AgentXL on Excel's Home tab.
 "@
 Set-Content -Path (Join-Path $InstallDir 'INSTALLATION_INFO.txt') -Value $info -Encoding UTF8
 

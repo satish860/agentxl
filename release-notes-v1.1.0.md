@@ -10,10 +10,10 @@ AgentXL 1.1.0 upgrades the Pi SDK integration, fixes Excel citation comments, al
    - `AgentXL-Windows-Payload-1.1.0.zip`
 2. Extract it to a normal folder such as `Desktop\\AgentXL`
 3. Double-click:
-   - `Open Excel with AgentXL.cmd`
+   - `Launch AgentXL Onboarding.cmd`
 4. If sign-in is needed, run:
    - `AgentXL Login.cmd`
-5. Retry `Open Excel with AgentXL.cmd`
+5. Retry `Launch AgentXL Onboarding.cmd`
 
 The Windows flow now tries to automate:
 - trusting the localhost Office certificate

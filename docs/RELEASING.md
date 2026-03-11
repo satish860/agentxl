@@ -22,11 +22,12 @@ npm run release:publish:npm
 
 ## Windows installer
 
-The Windows installer is self-contained. It bundles:
+The Windows installer artifacts are self-contained. They bundle:
 - the built AgentXL app
 - production `node_modules`
 - a bundled Node.js runtime
 - Excel manifest files and shortcuts
+- post-install Office registration helpers
 
 ### Prepare payload
 
@@ -39,6 +40,25 @@ Output:
 ```text
 release/windows/payload
 ```
+
+### Build the `.msi`
+
+Install **WiX Toolset 3.14** (`candle.exe` + `light.exe`), then run:
+
+```bash
+npm run build:msi:win
+```
+
+Output:
+
+```text
+release/windows/dist/AgentXL-Setup-<version>.msi
+```
+
+The MSI:
+- installs the self-contained payload
+- runs the Office setup helper during install
+- offers a finish-screen checkbox to launch AgentXL onboarding in Excel
 
 ### Build the `.exe`
 
@@ -65,7 +85,8 @@ This runs:
 - app build
 - npm pack
 - self-contained installer payload build
-- installer build if Inno Setup is installed
+- MSI build if WiX is installed
+- installer `.exe` build if Inno Setup is installed
 
 ## Notes
 

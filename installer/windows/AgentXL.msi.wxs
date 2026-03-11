@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+    Id="*"
+    Name="AgentXL"
+    Language="1033"
+    Version="$(var.AppVersion)"
+    Manufacturer="DeltaXY"
+    UpgradeCode="{7C60A5D6-1C96-4BE3-A2BE-5A29A8FBE8B2}">
+
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch AgentXL onboarding in Excel" />
+    <Property Id="WixShellExecTarget" Value="[#LaunchAgentXLOnboardingCmdFile]" />
+
+    <Feature Id="MainFeature" Title="AgentXL" Level="1">
+      <ComponentRef Id="InstallerScriptsComponent" />
+      <ComponentRef Id="LauncherFilesComponent" />
+      <ComponentRef Id="ProgramMenuShortcutsComponent" />
+      <ComponentGroupRef Id="AgentXLPayloadComponents" />
+    </Feature>
+
+    <CustomAction Id="LaunchOnboarding" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
+
+    <SetProperty
+      Id="RunInstallAgentXL"
+      Sequence="execute"
+      Before="RunInstallAgentXL"
+      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[#InstallAgentXLScript]&quot; -InstallDir &quot;[INSTALLFOLDER]&quot;" />
+    <CustomAction
+      Id="RunInstallAgentXL"
+      BinaryKey="WixCA"
+      DllEntry="WixQuietExec64"
+      Execute="deferred"
+      Return="check"
+      Impersonate="no" />
+
+    <SetProperty
+      Id="RunUninstallAgentXL"
+      Sequence="execute"
+      Before="RunUninstallAgentXL"
+      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[#UninstallAgentXLScript]&quot;" />
+    <CustomAction
+      Id="RunUninstallAgentXL"
+      BinaryKey="WixCA"
+      DllEntry="WixQuietExec64"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RunInstallAgentXL" After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="RunUninstallAgentXL" Before="RemoveFiles">REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE</Custom>
+    </InstallExecuteSequence>
+
+    <UI>
+      <UIRef Id="WixUI_Minimal" />
+      <UIRef Id="WixUI_ErrorProgressText" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchOnboarding">
+        WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed
+      </Publish>
+    </UI>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="AgentXL">
+          <Directory Id="APPDIR" Name="app" />
+          <Directory Id="RUNTIMEDIR" Name="runtime" />
+          <Directory Id="MANIFESTDIR" Name="manifest" />
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="AgentXLProgramMenuDir" Name="AgentXL" />
+      </Directory>
+    </Directory>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="InstallerScriptsComponent" Guid="*" Win64="yes">
+        <File Id="InstallAgentXLScript" KeyPath="yes" Source="$(var.PayloadRoot)\install-agentxl.ps1" />
+        <File Id="UninstallAgentXLScript" Source="$(var.PayloadRoot)\uninstall-agentxl.ps1" />
+        <File Id="PostInstallTextFile" Source="$(var.PayloadRoot)\POST_INSTALL.txt" />
+        <File Id="InstallationInfoFile" Source="$(var.PayloadRoot)\INSTALLATION_INFO.txt" />
+      </Component>
+
+      <Component Id="LauncherFilesComponent" Guid="*" Win64="yes">
+        <File Id="StartAgentXLCmdFile" KeyPath="yes" Source="$(var.PayloadRoot)\Start AgentXL.cmd" />
+        <File Id="AgentXLLoginCmdFile" Source="$(var.PayloadRoot)\AgentXL Login.cmd" />
+        <File Id="OpenAgentXLTaskpaneCmdFile" Source="$(var.PayloadRoot)\Open AgentXL Taskpane.cmd" />
+        <File Id="OpenExcelWithAgentXLCmdFile" Source="$(var.PayloadRoot)\Open Excel with AgentXL.cmd" />
+        <File Id="LaunchAgentXLOnboardingCmdFile" Source="$(var.PayloadRoot)\Launch AgentXL Onboarding.cmd" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="AgentXLProgramMenuDir">
+      <Component Id="ProgramMenuShortcutsComponent" Guid="*" Win64="yes">
+        <Shortcut
+          Id="LaunchOnboardingShortcut"
+          Name="Launch AgentXL onboarding"
+          Description="Start AgentXL and open Excel for first-run onboarding"
+          Target="[#LaunchAgentXLOnboardingCmdFile]"
+          WorkingDirectory="INSTALLFOLDER" />
+        <Shortcut
+          Id="OpenExcelShortcut"
+          Name="Open Excel with AgentXL"
+          Description="Start AgentXL and open Excel"
+          Target="[#OpenExcelWithAgentXLCmdFile]"
+          WorkingDirectory="INSTALLFOLDER" />
+        <Shortcut
+          Id="StartAgentXLShortcut"
+          Name="Start AgentXL"
+          Description="Start the local AgentXL server"
+          Target="[#StartAgentXLCmdFile]"
+          WorkingDirectory="INSTALLFOLDER" />
+        <Shortcut
+          Id="AgentXLLoginShortcut"
+          Name="AgentXL Login"
+          Description="Authenticate AgentXL with your model provider"
+          Target="[#AgentXLLoginCmdFile]"
+          WorkingDirectory="INSTALLFOLDER" />
+        <Shortcut
+          Id="OpenTaskpaneShortcut"
+          Name="Open AgentXL Taskpane"
+          Description="Open the local taskpane URL in your browser"
+          Target="[#OpenAgentXLTaskpaneCmdFile]"
+          WorkingDirectory="INSTALLFOLDER" />
+        <Shortcut
+          Id="InstallationInfoShortcut"
+          Name="Installation Info"
+          Description="Open AgentXL installation instructions"
+          Target="[#InstallationInfoFile]"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveAgentXLProgramMenuDir" On="uninstall" />
+        <RegistryValue Root="HKLM" Key="Software\DeltaXY\AgentXL" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+  </Product>
+</Wix>
