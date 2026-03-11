@@ -390,13 +390,16 @@
       <div class="step">
         <div class="step-num">1</div>
         <div>
-          <h3>Download and extract</h3>
-          <a class="download-btn" href="https://github.com/satish860/agentxl/releases/download/v1.1.0/AgentXL-Windows-Payload-1.1.0.zip">
+          <h3>Download and install</h3>
+          <a class="download-btn" href="https://github.com/satish860/agentxl/releases/download/v1.1.0/AgentXL-Setup-1.1.0.exe">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download AgentXL for Windows
+            Download AgentXL Installer
           </a>
-          <p class="download-size">.zip file · ~95 MB</p>
-          <p>After downloading, right-click the .zip → <strong>Extract All</strong> → pick a folder like <code>Desktop\AgentXL</code>.</p>
+          <p class="download-size">Windows installer · ~179 MB</p>
+          <p>Run <strong>AgentXL-Setup-1.1.0.exe</strong> and follow the prompts. It installs everything including Node.js — no other setup needed.</p>
+          <div class="warn">
+            <strong>Windows SmartScreen:</strong> If you see "Windows protected your PC", click <strong>More info</strong> → <strong>Run anyway</strong>. The installer is not code-signed yet.
+          </div>
         </div>
       </div>
 
@@ -404,8 +407,8 @@
         <div class="step-num">2</div>
         <div>
           <h3>Sign in (one time only)</h3>
-          <p>Open the extracted folder and double-click:</p>
-          <div class="file-name">AgentXL Login.cmd</div>
+          <p>After install, open from your Start Menu or Desktop:</p>
+          <div class="file-name">AgentXL Login</div>
           <p>A browser tab opens. Sign in with your ChatGPT, Claude, or Copilot account. Once you see "success", close the tab.</p>
         </div>
       </div>
@@ -414,12 +417,9 @@
         <div class="step-num">3</div>
         <div>
           <h3>Launch AgentXL</h3>
-          <p>Back in the same folder, double-click:</p>
-          <div class="file-name">Launch AgentXL.cmd</div>
-          <p>This starts the AgentXL server and opens the taskpane in your browser at <code>localhost:3001/taskpane</code>.</p>
-          <div class="warn">
-            <strong>Excel add-in (optional):</strong> To use AgentXL inside Excel instead of the browser, you need to sideload the add-in once. Open Excel → File → Options → Trust Center → Trust Center Settings → Trusted Add-in Catalogs → add <code>\\localhost\agentxl</code>. This is a one-time step. <a href="https://github.com/satish860/agentxl#excel-add-in-setup">Full instructions →</a>
-          </div>
+          <p>Open from your Start Menu or Desktop:</p>
+          <div class="file-name">AgentXL</div>
+          <p>This starts the AgentXL server and opens Excel with the AgentXL panel. If the panel doesn't appear, open your browser to <code>localhost:3001/taskpane</code>.</p>
         </div>
       </div>
 
@@ -469,10 +469,10 @@
       <!-- Troubleshooting -->
       <div class="help">
         <h3>Windows says "protected your PC"</h3>
-        <p>Click <strong>More info</strong> → <strong>Run anyway</strong>. The .cmd files are plain text scripts — you can open them in Notepad to verify.</p>
+        <p>Click <strong>More info</strong> → <strong>Run anyway</strong>. The installer isn't code-signed yet (early preview).</p>
 
-        <h3>AgentXL isn't loading in Excel</h3>
-        <p>Use it in the browser for now — just open <code>localhost:3001/taskpane</code> after launching. The Excel add-in sideloading step is optional.</p>
+        <h3>AgentXL panel doesn't show in Excel</h3>
+        <p>Use it in the browser instead — open <code>localhost:3001/taskpane</code> after launching. Works the same way.</p>
 
         <h3>Something else went wrong?</h3>
         <p><a href="https://github.com/satish860/agentxl/issues">Open an issue on GitHub</a> or send us the error message.</p>
