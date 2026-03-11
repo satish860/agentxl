@@ -3,645 +3,490 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AgentXL — Stop hunting through folders to fill out workpapers</title>
-    <meta name="description" content="AgentXL reads your source documents, finds the evidence, and maps it into Excel with traceability back to the exact file." />
+    <title>AgentXL — Get Started</title>
+    <meta name="description" content="AgentXL reads your source documents and maps them into Excel with traceability. Get started in 5 minutes." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
     <style>
       :root {
-        --forest: oklch(0.38 0.08 160);
-        --forest-light: oklch(0.94 0.03 158);
-        --forest-fade: oklch(0.97 0.015 158);
-        --clay: oklch(0.72 0.1 55);
-        --clay-light: oklch(0.92 0.04 60);
-        --ink: oklch(0.18 0.02 165);
-        --body: oklch(0.38 0.015 165);
-        --muted: oklch(0.52 0.01 165);
-        --faint: oklch(0.72 0.01 165);
-        --line: oklch(0.90 0.008 160);
-        --bg: oklch(0.993 0.003 80);
-        --serif: "Instrument Serif", Georgia, serif;
+        --green: #1a7a4c;
+        --green-bg: #f0f9f4;
+        --green-border: #c8e6d5;
+        --ink: #1a1a1a;
+        --body: #444;
+        --muted: #777;
+        --line: #e5e5e5;
+        --bg: #fafafa;
+        --warn-bg: #fff8e6;
+        --warn-border: #f0d060;
         --sans: "DM Sans", system-ui, sans-serif;
+        --mono: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
       }
 
       * { box-sizing: border-box; margin: 0; }
-      html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+      html { -webkit-font-smoothing: antialiased; }
 
       body {
         font-family: var(--sans);
         color: var(--ink);
         background: var(--bg);
-        line-height: 1;
+        line-height: 1.6;
+        padding: 0 0 80px;
       }
 
-      .wrap {
-        width: min(calc(100% - 48px), 780px);
+      .page {
+        width: min(calc(100% - 40px), 640px);
         margin: 0 auto;
       }
 
-      /* ─── Topbar ──────────────────────────────────────── */
+      /* ─── Header ──────────────────────────────────────── */
 
-      .topbar {
+      .header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: 28px 0 0;
+        gap: 12px;
+        padding: 32px 0 48px;
       }
 
       .logo {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        color: var(--ink);
-      }
-
-      .logo-mark {
-        width: 36px;
-        height: 36px;
+        width: 40px; height: 40px;
         border-radius: 10px;
-        display: grid;
-        place-items: center;
-        background: var(--forest);
+        display: grid; place-items: center;
+        background: var(--green);
         color: white;
         font: 700 14px/1 var(--sans);
         letter-spacing: 0.04em;
       }
 
-      .logo-text {
+      .header h1 {
+        font: 600 20px/1 var(--sans);
+      }
+
+      .header .tag {
+        font: 500 12px/1 var(--sans);
+        color: var(--green);
+        background: var(--green-bg);
+        border: 1px solid var(--green-border);
+        padding: 4px 10px;
+        border-radius: 20px;
+        margin-left: 4px;
+      }
+
+      /* ─── Intro ───────────────────────────────────────── */
+
+      .intro {
+        font: 400 17px/1.7 var(--sans);
+        color: var(--body);
+        margin-bottom: 48px;
+        max-width: 54ch;
+      }
+
+      .intro strong { color: var(--ink); }
+
+      /* ─── Sections ────────────────────────────────────── */
+
+      h2 {
+        font: 700 15px/1 var(--sans);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--green);
+        margin-bottom: 20px;
+        padding-top: 48px;
+      }
+
+      h2:first-of-type { padding-top: 0; }
+
+      /* ─── Prereqs ─────────────────────────────────────── */
+
+      .prereqs {
+        background: var(--green-bg);
+        border: 1px solid var(--green-border);
+        border-radius: 12px;
+        padding: 24px 28px;
+        margin-bottom: 48px;
+      }
+
+      .prereqs h3 {
         font: 600 15px/1 var(--sans);
-        letter-spacing: 0.01em;
+        margin-bottom: 14px;
       }
 
-      .topbar-link {
-        font: 500 14px/1 var(--sans);
-        color: var(--muted);
-        text-decoration: none;
-        border-bottom: 1px solid transparent;
-        transition: color 0.2s, border-color 0.2s;
+      .prereqs ul {
+        list-style: none;
+        padding: 0;
       }
 
-      .topbar-link:hover {
-        color: var(--ink);
-        border-color: var(--line);
-      }
-
-      /* ─── Hero ────────────────────────────────────────── */
-
-      .hero {
-        padding: 100px 0 80px;
-      }
-
-      .hero-eyebrow {
-        font: 600 13px/1 var(--sans);
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--forest);
-        margin-bottom: 28px;
-      }
-
-      h1 {
-        font: 400 clamp(3rem, 7vw, 4.8rem)/0.95 var(--serif);
-        letter-spacing: -0.035em;
-        color: var(--ink);
-        max-width: 16ch;
-      }
-
-      h1 em {
-        font-style: italic;
-        color: var(--forest);
-      }
-
-      .hero-sub {
-        margin-top: 32px;
-        font: 400 19px/1.7 var(--sans);
+      .prereqs li {
+        font: 400 15px/1.7 var(--sans);
         color: var(--body);
-        max-width: 52ch;
+        padding: 4px 0 4px 28px;
+        position: relative;
       }
 
-      .hero-cta {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 40px;
-        padding: 18px 32px;
-        border-radius: 14px;
-        background: var(--forest);
-        color: white;
-        font: 600 16px/1 var(--sans);
-        text-decoration: none;
-        transition: transform 0.15s ease, box-shadow 0.2s ease;
-        box-shadow: 0 12px 40px oklch(0.38 0.08 160 / 0.25);
+      .prereqs li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: var(--green);
+        font-weight: 700;
       }
 
-      .hero-cta:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 18px 50px oklch(0.38 0.08 160 / 0.35);
-      }
+      .prereqs li strong { color: var(--ink); }
 
-      .hero-cta:active {
-        transform: translateY(0);
-      }
+      /* ─── Steps ───────────────────────────────────────── */
 
-      .hero-cta svg {
-        width: 18px;
-        height: 18px;
-      }
-
-      .hero-aside {
-        margin-top: 20px;
-        font: 400 14px/1.6 var(--sans);
-        color: var(--faint);
-      }
-
-      .hero-aside a {
-        color: var(--muted);
-        text-decoration: underline;
-        text-underline-offset: 3px;
-      }
-
-      /* ─── Divider ─────────────────────────────────────── */
-
-      .divider {
-        border: none;
-        border-top: 1px solid var(--line);
-        margin: 0;
-      }
-
-      /* ─── Pain ────────────────────────────────────────── */
-
-      .pain {
-        padding: 80px 0;
-      }
-
-      .pain-label {
-        font: 600 12px/1 var(--sans);
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--clay);
-        margin-bottom: 24px;
-      }
-
-      .pain-text {
-        font: 400 clamp(1.6rem, 4vw, 2.4rem)/1.35 var(--serif);
-        color: var(--ink);
-        max-width: 28ch;
-      }
-
-      .pain-detail {
-        margin-top: 28px;
-        font: 400 16px/1.8 var(--sans);
-        color: var(--body);
-        max-width: 56ch;
-      }
-
-      /* ─── Shift (solution) ────────────────────────────── */
-
-      .shift {
-        padding: 80px 0;
-        background: var(--forest-fade);
-        border-top: 1px solid var(--line);
+      .step {
+        display: grid;
+        grid-template-columns: 36px 1fr;
+        gap: 16px;
+        padding: 28px 0;
         border-bottom: 1px solid var(--line);
       }
 
-      .shift-label {
-        font: 600 12px/1 var(--sans);
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--forest);
-        margin-bottom: 24px;
-      }
-
-      .shift-headline {
-        font: 400 clamp(1.6rem, 4vw, 2.4rem)/1.35 var(--serif);
-        color: var(--ink);
-        max-width: 26ch;
-      }
-
-      .flow {
-        margin-top: 48px;
-        display: grid;
-        gap: 0;
-      }
-
-      .flow-step {
-        display: grid;
-        grid-template-columns: 56px 1fr;
-        gap: 20px;
-        padding: 28px 0;
-        border-top: 1px solid var(--line);
-      }
-
-      .flow-step:first-child {
-        border-top: none;
-        padding-top: 0;
-      }
-
-      .flow-num {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-        display: grid;
-        place-items: center;
-        background: white;
-        border: 1px solid var(--line);
-        font: 600 16px/1 var(--sans);
-        color: var(--forest);
-      }
-
-      .flow-step h3 {
-        font: 600 17px/1.2 var(--sans);
-        color: var(--ink);
-        margin-bottom: 8px;
-      }
-
-      .flow-step p {
-        font: 400 15px/1.7 var(--sans);
-        color: var(--body);
-      }
-
-      /* ─── Objection (trust) ───────────────────────────── */
-
-      .trust {
-        padding: 80px 0;
-      }
-
-      .trust-block {
-        padding: 40px;
-        border-radius: 20px;
-        background: var(--clay-light);
-        border: 1px solid oklch(0.85 0.04 60);
-      }
-
-      .trust-q {
-        font: italic 400 clamp(1.5rem, 3.5vw, 2rem)/1.3 var(--serif);
-        color: var(--ink);
-        margin-bottom: 24px;
-      }
-
-      .trust-a {
-        font: 400 16px/1.8 var(--sans);
-        color: var(--body);
-        max-width: 56ch;
-      }
-
-      /* ─── Get started ─────────────────────────────────── */
-
-      .start {
-        padding: 80px 0;
-        border-top: 1px solid var(--line);
-      }
-
-      .start-label {
-        font: 600 12px/1 var(--sans);
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--forest);
-        margin-bottom: 24px;
-      }
-
-      .start-headline {
-        font: 400 clamp(1.6rem, 4vw, 2.4rem)/1.35 var(--serif);
-        color: var(--ink);
-        max-width: 24ch;
-        margin-bottom: 40px;
-      }
-
-      .steps {
-        display: grid;
-        gap: 0;
-      }
-
-      .step-item {
-        display: grid;
-        grid-template-columns: 48px 1fr;
-        gap: 20px;
-        padding: 24px 0;
-        border-top: 1px solid var(--line);
-      }
-
-      .step-item:first-child {
-        border-top: none;
-        padding-top: 0;
-      }
+      .step:last-child { border-bottom: none; }
 
       .step-num {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        display: grid;
-        place-items: center;
-        background: var(--forest);
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        display: grid; place-items: center;
+        background: var(--green);
         color: white;
-        font: 700 16px/1 var(--sans);
+        font: 700 15px/1 var(--sans);
+        margin-top: 2px;
       }
 
-      .step-body h3 {
+      .step h3 {
         font: 600 17px/1.3 var(--sans);
         color: var(--ink);
         margin-bottom: 8px;
       }
 
-      .step-body p {
+      .step p {
         font: 400 15px/1.7 var(--sans);
         color: var(--body);
       }
 
-      .step-body a {
-        color: var(--forest);
+      .step code {
+        font: 500 13px/1 var(--mono);
+        background: #eee;
+        padding: 2px 7px;
+        border-radius: 4px;
+        color: var(--ink);
+      }
+
+      .step a {
+        color: var(--green);
         font-weight: 600;
+        text-decoration: none;
+        border-bottom: 1px solid var(--green-border);
       }
 
-      .step-body code {
-        font: 500 13px/1 "SFMono-Regular", "Cascadia Code", Consolas, monospace;
-        background: var(--forest-light);
-        padding: 3px 8px;
-        border-radius: 6px;
-        color: var(--forest);
+      .step a:hover {
+        border-color: var(--green);
       }
 
-      .steps-note {
-        margin-top: 28px;
-        padding: 16px 20px;
-        border-radius: 14px;
-        background: var(--forest-fade);
+      .file-name {
+        display: inline-block;
+        font: 600 14px/1 var(--mono);
+        background: #f0f0f0;
         border: 1px solid var(--line);
+        padding: 6px 12px;
+        border-radius: 6px;
+        margin: 8px 0 4px;
+        color: var(--ink);
+      }
+
+      /* ─── Download button ─────────────────────────────── */
+
+      .download-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+        padding: 14px 28px;
+        border-radius: 10px;
+        background: var(--green);
+        color: white;
+        font: 600 15px/1 var(--sans);
+        text-decoration: none;
+        transition: opacity 0.15s;
+      }
+
+      .download-btn:hover { opacity: 0.9; }
+
+      .download-btn svg {
+        width: 18px; height: 18px;
+      }
+
+      .download-size {
+        font: 400 13px/1 var(--sans);
+        color: var(--muted);
+        margin-top: 8px;
+      }
+
+      /* ─── Warning box ─────────────────────────────────── */
+
+      .warn {
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-border);
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-top: 12px;
         font: 400 14px/1.6 var(--sans);
         color: var(--body);
       }
 
-      .steps-note strong {
-        color: var(--ink);
+      .warn strong { color: var(--ink); }
+
+      /* ─── What to try ─────────────────────────────────── */
+
+      .try-list {
+        list-style: none;
+        padding: 0;
+        margin-top: 8px;
       }
 
-      .steps-note code {
-        font: 500 13px/1 "SFMono-Regular", "Cascadia Code", Consolas, monospace;
-        background: white;
-        padding: 2px 7px;
-        border-radius: 6px;
-        color: var(--forest);
+      .try-list li {
+        font: 400 15px/1.7 var(--sans);
+        color: var(--body);
+        padding: 10px 0 10px 36px;
+        border-bottom: 1px solid var(--line);
+        position: relative;
+      }
+
+      .try-list li:last-child { border-bottom: none; }
+
+      .try-list li::before {
+        position: absolute;
+        left: 0;
+        font-size: 18px;
+      }
+
+      .try-list li:nth-child(1)::before { content: "📂"; }
+      .try-list li:nth-child(2)::before { content: "🔍"; }
+      .try-list li:nth-child(3)::before { content: "📊"; }
+
+      .try-list li strong { color: var(--ink); }
+
+      .try-quote {
+        display: block;
+        margin-top: 4px;
+        font-style: italic;
+        color: var(--muted);
+      }
+
+      /* ─── Alt path ────────────────────────────────────── */
+
+      .alt {
+        margin-top: 48px;
+        padding: 24px 28px;
+        background: #f5f5f5;
+        border-radius: 12px;
         border: 1px solid var(--line);
       }
 
-      /* ─── Example ─────────────────────────────────────── */
-
-      .example {
-        padding: 0 0 80px;
+      .alt h3 {
+        font: 600 15px/1 var(--sans);
+        margin-bottom: 12px;
       }
 
-      .example-block {
-        padding: 40px;
-        border-radius: 20px;
-        background: var(--forest);
-        color: oklch(0.92 0.02 160);
+      .alt p {
+        font: 400 14px/1.6 var(--sans);
+        color: var(--body);
       }
 
-      .example-label {
-        font: 600 12px/1 var(--sans);
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: oklch(0.72 0.06 160);
+      .alt code {
+        font: 500 13px/1 var(--mono);
+        background: white;
+        padding: 2px 7px;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+        color: var(--ink);
+      }
+
+      /* ─── Help ────────────────────────────────────────── */
+
+      .help {
+        margin-top: 48px;
+        padding-top: 32px;
+        border-top: 1px solid var(--line);
+      }
+
+      .help h3 {
+        font: 600 15px/1.3 var(--sans);
+        margin-bottom: 8px;
+      }
+
+      .help p {
+        font: 400 14px/1.6 var(--sans);
+        color: var(--body);
         margin-bottom: 20px;
       }
 
-      .example-prompt {
-        font: italic 400 clamp(1.3rem, 3vw, 1.8rem)/1.4 var(--serif);
-        color: white;
-        max-width: 32ch;
-      }
-
-      .example-note {
-        margin-top: 20px;
-        font: 400 14px/1.7 var(--sans);
-        color: oklch(0.72 0.06 160);
+      .help a {
+        color: var(--green);
+        text-decoration: none;
+        border-bottom: 1px solid var(--green-border);
       }
 
       /* ─── Footer ──────────────────────────────────────── */
 
       .footer {
-        padding: 28px 0 48px;
+        margin-top: 64px;
+        padding-top: 24px;
         border-top: 1px solid var(--line);
+        font: 400 13px/1.5 var(--sans);
+        color: var(--muted);
         display: flex;
         justify-content: space-between;
-        align-items: center;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 8px;
       }
 
-      .footer-left {
-        font: 400 14px/1.5 var(--sans);
-        color: var(--faint);
-      }
-
-      .footer-links {
-        display: flex;
-        gap: 20px;
-      }
-
-      .footer-links a {
-        font: 500 14px/1 var(--sans);
+      .footer a {
         color: var(--muted);
         text-decoration: none;
+        margin-left: 16px;
       }
 
-      .footer-links a:hover {
-        color: var(--ink);
-      }
+      .footer a:hover { color: var(--ink); }
 
-      /* ─── Animation ───────────────────────────────────── */
-
-      @keyframes rise {
-        from { opacity: 0; transform: translateY(24px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      .hero { animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-      /* ─── Responsive ──────────────────────────────────── */
-
-      @media (max-width: 680px) {
-        .wrap { width: calc(100% - 32px); }
-        .hero { padding: 64px 0 56px; }
-        .pain, .trust, .start { padding: 56px 0; }
-        .shift { padding: 56px 0; }
-        .paths { grid-template-columns: 1fr; }
-        .trust-block, .example-block { padding: 28px; }
-        .topbar { flex-wrap: wrap; gap: 12px; }
+      @media (max-width: 500px) {
+        .header { flex-wrap: wrap; }
+        .step { grid-template-columns: 32px 1fr; gap: 12px; }
       }
     </style>
   </head>
   <body>
+    <div class="page">
 
-    <div class="wrap">
-      <header class="topbar">
-        <a class="logo" href="https://github.com/satish860/agentxl">
-          <div class="logo-mark">AX</div>
-          <div class="logo-text">AgentXL</div>
-        </a>
-        <a class="topbar-link" href="https://github.com/satish860/agentxl">GitHub</a>
-      </header>
-    </div>
-
-    <!-- ─ HERO ─────────────────────────────────────────── -->
-
-    <section class="hero">
-      <div class="wrap">
-        <div class="hero-eyebrow">For auditors, analysts, and diligence teams</div>
-        <h1>Stop hunting through folders to fill out <em>workpapers.</em></h1>
-        <p class="hero-sub">
-          AgentXL reads your source documents, finds the evidence, and maps it into Excel — with traceability back to the exact file. Local-first. No cloud upload. Your model, your data.
-        </p>
-        <a class="hero-cta" href="https://github.com/satish860/agentxl/releases/download/v1.1.0/AgentXL-Windows-Payload-1.1.0.zip">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download AgentXL (.zip, 95 MB)
-        </a>
-        <p class="hero-aside">
-          Or install with npm: <code>npm i -g agentxl</code> · <a href="https://github.com/satish860/agentxl#readme">Full docs</a>
-        </p>
+      <!-- Header -->
+      <div class="header">
+        <div class="logo">AX</div>
+        <h1>AgentXL</h1>
+        <span class="tag">Early Preview</span>
       </div>
-    </section>
 
-    <div class="wrap"><hr class="divider" /></div>
+      <!-- Intro — two lines, that's it -->
+      <p class="intro">
+        <strong>AgentXL reads your local documents and maps them into Excel with source traceability.</strong>
+        Point it at a folder of PDFs, bank statements, or audit files. Ask a question. Get the answer in your workbook with a citation back to the source file.
+      </p>
 
-    <!-- ─ PAIN ─────────────────────────────────────────── -->
-
-    <section class="pain">
-      <div class="wrap">
-        <div class="pain-label">The problem</div>
-        <p class="pain-text">
-          You open the folder. Dozens of PDFs, statements, exports. Then you open the workbook. And for the next few hours, you hunt.
-        </p>
-        <p class="pain-detail">
-          Open a file. Search for the number. Copy it into Excel. Try to remember which document it came from. Repeat forty times. Then a reviewer asks "where did cell D14 come from?" and you do it all again.
-        </p>
+      <!-- What you need before starting -->
+      <div class="prereqs">
+        <h3>Before you start</h3>
+        <ul>
+          <li><strong>Windows 10/11</strong> with Excel (desktop)</li>
+          <li>An account with <strong>one of:</strong> ChatGPT, Claude, or GitHub Copilot</li>
+          <li>A folder of documents you want to work with (PDFs, text files, spreadsheets)</li>
+        </ul>
       </div>
-    </section>
 
-    <!-- ─ SHIFT (solution) ─────────────────────────────── -->
+      <!-- Steps -->
+      <h2>Setup</h2>
 
-    <section class="shift">
-      <div class="wrap">
-        <div class="shift-label">What changes</div>
-        <p class="shift-headline">
-          Point AgentXL at the folder. Ask the question. Get the answer with the source file attached.
-        </p>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h3>Download and extract</h3>
+          <a class="download-btn" href="https://github.com/satish860/agentxl/releases/download/v1.1.0/AgentXL-Windows-Payload-1.1.0.zip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download AgentXL for Windows
+          </a>
+          <p class="download-size">.zip file · ~95 MB</p>
+          <p>After downloading, right-click the .zip → <strong>Extract All</strong> → pick a folder like <code>Desktop\AgentXL</code>.</p>
+        </div>
+      </div>
 
-        <div class="flow">
-          <div class="flow-step">
-            <div class="flow-num">1</div>
-            <div>
-              <h3>Choose the evidence folder</h3>
-              <p>Select the local folder that contains your supporting documents — PDFs, statements, CSV exports, XLSX files, agreements. AgentXL scans and indexes them.</p>
-            </div>
-          </div>
-          <div class="flow-step">
-            <div class="flow-num">2</div>
-            <div>
-              <h3>Ask a grounded question</h3>
-              <p>"Extract the cash balance from the bank statement and map it to the cash workpaper." AgentXL searches the folder, reads the right files, and extracts the answer.</p>
-            </div>
-          </div>
-          <div class="flow-step">
-            <div class="flow-num">3</div>
-            <div>
-              <h3>Review, verify, write to Excel</h3>
-              <p>See which file the answer came from. Inspect the source reference. Then write it into the workbook — with a citation comment tracing back to the document.</p>
-            </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h3>Sign in (one time only)</h3>
+          <p>Open the extracted folder and double-click:</p>
+          <div class="file-name">AgentXL Login.cmd</div>
+          <p>A browser tab opens. Sign in with your ChatGPT, Claude, or Copilot account. Once you see "success", close the tab.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h3>Launch AgentXL</h3>
+          <p>Back in the same folder, double-click:</p>
+          <div class="file-name">Launch AgentXL.cmd</div>
+          <p>This starts the AgentXL server and opens the taskpane in your browser at <code>localhost:3001/taskpane</code>.</p>
+          <div class="warn">
+            <strong>Excel add-in (optional):</strong> To use AgentXL inside Excel instead of the browser, you need to sideload the add-in once. Open Excel → File → Options → Trust Center → Trust Center Settings → Trusted Add-in Catalogs → add <code>\\localhost\agentxl</code>. This is a one-time step. <a href="https://github.com/satish860/agentxl#excel-add-in-setup">Full instructions →</a>
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- ─ TRUST (address #1 objection) ─────────────────── -->
-
-    <section class="trust">
-      <div class="wrap">
-        <div class="trust-block">
-          <p class="trust-q">"Where did this number come from?"</p>
-          <p class="trust-a">
-            That is the question that matters most. Every output AgentXL produces traces back to a source file. You can verify the evidence before anything gets written to your workbook. No magic numbers. No unexplainable cells. Just documents → answers → traceable Excel.
-          </p>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h3>Link a document folder</h3>
+          <p>In the AgentXL panel, paste the path to your local folder of evidence files. For example:</p>
+          <div class="file-name">C:\Users\you\Documents\audit-files</div>
+          <p>AgentXL scans the folder and shows you how many files it found.</p>
         </div>
       </div>
-    </section>
 
-    <!-- ─ GET STARTED ──────────────────────────────────── -->
-
-    <section class="start" id="start">
-      <div class="wrap">
-        <div class="start-label">Setup — 3 steps, 2 minutes</div>
-        <p class="start-headline">Download, extract, double-click.</p>
-
-        <div class="steps">
-          <div class="step-item">
-            <div class="step-num">1</div>
-            <div class="step-body">
-              <h3>Download and extract</h3>
-              <p>
-                <a href="https://github.com/satish860/agentxl/releases/download/v1.1.0/AgentXL-Windows-Payload-1.1.0.zip">Download the .zip file</a> (95 MB).
-                Right-click → <strong>Extract All</strong> to a normal folder like <code>Desktop\AgentXL</code>.
-              </p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-num">2</div>
-            <div class="step-body">
-              <h3>Sign in once</h3>
-              <p>
-                Open the extracted folder. Double-click <strong>AgentXL Login.cmd</strong>.
-                A browser opens — sign in with Claude, ChatGPT, or GitHub Copilot.
-                Close the browser tab when done.
-              </p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-num">3</div>
-            <div class="step-body">
-              <h3>Launch</h3>
-              <p>
-                Double-click <strong>Launch AgentXL Onboarding.cmd</strong>.
-                Excel opens with the AgentXL panel on the right.
-                Pick your document folder and ask a question.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="steps-note">
-          <strong>Not on Windows?</strong> Install with <code>npm i -g agentxl</code> then run <code>agentxl start</code>.
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <h3>Ask a question</h3>
+          <p>Type a question in the chat box. AgentXL reads your documents and gives you an answer with the source file referenced.</p>
         </div>
       </div>
-    </section>
 
-    <!-- ─ EXAMPLE ──────────────────────────────────────── -->
+      <!-- What to try -->
+      <h2>What to try</h2>
 
-    <section class="example">
-      <div class="wrap">
-        <div class="example-block">
-          <div class="example-label">Try this first</div>
-          <p class="example-prompt">
-            "Extract the cash balance from the bank statement folder and map it to the cash workpaper with a citation."
-          </p>
-          <p class="example-note">
-            That is the core experience AgentXL is built for. One workbook. One folder of source documents. One grounded answer with traceability.
-          </p>
-        </div>
+      <ul class="try-list">
+        <li>
+          <strong>Link a folder</strong> with a few PDFs or text files and ask a factual question about the contents.
+          <span class="try-quote">"What is the total revenue in the annual report?"</span>
+        </li>
+        <li>
+          <strong>Ask it to compare</strong> a document to what's in your Excel sheet.
+          <span class="try-quote">"Compare the bank statement to the cash column in this sheet."</span>
+        </li>
+        <li>
+          <strong>Ask it to extract and map</strong> values from a document into specific cells.
+          <span class="try-quote">"Extract the cash balance from the bank statement and put it in cell B5."</span>
+        </li>
+      </ul>
+
+      <!-- Alt path -->
+      <div class="alt">
+        <h3>Prefer npm?</h3>
+        <p>If you have Node.js installed, you can skip the zip and install globally:</p>
+        <p style="margin-top: 8px;"><code>npm i -g agentxl</code> &nbsp;then&nbsp; <code>agentxl start</code></p>
       </div>
-    </section>
 
-    <!-- ─ FOOTER ───────────────────────────────────────── -->
+      <!-- Troubleshooting -->
+      <div class="help">
+        <h3>Windows says "protected your PC"</h3>
+        <p>Click <strong>More info</strong> → <strong>Run anyway</strong>. The .cmd files are plain text scripts — you can open them in Notepad to verify.</p>
 
-    <footer class="wrap">
+        <h3>AgentXL isn't loading in Excel</h3>
+        <p>Use it in the browser for now — just open <code>localhost:3001/taskpane</code> after launching. The Excel add-in sideloading step is optional.</p>
+
+        <h3>Something else went wrong?</h3>
+        <p><a href="https://github.com/satish860/agentxl/issues">Open an issue on GitHub</a> or send us the error message.</p>
+      </div>
+
+      <!-- Footer -->
       <div class="footer">
-        <div class="footer-left">AgentXL by DeltaXY · MIT License</div>
-        <div class="footer-links">
+        <span>AgentXL by DeltaXY · Early Preview · MIT License</span>
+        <span>
           <a href="https://github.com/satish860/agentxl">GitHub</a>
-          <a href="https://github.com/satish860/agentxl/releases/latest">Releases</a>
-          <a href="https://github.com/satish860/agentxl#readme">Docs</a>
-        </div>
+          <a href="https://github.com/satish860/agentxl/releases">Releases</a>
+        </span>
       </div>
-    </footer>
 
+    </div>
   </body>
 </html>
