@@ -126,7 +126,9 @@ function prepareAppPayload() {
     );
   }
 
-  run("npm ci --omit=dev", { cwd: appDir });
+  // NOTE: We do NOT run `npm ci` here. node_modules is installed at
+  // install time by install-agentxl.ps1 using the bundled Node runtime.
+  // This keeps the installer small (~30 MB instead of ~200 MB).
 }
 
 function writeInstallerMetadata() {
@@ -159,6 +161,8 @@ function copyInstallerFiles() {
 }
 
 function writePortableWindowsLaunchers() {
+  // --- Internal .cmd files (run hidden, never shown to user) ---
+
   const startCmd = [
     "@echo off",
     "set ROOT=%~dp0",
@@ -178,96 +182,95 @@ function writePortableWindowsLaunchers() {
     "",
   ].join("\r\n");
 
-  const openExcelCmd = [
-    "@echo off",
-    "set ROOT=%~dp0",
-    "start \"AgentXL Server\" cmd /c \"\"%ROOT%Start AgentXL.cmd\"\"",
-    "timeout /t 4 /nobreak >nul",
-    "\"%ROOT%runtime\\node.exe\" \"%ROOT%app\\scripts\\enable-excel-addin.mjs\" \"%ROOT%app\\manifest\\manifest.xml\" --open-excel",
+  // --- Main VBScript launcher: starts server hidden, waits, opens Excel ---
+  // No console window visible at any point.
+
+  const launchVbs = [
+    "' AgentXL Launcher — starts server silently, opens Excel with add-in",
+    "Option Explicit",
+    "",
+    "Dim fso, shell, root, nodePath, serverCmd, attempts, exitCode",
+    "",
+    "Set fso   = CreateObject(\"Scripting.FileSystemObject\")",
+    "Set shell = CreateObject(\"WScript.Shell\")",
+    "",
+    "root = fso.GetParentFolderName(WScript.ScriptFullName)",
+    "If Right(root, 1) <> \"\\\" Then root = root & \"\\\"",
+    "",
+    "nodePath  = root & \"runtime\\node.exe\"",
+    "serverCmd = Chr(34) & root & \"_internal\\Start AgentXL.cmd\" & Chr(34)",
+    "",
+    "' 1. Start server completely hidden (windowStyle 0 = hidden)",
+    "shell.Run serverCmd, 0, False",
+    "",
+    "' 2. Poll until the server is ready (up to ~30 s)",
+    "attempts = 0",
+    "Do",
+    "  WScript.Sleep 1500",
+    "  attempts = attempts + 1",
+    "  exitCode = shell.Run( _",
+    "    Chr(34) & nodePath & Chr(34) & \" -e \" & _",
+    "    Chr(34) & \"fetch('https://localhost:3001/api/version',{signal:AbortSignal.timeout(2000)}).then(function(r){if(r.ok)process.exit(0);process.exit(1)}).catch(function(){process.exit(1)})\" & Chr(34), _",
+    "    0, True)",
+    "  If exitCode = 0 Then Exit Do",
+    "Loop While attempts < 20",
+    "",
+    "' 3. Open Excel with the add-in sideloaded (hidden window)",
+    "shell.Run Chr(34) & nodePath & Chr(34) & \" \" & _",
+    "  Chr(34) & root & \"app\\scripts\\enable-excel-addin.mjs\" & Chr(34) & \" \" & _",
+    "  Chr(34) & root & \"app\\manifest\\manifest.xml\" & Chr(34) & \" --open-excel\", _",
+    "  0, False",
+    "",
+    "' 4. Brief pause then open browser fallback",
+    "WScript.Sleep 2000",
+    "shell.Run \"https://localhost:3001/taskpane/\", 1, False",
     "",
   ].join("\r\n");
 
-  const onboardingCmd = [
-    "@echo off",
-    "title AgentXL",
-    "set ROOT=%~dp0",
+  // --- VBScript for login (needs visible browser, but hide the cmd) ---
+
+  const loginVbs = [
+    "' AgentXL Login — opens provider sign-in",
+    "Option Explicit",
     "",
-    "echo.",
-    'echo  ========================================',
-    'echo           AgentXL is starting...',
-    'echo  ========================================',
-    "echo.",
+    "Dim fso, shell, root",
     "",
-    ":: Start the server in background",
-    "echo  [1/3] Starting AgentXL server...",
-    'start "AgentXL Server" /min cmd /c ""%ROOT%Start AgentXL.cmd""',
+    "Set fso   = CreateObject(\"Scripting.FileSystemObject\")",
+    "Set shell = CreateObject(\"WScript.Shell\")",
     "",
-    ":: Wait for server to be ready",
-    "echo  [2/3] Waiting for server to be ready...",
-    "set ATTEMPTS=0",
-    ":WAIT_LOOP",
-    "set /a ATTEMPTS+=1",
-    "if %ATTEMPTS% GTR 20 goto FALLBACK",
-    "timeout /t 1 /nobreak >nul",
-    `"%ROOT%runtime\\node.exe" -e "fetch('https://localhost:3001/api/version',{signal:AbortSignal.timeout(2000)}).then(r=>{if(r.ok)process.exit(0);process.exit(1)}).catch(()=>process.exit(1))" >nul 2>nul`,
-    "if errorlevel 1 goto WAIT_LOOP",
+    "root = fso.GetParentFolderName(WScript.ScriptFullName)",
+    "If Right(root, 1) <> \"\\\" Then root = root & \"\\\"",
     "",
-    ":: Server is up - open Excel with add-in",
-    "echo  [3/3] Opening Excel with AgentXL add-in...",
-    '"%ROOT%runtime\\node.exe" "%ROOT%app\\scripts\\enable-excel-addin.mjs" "%ROOT%app\\manifest\\manifest.xml" --open-excel >nul 2>nul',
-    "",
-    ":: Also open the browser as a fallback view",
-    "timeout /t 2 /nobreak >nul",
-    'start "" "https://localhost:3001/taskpane/"',
-    "",
-    "echo.",
-    'echo  ========================================',
-    'echo         AgentXL is running!',
-    'echo.',
-    'echo   Look for the AgentXL panel in Excel.',
-    'echo   Or use your browser:',
-    'echo   https://localhost:3001/taskpane/',
-    'echo.',
-    'echo   Keep this window open while using',
-    'echo   AgentXL. Close it to stop the server.',
-    'echo  ========================================',
-    "echo.",
-    "echo  Press any key to stop AgentXL...",
-    "pause >nul",
-    'taskkill /fi "WINDOWTITLE eq AgentXL Server*" /f >nul 2>nul',
-    "exit /b",
-    "",
-    ":FALLBACK",
-    "echo.",
-    "echo  Server is still starting. Opening browser...",
-    'start "" "https://localhost:3001/taskpane/"',
-    "echo.",
-    "echo  Refresh the browser page in a moment.",
-    "echo  Press any key to stop AgentXL...",
-    "pause >nul",
-    'taskkill /fi "WINDOWTITLE eq AgentXL Server*" /f >nul 2>nul',
-    "exit /b",
+    "shell.Run Chr(34) & root & \"_internal\\AgentXL Login.cmd\" & Chr(34), 0, True",
     "",
   ].join("\r\n");
+
+  // --- Write files ---
 
   const manifestRoot = join(payloadDir, "manifest");
   mkdirSync(manifestRoot, { recursive: true });
   copyInto(join(appDir, "manifest", "manifest.xml"), join(manifestRoot, "manifest.xml"));
 
-  writeFileSync(join(payloadDir, "Start AgentXL.cmd"), startCmd, "utf-8");
-  writeFileSync(join(payloadDir, "AgentXL Login.cmd"), loginCmd, "utf-8");
-  writeFileSync(join(payloadDir, "Open Excel with AgentXL.cmd"), openExcelCmd, "utf-8");
-  writeFileSync(join(payloadDir, "Launch AgentXL Onboarding.cmd"), onboardingCmd, "utf-8");
+  // Internal cmd files go in _internal subfolder
+  const internalDir = join(payloadDir, "_internal");
+  mkdirSync(internalDir, { recursive: true });
+  writeFileSync(join(internalDir, "Start AgentXL.cmd"), startCmd, "utf-8");
+  writeFileSync(join(internalDir, "AgentXL Login.cmd"), loginCmd, "utf-8");
+
+  // User-facing VBS launchers at top level
+  writeFileSync(join(payloadDir, "AgentXL.vbs"), launchVbs, "utf-8");
+  writeFileSync(join(payloadDir, "AgentXL Login.vbs"), loginVbs, "utf-8");
 
   const info = [
     "AgentXL portable Windows build",
     "",
     "Fastest path:",
-    "1. Double-click 'Launch AgentXL Onboarding.cmd'",
-    "2. If sign-in is needed, run 'AgentXL Login.cmd' once and retry",
+    "1. Double-click 'AgentXL.vbs' to launch",
+    "2. If sign-in is needed, run 'AgentXL Login.vbs' once and retry",
     "3. Wait for Excel to open, then click AgentXL on the Home tab if the pane is not already visible",
     "",
     "What this does automatically:",
+    "- starts the AgentXL server silently (no command window)",
     "- trusts the localhost Office certificate",
     "- registers AgentXL with Office for development",
     "- enables localhost loopback when needed",

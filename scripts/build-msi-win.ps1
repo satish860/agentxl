@@ -35,10 +35,8 @@ Pop-Location
 $helperFiles = @(
   'install-agentxl.ps1',
   'uninstall-agentxl.ps1',
-  'Launch AgentXL Onboarding.cmd',
-  'Start AgentXL.cmd',
-  'AgentXL Login.cmd',
-  'Open Excel with AgentXL.cmd',
+  'AgentXL.vbs',
+  'AgentXL Login.vbs',
   'POST_INSTALL.txt',
   'INSTALLATION_INFO.txt'
 )
@@ -47,6 +45,14 @@ foreach ($f in $helperFiles) {
   if (Test-Path $src) {
     Copy-Item -Force $src (Join-Path $stagingRoot $f)
   }
+}
+
+# Copy _internal folder (hidden cmd launchers)
+$internalSrc = Join-Path $payloadRoot '_internal'
+$internalDst = Join-Path $stagingRoot '_internal'
+if (Test-Path $internalSrc) {
+  New-Item -ItemType Directory -Force -Path $internalDst | Out-Null
+  Copy-Item -Recurse -Force "$internalSrc\*" $internalDst
 }
 
 # Copy manifest subfolder

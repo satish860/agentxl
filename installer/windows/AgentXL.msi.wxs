@@ -145,10 +145,8 @@
       <ComponentRef Id="CmpUninstallScript" />
       <ComponentRef Id="CmpPostInstallTxt" />
       <ComponentRef Id="CmpInstallationInfo" />
-      <ComponentRef Id="CmpLaunchOnboarding" />
-      <ComponentRef Id="CmpStartAgentXL" />
-      <ComponentRef Id="CmpAgentXLLogin" />
-      <ComponentRef Id="CmpOpenExcel" />
+      <ComponentRef Id="CmpLaunchVbs" />
+      <ComponentRef Id="CmpLoginVbs" />
       <ComponentRef Id="ManifestFiles" />
       <ComponentRef Id="StartMenuShortcuts" />
       <ComponentRef Id="DesktopShortcut" />
@@ -173,17 +171,11 @@
         <File Id="InstallationInfoTxt" KeyPath="yes" Source="$(var.StagingRoot)\INSTALLATION_INFO.txt" />
       </Component>
 
-      <Component Id="CmpLaunchOnboarding" Guid="*" Win64="yes">
-        <File Id="LaunchOnboardingFile" KeyPath="yes" Source="$(var.StagingRoot)\Launch AgentXL Onboarding.cmd" />
+      <Component Id="CmpLaunchVbs" Guid="*" Win64="yes">
+        <File Id="LaunchVbsFile" KeyPath="yes" Source="$(var.StagingRoot)\AgentXL.vbs" />
       </Component>
-      <Component Id="CmpStartAgentXL" Guid="*" Win64="yes">
-        <File Id="StartAgentXLFile" KeyPath="yes" Source="$(var.StagingRoot)\Start AgentXL.cmd" />
-      </Component>
-      <Component Id="CmpAgentXLLogin" Guid="*" Win64="yes">
-        <File Id="AgentXLLoginFile" KeyPath="yes" Source="$(var.StagingRoot)\AgentXL Login.cmd" />
-      </Component>
-      <Component Id="CmpOpenExcel" Guid="*" Win64="yes">
-        <File Id="OpenExcelFile" KeyPath="yes" Source="$(var.StagingRoot)\Open Excel with AgentXL.cmd" />
+      <Component Id="CmpLoginVbs" Guid="*" Win64="yes">
+        <File Id="LoginVbsFile" KeyPath="yes" Source="$(var.StagingRoot)\AgentXL Login.vbs" />
       </Component>
     </DirectoryRef>
 
@@ -196,9 +188,11 @@
     <!-- ─── Start Menu ────────────────────────────────────────────────── -->
     <DirectoryRef Id="AgentXLMenuDir">
       <Component Id="StartMenuShortcuts" Guid="*" Win64="yes">
-        <Shortcut Id="LaunchShortcut" Name="AgentXL" Target="[#LaunchOnboardingFile]"
+        <Shortcut Id="LaunchShortcut" Name="AgentXL" Target="[SystemFolder]wscript.exe"
+                  Arguments="&quot;[INSTALLFOLDER]AgentXL.vbs&quot;"
                   Description="Start AgentXL and open Excel" WorkingDirectory="INSTALLFOLDER" />
-        <Shortcut Id="LoginShortcut" Name="AgentXL Login" Target="[#AgentXLLoginFile]"
+        <Shortcut Id="LoginShortcut" Name="AgentXL Login" Target="[SystemFolder]wscript.exe"
+                  Arguments="&quot;[INSTALLFOLDER]AgentXL Login.vbs&quot;"
                   Description="Sign in to your AI provider" WorkingDirectory="INSTALLFOLDER" />
         <RemoveFolder Id="RemoveMenuDir" On="uninstall" />
         <RegistryValue Root="HKCU" Key="Software\DeltaXY\AgentXL" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
@@ -208,7 +202,8 @@
     <!-- ─── Desktop ───────────────────────────────────────────────────── -->
     <DirectoryRef Id="DesktopFolder">
       <Component Id="DesktopShortcut" Guid="*" Win64="yes">
-        <Shortcut Id="DesktopLaunchShortcut" Name="AgentXL" Target="[#LaunchOnboardingFile]"
+        <Shortcut Id="DesktopLaunchShortcut" Name="AgentXL" Target="[SystemFolder]wscript.exe"
+                  Arguments="&quot;[INSTALLFOLDER]AgentXL.vbs&quot;"
                   Description="Start AgentXL and open Excel" WorkingDirectory="INSTALLFOLDER" />
         <RegistryValue Root="HKCU" Key="Software\DeltaXY\AgentXL" Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
       </Component>

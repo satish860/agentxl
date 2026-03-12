@@ -1,6 +1,6 @@
 {
   "name": "agentxl",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Local-first document-to-Excel agent for traceable workpapers and evidence-heavy workflows",
   "author": "DeltaXY <hello@deltaxy.ai>",
   "license": "MIT",
