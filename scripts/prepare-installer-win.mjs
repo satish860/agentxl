@@ -163,21 +163,22 @@ function copyInstallerFiles() {
 function writePortableWindowsLaunchers() {
   // --- Internal .cmd files (run hidden, never shown to user) ---
 
+  // _internal\Start AgentXL.cmd — %~dp0 is _internal\, so ROOT must go up one level
   const startCmd = [
     "@echo off",
-    "set ROOT=%~dp0",
-    "\"%ROOT%runtime\\node.exe\" \"%ROOT%app\\scripts\\enable-excel-addin.mjs\" \"%ROOT%app\\manifest\\manifest.xml\" >nul 2>nul",
-    "pushd \"%ROOT%app\"",
-    "\"%ROOT%runtime\\node.exe\" \"%ROOT%app\\bin\\agentxl.js\" start %*",
+    "set ROOT=%~dp0..",
+    "\"%ROOT%\\runtime\\node.exe\" \"%ROOT%\\app\\scripts\\enable-excel-addin.mjs\" \"%ROOT%\\app\\manifest\\manifest.xml\" >nul 2>nul",
+    "pushd \"%ROOT%\\app\"",
+    "\"%ROOT%\\runtime\\node.exe\" \"%ROOT%\\app\\bin\\agentxl.js\" start %*",
     "popd",
     "",
   ].join("\r\n");
 
   const loginCmd = [
     "@echo off",
-    "set ROOT=%~dp0",
-    "pushd \"%ROOT%app\"",
-    "\"%ROOT%runtime\\node.exe\" \"%ROOT%app\\bin\\agentxl.js\" login %*",
+    "set ROOT=%~dp0..",
+    "pushd \"%ROOT%\\app\"",
+    "\"%ROOT%\\runtime\\node.exe\" \"%ROOT%\\app\\bin\\agentxl.js\" login %*",
     "popd",
     "",
   ].join("\r\n");
