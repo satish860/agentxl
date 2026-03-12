@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentXL — Install &amp; Setup</title>
+  <style>
+    :root {
+      --green: #059669;
+      --green-light: #d1fae5;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --red-100: #fee2e2;
+      --red-700: #b91c1c;
+      --blue-100: #dbeafe;
+      --blue-700: #1d4ed8;
+      --amber-100: #fef3c7;
+      --amber-700: #b45309;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--gray-900);
+      background: var(--gray-50);
+      line-height: 1.6;
+    }
+    .container { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 48px; }
+    .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .header p { font-size: 15px; color: var(--gray-500); max-width: 500px; margin: 0 auto; }
+    .badge {
+      display: inline-block;
+      background: var(--green-light);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card h2 .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      background: var(--green);
+      color: white;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .card h3 { font-size: 14px; font-weight: 600; margin: 16px 0 8px; color: var(--gray-700); }
+    .card p, .card li { font-size: 14px; color: var(--gray-700); }
+    .card ul, .card ol { padding-left: 20px; margin: 8px 0; }
+    .card li { margin-bottom: 6px; }
+    code {
+      background: var(--gray-100);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+    }
+    pre {
+      background: var(--gray-900);
+      color: #e5e7eb;
+      padding: 16px 20px;
+      border-radius: 10px;
+      overflow-x: auto;
+      margin: 12px 0;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+
+    /* Option tabs */
+    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .option {
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      transition: border-color 0.15s;
+    }
+    .option:hover { border-color: var(--green); }
+    .option .label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .option .desc { font-size: 12px; color: var(--gray-500); }
+    .option .rec {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--green);
+      background: var(--green-light);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-top: 6px;
+    }
+
+    /* Callouts */
+    .callout {
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13px;
+      margin: 16px 0;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .callout.info { background: var(--blue-100); color: var(--blue-700); }
+    .callout.warn { background: var(--amber-100); color: var(--amber-700); }
+    .callout.success { background: var(--green-light); color: var(--green); }
+    .callout .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* Buttons */
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    a.btn:hover { opacity: 0.85; }
+    a.btn.primary { background: var(--green); color: white; }
+    a.btn.secondary { background: var(--gray-100); color: var(--gray-700); border: 1px solid var(--gray-200); }
+
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+
+    /* Flow diagram */
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .flow .node {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+    }
+    .flow .node.active { border-color: var(--green); background: var(--green-light); color: var(--green); }
+    .flow .arrow { color: var(--gray-400); font-size: 18px; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--gray-200); }
+    th { font-weight: 600; color: var(--gray-500); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Footer */
+    .footer { text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--gray-200); }
+    .footer p { font-size: 13px; color: var(--gray-400); }
+    .footer a { color: var(--green); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <span class="badge">Open Source · MIT License</span>
+      <h1>AgentXL</h1>
+      <p>Turn source documents into traceable Excel workpapers. Local-first AI agent for audit, diligence, and evidence-heavy workflows.</p>
+    </div>
+
+    <!-- How it works -->
+    <div class="card">
+      <h2>How it works</h2>
+      <div class="flow">
+        <div class="node active">Install add-in<br><small>from Excel</small></div>
+        <span class="arrow">→</span>
+        <div class="node">Download server<br><small>one-time</small></div>
+        <span class="arrow">→</span>
+        <div class="node">Start server<br><small>double-click</small></div>
+        <span class="arrow">→</span>
+        <div class="node active">Use in Excel<br><small>ribbon button</small></div>
+      </div>
+      <p>AgentXL runs as two pieces: an <strong>Excel add-in</strong> (the UI in your taskpane) and a <strong>local server</strong> (processes your documents, calls the AI model). Your documents never leave your machine.</p>
+      <p style="text-align: center; margin-top: 16px; font-size: 13px;">
+        <a href="#appsource" style="color: var(--green); text-decoration: none;">Publishing to the Office Store? See AppSource instructions ↓</a>
+      </p>
+    </div>
+
+    <!-- Step 1: Install the add-in -->
+    <div class="card">
+      <h2><span class="step-num">1</span> Install the Excel add-in</h2>
+      <p>Choose one of these methods to get AgentXL into your Excel ribbon:</p>
+
+      <h3>Option A — Office Store (recommended)</h3>
+      <ol>
+        <li>Open Excel</li>
+        <li>Go to <strong>Insert → Get Add-ins</strong> (or <strong>Office Add-ins</strong>)</li>
+        <li>Search for <strong>"AgentXL"</strong></li>
+        <li>Click <strong>Add</strong></li>
+      </ol>
+      <div class="callout info">
+        <span class="icon">ℹ️</span>
+        <span>The Office Store listing is pending review. Use Option B or C in the meantime.</span>
+      </div>
+
+      <h3>Option B — Sideload the hosted manifest</h3>
+      <ol>
+        <li>Open Excel</li>
+        <li>Go to <strong>Insert → Get Add-ins → My Add-ins</strong></li>
+        <li>Click <strong>Upload My Add-in</strong></li>
+        <li>Paste this URL or download the manifest:<br>
+          <a href="manifest/manifest.xml" class="btn secondary" style="margin-top: 8px; font-size: 13px;">⬇ Download manifest.xml</a>
+        </li>
+        <li>Click <strong>Upload</strong></li>
+      </ol>
+
+      <h3>Option C — Shared folder catalog (persistent)</h3>
+      <ol>
+        <li><strong>Excel → File → Options → Trust Center → Trust Center Settings</strong></li>
+        <li>Click <strong>Trusted Add-in Catalogs</strong></li>
+        <li>Add the <code>manifest</code> folder path from your downloaded release</li>
+        <li>Check <strong>Show in Menu</strong> → OK → OK</li>
+        <li>Restart Excel</li>
+        <li><strong>Insert → My Add-ins → SHARED FOLDER → AgentXL → Add</strong></li>
+      </ol>
+    </div>
+
+    <!-- Step 2: Download & run the server -->
+    <div class="card">
+      <h2><span class="step-num">2</span> Download &amp; run the local server</h2>
+      <p>The server handles document processing, AI model calls, and folder scanning. Everything stays on your machine.</p>
+
+      <div class="options">
+        <div class="option">
+          <div class="label">📦 Windows ZIP</div>
+          <div class="desc">No install needed. Extract and run.</div>
+          <span class="rec">Recommended</span>
+        </div>
+        <div class="option">
+          <div class="label">💻 npm</div>
+          <div class="desc">For developers with Node.js</div>
+        </div>
+      </div>
+
+      <h3>Windows ZIP (no Node.js needed)</h3>
+      <ol>
+        <li>Download the latest <code>.zip</code> from <a href="https://github.com/satish860/agentxl/releases">GitHub Releases</a></li>
+        <li>Extract to a folder (e.g. <code>Desktop\AgentXL</code>)</li>
+        <li>Double-click <strong>AgentXL.vbs</strong></li>
+        <li>First time? It opens sign-in — choose your AI provider</li>
+        <li>Server starts silently. Excel opens with AgentXL loaded.</li>
+      </ol>
+
+      <h3>npm (cross-platform)</h3>
+      <pre><code>npm install -g agentxl
+agentxl start</code></pre>
+
+      <div class="callout success">
+        <span class="icon">✅</span>
+        <span>The Windows ZIP bundles its own Node.js — no system install required.</span>
+      </div>
+    </div>
+
+    <!-- Step 3: Use it -->
+    <div class="card">
+      <h2><span class="step-num">3</span> Use it</h2>
+      <ol>
+        <li>Open Excel and click <strong>AgentXL</strong> on the Home ribbon</li>
+        <li>Link a <strong>local folder</strong> containing your source documents</li>
+        <li>Ask a question — the agent searches the folder, reads the files, and returns grounded answers</li>
+      </ol>
+
+      <h3>Example prompts</h3>
+      <table>
+        <tr><td>"List all files in the folder and summarize what each contains"</td></tr>
+        <tr><td>"Extract the ending cash balance from the bank statements"</td></tr>
+        <tr><td>"Compare the trial balance to the lead sheet and flag mismatches"</td></tr>
+        <tr><td>"Pull lease terms from these agreements into a schedule"</td></tr>
+      </table>
+    </div>
+
+    <!-- AI provider -->
+    <div class="card">
+      <h2>AI provider setup</h2>
+      <p>AgentXL uses your own AI model. No account with us.</p>
+      <table>
+        <thead>
+          <tr><th>Provider</th><th>How</th><th>Cost</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Claude Pro/Max</td><td>Sign in via browser</td><td>$20/mo subscription</td></tr>
+          <tr><td>ChatGPT Plus/Pro</td><td>Sign in via browser</td><td>$20/mo subscription</td></tr>
+          <tr><td>GitHub Copilot</td><td>Sign in via browser</td><td>Existing subscription</td></tr>
+          <tr><td>OpenRouter</td><td>Paste API key</td><td>Free tier available</td></tr>
+          <tr><td>Anthropic / OpenAI</td><td>Paste API key</td><td>Pay per use</td></tr>
+        </tbody>
+      </table>
+      <div class="callout info">
+        <span class="icon">💡</span>
+        <span><strong>Cheapest start:</strong> <a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a> has free models. No credit card needed.</span>
+      </div>
+    </div>
+
+    <!-- Publishing to AppSource -->
+    <div class="card" id="appsource">
+      <h2>Publishing to AppSource (for maintainers)</h2>
+      <p>To make AgentXL installable via <strong>Excel → Insert → Get Add-ins</strong>, you need to submit the hosted manifest to Microsoft's Partner Center.</p>
+
+      <h3>Prerequisites</h3>
+      <ul>
+        <li>A <strong>Microsoft Entra ID work/school account</strong> (not a personal @outlook.com or @hotmail.com)</li>
+        <li>Authority to sign legal agreements on behalf of your organization</li>
+        <li>The taskpane must be hosted at a public HTTPS URL (GitHub Pages is set up for this)</li>
+      </ul>
+
+      <div class="callout warn">
+        <span class="icon">⚠️</span>
+        <span><strong>Personal Microsoft accounts won't work.</strong> You need a work/school account (Microsoft Entra ID). If you don't have one, you can create a free tenant at <a href="https://developer.microsoft.com/en-us/microsoft-365/dev-program" target="_blank" rel="noopener">Microsoft 365 Developer Program</a>.</span>
+      </div>
+
+      <h3>Step 1 — Enroll in Partner Center</h3>
+      <p>Go directly to the <strong>Office enrollment page</strong>:</p>
+      <pre><code>https://partner.microsoft.com/dashboard/account/v3/enrollment/introduction/office</code></pre>
+      <p>Do <strong>not</strong> use <code>partner.microsoft.com/dashboard</code> — that generic URL often fails or redirects incorrectly. Use the direct enrollment link above.</p>
+      <ol>
+        <li>Sign in with your <strong>work/school account</strong></li>
+        <li>Create a new work account or link an existing one</li>
+        <li>Fill in your <strong>publisher profile</strong> (company name, contact info)</li>
+        <li>Accept the <strong>Microsoft Office Agreement</strong></li>
+      </ol>
+      <p>No fee. Office add-in publishing on AppSource is <strong>free</strong>.</p>
+
+      <h3>Step 2 — Enroll in the Microsoft 365 and Copilot program</h3>
+      <p>If you already have a Partner Center account from another program:</p>
+      <ol>
+        <li>Go to <strong>Settings → Account Settings → Programs</strong></li>
+        <li>Find the <strong>Microsoft 365 and Copilot</strong> tile → click <strong>Get Started</strong></li>
+        <li>Create or select a publisher account</li>
+        <li>Accept terms</li>
+      </ol>
+
+      <h3>Step 3 — Enable GitHub Pages</h3>
+      <p>Before submitting, the taskpane must be live:</p>
+      <ol>
+        <li>Go to your GitHub repo → <strong>Settings → Pages</strong></li>
+        <li>Source: <strong>GitHub Actions</strong></li>
+        <li>Push to <code>main</code> — the workflow deploys automatically</li>
+        <li>Verify <code>https://satish860.github.io/agentxl/taskpane/</code> loads</li>
+      </ol>
+
+      <h3>Step 4 — Submit the add-in</h3>
+      <ol>
+        <li>In Partner Center, go to <strong>Marketplace offers</strong></li>
+        <li>Create a <strong>New offer → Office Add-in</strong></li>
+        <li>Upload <code>manifest-hosted.xml</code> (from this repo's <code>manifest/</code> folder)</li>
+        <li>Fill in metadata:
+          <table>
+            <tr><td>App name</td><td>AgentXL</td></tr>
+            <tr><td>Short description</td><td>Turn source documents into traceable Excel workpapers</td></tr>
+            <tr><td>Category</td><td>Productivity</td></tr>
+            <tr><td>Support URL</td><td>https://github.com/satish860/agentxl/issues</td></tr>
+          </table>
+        </li>
+        <li>Upload 2-3 screenshots of the taskpane in Excel</li>
+        <li>Provide a privacy policy URL</li>
+        <li>Submit for review</li>
+      </ol>
+
+      <h3>Step 5 — Wait for review</h3>
+      <p>Microsoft reviews the submission (typically <strong>4-6 weeks</strong> for first submission, faster for updates). They check:</p>
+      <ul>
+        <li>Manifest validates correctly</li>
+        <li>Taskpane URL loads and is functional</li>
+        <li>Basic UX quality and accessibility</li>
+        <li>No malware or privacy violations</li>
+        <li>Graceful handling when the server is offline (your ConnectionError screen handles this)</li>
+      </ul>
+
+      <div class="callout success">
+        <span class="icon">✅</span>
+        <span>Once approved, AgentXL appears in <strong>Excel → Insert → Get Add-ins</strong> for all users worldwide. No sideloading, no Trust Center, no manifest files.</span>
+      </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="card">
+      <h2>Troubleshooting</h2>
+
+      <h3>Taskpane shows "Start AgentXL first"</h3>
+      <p>The server isn't running. Double-click <code>AgentXL.vbs</code> or run <code>agentxl start</code>.</p>
+
+      <h3>Certificate warning in browser</h3>
+      <pre><code>npx office-addin-dev-certs install</code></pre>
+      <p>Then restart Excel.</p>
+
+      <h3>Add-in doesn't appear after sideloading</h3>
+      <p>Close and reopen Excel. Check <strong>Insert → My Add-ins</strong>.</p>
+
+      <h3>Port 3001 already in use</h3>
+      <pre><code>agentxl start --port 3002</code></pre>
+    </div>
+
+    <!-- Links -->
+    <div class="btn-row" style="justify-content: center;">
+      <a href="https://github.com/satish860/agentxl" class="btn primary" target="_blank" rel="noopener">GitHub Repository</a>
+      <a href="https://github.com/satish860/agentxl/releases" class="btn secondary" target="_blank" rel="noopener">Download Releases</a>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>Built by <a href="https://deltaxy.ai" target="_blank" rel="noopener">DeltaXY</a> · MIT License · <a href="https://github.com/satish860/agentxl">Source</a></p>
+    </div>
+
+  </div>
+</body>
+</html>

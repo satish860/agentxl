@@ -1,0 +1,63 @@
+# Build and publish a release ZIP for Windows.
+#
+# The ZIP contains:
+#   - Portable Node.js runtime (no system install needed)
+#   - AgentXL server + agent code
+#   - Manifest for local sideloading
+#   - Simple launchers (AgentXL.vbs, login)
+#
+# Users download the ZIP, extract, double-click AgentXL.vbs.
+# For AppSource users, the taskpane is on GitHub Pages — they just
+# need the server running.
+
+name: Build Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Prepare release payload
+        run: node scripts/prepare-installer-win.mjs
+
+      - name: Create release ZIP
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $zipName = "AgentXL-$version-windows-x64.zip"
+          $payloadDir = "release\windows\payload"
+          Compress-Archive -Path "$payloadDir\*" -DestinationPath "release\windows\dist\$zipName" -Force
+          Write-Host "Created: release\windows\dist\$zipName"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentxl-windows-x64
+          path: release/windows/dist/*.zip
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/windows/dist/*.zip
+          generate_release_notes: true

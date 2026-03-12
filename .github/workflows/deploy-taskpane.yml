@@ -1,0 +1,71 @@
+# Deploy the taskpane UI to GitHub Pages.
+#
+# The hosted taskpane is what AppSource (and sideloaded hosted manifests)
+# point to. It's a thin React client that connects to localhost:3001
+# for all agent/document/Excel operations.
+
+name: Deploy Taskpane to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "taskpane/**"
+      - "site/**"
+      - "manifest/manifest-hosted.xml"
+      - ".github/workflows/deploy-taskpane.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build taskpane for GitHub Pages
+        run: cd taskpane && npx vite build
+        env:
+          VITE_BASE: /agentxl/taskpane/
+
+      - name: Prepare Pages output
+        run: |
+          mkdir -p _site/taskpane
+          cp -r taskpane/dist/* _site/taskpane/
+          # Landing page with install instructions
+          cp site/index.html _site/index.html
+          # Include the hosted manifest for easy sideloading
+          mkdir -p _site/manifest
+          cp manifest/manifest-hosted.xml _site/manifest/manifest.xml
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

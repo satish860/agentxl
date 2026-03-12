@@ -16,7 +16,18 @@ import {
   getWorkbookNameFromUrl,
 } from "./office-adapter";
 
-const BASE = window.location.origin;
+/**
+ * API base URL.
+ *
+ * When served from localhost (dev or self-hosted mode), use the same origin.
+ * When served from a public host (GitHub Pages / AppSource), connect to
+ * the local AgentXL server on localhost:3001.
+ */
+const BASE =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? window.location.origin
+    : "https://localhost:3001";
 
 // ---------------------------------------------------------------------------
 // Types (shared between client and API responses)

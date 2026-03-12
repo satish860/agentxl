@@ -52,35 +52,17 @@ No server. No cloud account with us. No classic RAG stack. You bring your own AI
 
 ## Quick Start
 
-## Testing AgentXL on Windows (no coding required)
+## Windows — Quick Start (no coding required)
 
-If you are testing AgentXL and do **not** want to use npm or the command line, use this path:
+1. Download the latest `.zip` from [GitHub Releases](https://github.com/satish860/agentxl/releases)
+2. Extract to a folder (e.g. `Desktop\AgentXL`)
+3. Double-click **AgentXL.vbs**
+4. If sign-in is needed, run **AgentXL Login.vbs** first
+5. Excel opens with AgentXL in the **Home** ribbon
 
-1. Open the GitHub Releases page:
-   - https://github.com/satish860/agentxl/releases
-2. Download the latest Windows asset:
-   - `AgentXL-Setup-<version>.msi` when available
-   - `AgentXL-Setup-<version>.exe` when available
-   - or `AgentXL-Windows-Payload-<version>.zip`
-3. If you downloaded the `.msi` or `.exe`, install AgentXL and launch:
-   - `Launch AgentXL onboarding`
-   from the Start Menu
-4. If you downloaded the `.zip`, extract it to a normal folder like:
-   - `Desktop\\AgentXL`
-   then double-click:
-   - `Launch AgentXL Onboarding.cmd`
-5. If sign-in is needed, run:
-   - `AgentXL Login`
-   - or `AgentXL Login.cmd`
-6. Wait for Excel to open, then click **AgentXL** on the **Home** tab if the task pane is not already visible
+The Windows release is self-contained — bundled Node.js, no system install required.
 
-The Windows flow now tries to automate:
-- trusting the localhost Office certificate
-- registering the add-in with Office
-- enabling localhost loopback when needed
-- opening Excel with AgentXL sideloaded
-
-After that, your tester can pick a document folder and try the workflow.
+Alternatively, install the add-in directly from Excel (see [Install the Excel add-in](#5-add-to-excel) below).
 
 ### 1. Install
 
@@ -92,23 +74,13 @@ npm install -g agentxl
 
 This is the simplest cross-platform install path.
 
-**Option B — GitHub Releases (Windows)**
+**Option B — Windows release (no Node.js needed)**
 
-Download the latest Windows asset from:
+1. Download the latest `.zip` from [GitHub Releases](https://github.com/satish860/agentxl/releases)
+2. Extract to a folder
+3. Double-click **AgentXL.vbs**
 
-- https://github.com/satish860/agentxl/releases
-
-Windows asset options:
-- `AgentXL-Setup-<version>.msi` → best for guided Windows onboarding
-- `AgentXL-Setup-<version>.exe` → installer alternative
-- `AgentXL-Windows-Payload-<version>.zip` → portable fallback; extract and run `Launch AgentXL Onboarding.cmd`
-
-The Windows package is self-contained. It:
-- bundles its own Node.js runtime
-- bundles the built AgentXL app and production dependencies
-- includes a `manifest` folder for Excel setup fallback
-- includes onboarding launchers such as `Launch AgentXL Onboarding.cmd`
-- does not require a separate Node.js installation on the target machine
+The release ZIP is self-contained: it bundles its own Node.js runtime, the built app, and production dependencies. No separate Node.js installation required.
 
 ### 2. Start
 
@@ -144,26 +116,32 @@ Open **https://localhost:3001/taskpane/** in your browser.
 
 You should see the AgentXL UI. This confirms the server, HTTPS, and UI all work before you touch Excel.
 
-### 5. Add to Excel (one-time setup)
+### 5. Add to Excel
 
-**Windows installer / Windows release path:**
-- AgentXL now tries to automate this step for you.
-- Fastest path:
-  - installer: run `Launch AgentXL onboarding` from the Start Menu
-  - zip: run `Launch AgentXL Onboarding.cmd`
-- If Excel was already open, close it and open it again.
-- If the task pane is not already visible, click **AgentXL** on Excel's **Home** tab.
+Choose one method:
 
-**Fallback if Office blocks automatic registration:**
+**Option A — Office Store (simplest)**
+1. Open Excel → **Insert** → **Get Add-ins**
+2. Search **"AgentXL"** → click **Add**
+
+> The Office Store listing is pending review. Use Option B or C in the meantime.
+
+**Option B — Upload hosted manifest (no Trust Center needed)**
+1. Download [`manifest.xml`](https://satish860.github.io/agentxl/manifest/manifest.xml)
+2. Open Excel → **Insert** → **Get Add-ins** → **My Add-ins** → **Upload My Add-in**
+3. Browse to the downloaded `manifest.xml` → **Upload**
+
+**Option C — Shared folder catalog (persistent, Windows)**
 1. **Excel** → **File** → **Options** → **Trust Center** → **Trust Center Settings**
 2. Click **Trusted Add-in Catalogs**
-3. Add the catalog path
-   - Windows install default: `C:\Program Files\AgentXL\manifest`
-   - Windows zip default: the extracted `manifest` folder
-   - npm install flow: use the path printed by `agentxl start`
+3. Add the `manifest` folder path from your release ZIP or the path printed by `agentxl start`
 4. Check **Show in Menu** → **OK** → **OK**
 5. **Restart Excel**
-6. **Insert** → **My Add-ins** → **SHARED FOLDER** tab → **AgentXL** → **Add**
+6. **Insert** → **My Add-ins** → **SHARED FOLDER** → **AgentXL** → **Add**
+
+**Option D — Windows release auto-setup**
+- Double-click **AgentXL.vbs** from the extracted release folder
+- It handles certificate trust, add-in registration, and opens Excel automatically
 
 ### 6. Start from a document folder
 
@@ -457,53 +435,19 @@ agentxl start --port 3002
 
 > If you change the port, update `manifest/manifest.xml` to match.
 
-### Building the Windows installer
-
-From the repo root:
+### Building the Windows release
 
 ```bash
-npm run prepare:installer:win
+npm run prepare:release:win
 ```
 
-This creates a **self-contained** Windows payload in:
+This creates a self-contained ZIP in `release/windows/dist/` containing:
+- Portable Node.js runtime (no system install needed)
+- Built AgentXL app + production dependencies
+- Manifest for Excel sideloading
+- VBScript launchers (double-click to start)
 
-```text
-release/windows/payload
-```
-
-It includes:
-- the built app
-- production `node_modules`
-- a bundled Node.js runtime
-
-Published GitHub releases can attach:
-- an MSI installer: `AgentXL-Setup-<version>.msi`
-- an EXE installer: `AgentXL-Setup-<version>.exe`
-- or a self-contained payload zip: `AgentXL-Windows-Payload-<version>.zip`
-
-To compile the MSI installer, install **WiX Toolset 3.14** and run:
-
-```bash
-npm run build:msi:win
-```
-
-To compile the EXE installer, install **Inno Setup 6** and run:
-
-```bash
-npm run build:installer:win
-```
-
-Compiled installers are written to:
-
-```text
-release/windows/dist
-```
-
-For release/publish steps, see:
-
-```text
-docs/RELEASING.md
-```
+GitHub Actions builds and publishes this automatically on tagged releases.
 
 ### "No model available"
 

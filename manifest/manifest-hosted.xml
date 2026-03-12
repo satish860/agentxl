@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AppSource / hosted manifest.
+  
+  The taskpane UI is served from GitHub Pages.
+  All API calls go to https://localhost:3001 (the local AgentXL server).
+  
+  For local development, use manifest.xml instead (points to localhost:3001).
+-->
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+
+  <!-- Unique add-in ID (different from dev manifest) -->
+  <Id>b2c3d4e5-f6a7-8901-bcde-f12345678901</Id>
+  <Version>1.1.2</Version>
+  <ProviderName>DeltaXY</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="AgentXL" />
+  <Description DefaultValue="Turn source documents into traceable Excel workpapers. Local-first AI agent for audit, diligence, and evidence-heavy workflows." />
+  <SupportUrl DefaultValue="https://github.com/satish860/agentxl" />
+
+  <!-- Icons hosted on GitHub Pages -->
+  <IconUrl DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-64.png" />
+
+  <!-- Excel only -->
+  <Hosts>
+    <Host Name="Workbook" />
+  </Hosts>
+
+  <!-- Permissions -->
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://satish860.github.io/agentxl/taskpane/" />
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <!-- Ribbon button -->
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="getStartedTitle" />
+            <Description resid="getStartedDescription" />
+            <LearnMoreUrl resid="learnMoreUrl" />
+          </GetStarted>
+
+          <!-- Ribbon extension -->
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="AgentXLGroup">
+                <Label resid="groupLabel" />
+                <Icon>
+                  <bt:Image size="16" resid="icon16" />
+                  <bt:Image size="32" resid="icon32" />
+                  <bt:Image size="80" resid="icon80" />
+                </Icon>
+                <Control xsi:type="Button" id="AgentXLButton">
+                  <Label resid="buttonLabel" />
+                  <Supertip>
+                    <Title resid="buttonLabel" />
+                    <Description resid="buttonTooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="icon16" />
+                    <bt:Image size="32" resid="icon32" />
+                    <bt:Image size="80" resid="icon80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>AgentXLPane</TaskpaneId>
+                    <SourceLocation resid="taskpaneUrl" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <!-- Resources -->
+    <Resources>
+      <bt:Images>
+        <bt:Image id="icon16" DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-16.png" />
+        <bt:Image id="icon32" DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-32.png" />
+        <bt:Image id="icon80" DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="taskpaneUrl" DefaultValue="https://satish860.github.io/agentxl/taskpane/" />
+        <bt:Url id="learnMoreUrl" DefaultValue="https://github.com/satish860/agentxl" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="groupLabel" DefaultValue="AgentXL" />
+        <bt:String id="buttonLabel" DefaultValue="AgentXL" />
+        <bt:String id="getStartedTitle" DefaultValue="AgentXL is ready!" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="buttonTooltip" DefaultValue="Open AgentXL — AI agent for document-to-Excel workflows" />
+        <bt:String id="getStartedDescription" DefaultValue="Click the AgentXL button on the Home tab. Make sure the local AgentXL server is running." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
