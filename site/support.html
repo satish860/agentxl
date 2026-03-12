@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentXL — Support</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111827; background: #f9fafb; line-height: 1.7; }
+    .container { max-width: 680px; margin: 0 auto; padding: 48px 24px 80px; }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .subtitle { font-size: 15px; color: #6b7280; margin-bottom: 32px; }
+    h2 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; }
+    p, li { font-size: 14px; color: #374151; margin-bottom: 12px; }
+    ul, ol { padding-left: 20px; margin-bottom: 16px; }
+    a { color: #059669; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 13px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AgentXL Support</h1>
+    <p class="subtitle">Get help with AgentXL — the document-to-Excel agent by DeltaXY.</p>
+
+    <div class="card">
+      <h3>📋 Report a bug or request a feature</h3>
+      <p>Open an issue on GitHub:<br><a href="https://github.com/satish860/agentxl/issues">github.com/satish860/agentxl/issues</a></p>
+    </div>
+
+    <div class="card">
+      <h3>📧 Contact us</h3>
+      <p>Email: <a href="mailto:hello@deltaxy.ai">hello@deltaxy.ai</a></p>
+    </div>
+
+    <div class="card">
+      <h3>📖 Documentation</h3>
+      <p>Setup instructions and getting started guide:<br><a href="https://satish860.github.io/agentxl/">satish860.github.io/agentxl</a></p>
+    </div>
+
+    <h2>Common issues</h2>
+
+    <h2>Taskpane shows "Start AgentXL first"</h2>
+    <p>The local AgentXL server is not running. Start it:</p>
+    <ul>
+      <li><strong>Windows release:</strong> Double-click <code>AgentXL.vbs</code></li>
+      <li><strong>npm:</strong> Run <code>agentxl start</code></li>
+    </ul>
+    <p>The taskpane will reconnect automatically once the server is available.</p>
+
+    <h2>Certificate warning</h2>
+    <p>If your browser shows a certificate warning when visiting <code>https://localhost:3001</code>, run:</p>
+    <p><code>npx office-addin-dev-certs install</code></p>
+    <p>Then restart Excel.</p>
+
+    <h2>Add-in not visible in Excel</h2>
+    <ol>
+      <li>Make sure the server is running</li>
+      <li>Go to <strong>Insert → Get Add-ins → My Add-ins</strong></li>
+      <li>If not listed, re-upload the manifest or use the shared folder catalog method</li>
+      <li>Close and reopen Excel</li>
+    </ol>
+
+    <h2>Port already in use</h2>
+    <p>If port 3001 is occupied, use a different port:</p>
+    <p><code>agentxl start --port 3002</code></p>
+
+    <h2>"No model available"</h2>
+    <p>Run <code>agentxl login</code> to set up your AI provider credentials.</p>
+
+    <div class="footer">
+      <p>DeltaXY · <a href="https://satish860.github.io/agentxl/">AgentXL</a> · <a href="https://github.com/satish860/agentxl">GitHub</a></p>
+    </div>
+  </div>
+</body>
+</html>
