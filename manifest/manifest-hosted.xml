@@ -14,31 +14,33 @@
   xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
   xsi:type="TaskPaneApp">
 
-  <!-- Unique add-in ID (different from dev manifest) -->
   <Id>b2c3d4e5-f6a7-8901-bcde-f12345678901</Id>
   <Version>1.1.2</Version>
   <ProviderName>DeltaXY</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="AgentXL" />
   <Description DefaultValue="Turn source documents into traceable Excel workpapers. Local-first AI agent for audit, diligence, and evidence-heavy workflows." />
-  <SupportUrl DefaultValue="https://github.com/satish860/agentxl" />
 
-  <!-- Icons hosted on GitHub Pages -->
-  <IconUrl DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-32.png" />
-  <HighResolutionIconUrl DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-64.png" />
+  <!-- Icons MUST come before SupportUrl per XML schema -->
+  <IconUrl DefaultValue="https://satish860.github.io/agentxl/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://satish860.github.io/agentxl/assets/icon-64.png" />
 
-  <!-- Excel only -->
+  <SupportUrl DefaultValue="https://github.com/satish860/agentxl/issues" />
+
+  <!-- Allow the taskpane to call the local AgentXL server -->
+  <AppDomains>
+    <AppDomain>https://satish860.github.io</AppDomain>
+  </AppDomains>
+
   <Hosts>
     <Host Name="Workbook" />
   </Hosts>
 
-  <!-- Permissions -->
   <DefaultSettings>
     <SourceLocation DefaultValue="https://satish860.github.io/agentxl/taskpane/" />
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 
-  <!-- Ribbon button -->
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
     <Hosts>
       <Host xsi:type="Workbook">
@@ -49,7 +51,6 @@
             <LearnMoreUrl resid="learnMoreUrl" />
           </GetStarted>
 
-          <!-- Ribbon extension -->
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <OfficeTab id="TabHome">
               <Group id="AgentXLGroup">
@@ -82,12 +83,11 @@
       </Host>
     </Hosts>
 
-    <!-- Resources -->
     <Resources>
       <bt:Images>
-        <bt:Image id="icon16" DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-16.png" />
-        <bt:Image id="icon32" DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-32.png" />
-        <bt:Image id="icon80" DefaultValue="https://satish860.github.io/agentxl/taskpane/assets/icon-80.png" />
+        <bt:Image id="icon16" DefaultValue="https://satish860.github.io/agentxl/assets/icon-16.png" />
+        <bt:Image id="icon32" DefaultValue="https://satish860.github.io/agentxl/assets/icon-32.png" />
+        <bt:Image id="icon80" DefaultValue="https://satish860.github.io/agentxl/assets/icon-80.png" />
       </bt:Images>
       <bt:Urls>
         <bt:Url id="taskpaneUrl" DefaultValue="https://satish860.github.io/agentxl/taskpane/" />

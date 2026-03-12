@@ -48,8 +48,9 @@ jobs:
         run: |
           mkdir -p _site/taskpane
           cp -r taskpane/dist/* _site/taskpane/
-          # Landing page with install instructions
+          # Landing page + icons
           cp site/index.html _site/index.html
+          cp -r site/assets _site/assets
           # Include the hosted manifest for easy sideloading
           mkdir -p _site/manifest
           cp manifest/manifest-hosted.xml _site/manifest/manifest.xml
