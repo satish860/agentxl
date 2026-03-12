@@ -8,7 +8,7 @@ name: Deploy Taskpane to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "taskpane/**"
       - "site/**"
