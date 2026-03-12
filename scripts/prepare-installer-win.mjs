@@ -221,10 +221,6 @@ function writePortableWindowsLaunchers() {
     "  Chr(34) & root & \"app\\manifest\\manifest.xml\" & Chr(34) & \" --open-excel\", _",
     "  0, False",
     "",
-    "' 4. Brief pause then open browser fallback",
-    "WScript.Sleep 2000",
-    "shell.Run \"https://localhost:3001/taskpane/\", 1, False",
-    "",
   ].join("\r\n");
 
   // --- VBScript for login (needs visible browser, but hide the cmd) ---
