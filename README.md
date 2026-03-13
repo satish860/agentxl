@@ -42,23 +42,22 @@ Built for audit and diligence workflows first — useful anywhere document-heavy
 
 ## Quick Start
 
-### 3 commands. That's it.
+### 2 commands. That's it.
 
 ```bash
 npm install -g agentxl
-agentxl install
 agentxl start
 ```
 
-| Command | What it does | When |
-|---------|-------------|------|
-| `npm install -g agentxl` | Installs AgentXL | Once |
-| `agentxl install` | Registers the add-in with Excel (certs + manifest + loopback) | Once |
-| `agentxl start` | Starts the local server | Every time |
+On first run, `agentxl start` will:
+1. Ask you to sign in with your AI provider
+2. Set up HTTPS certificates
+3. **Automatically register the add-in with Excel** (no manual steps)
+4. Start the server
 
-After `agentxl install`, open Excel → **AgentXL** appears on the **Home** ribbon. No Trust Center. No manual sideloading.
+Then open Excel → **AgentXL** appears on the **Home** ribbon.
 
-> On first run, `agentxl start` will ask you to sign in with your AI provider.
+> No Trust Center. No sideloading. No manifest files. Just `agentxl start`.
 
 ---
 
@@ -74,9 +73,9 @@ The release ZIP is self-contained — bundled Node.js, no system install require
 
 ---
 
-### Choose your AI provider
+### AI provider
 
-On first run, the CLI asks how to connect:
+On first run, `agentxl start` asks how to connect:
 
 | If you have... | Pick | Why |
 |---------------|------|-----|
@@ -90,7 +89,7 @@ On first run, the CLI asks how to connect:
 
 ---
 
-### Start from a document folder
+### Use it
 
 1. Open Excel → click **AgentXL** on the Home ribbon
 2. Link a **local folder** containing your source documents
@@ -103,30 +102,11 @@ Example prompts:
 - **"Pull lease terms from these agreements into the lease schedule."**
 - **"Show me which workbook cells came from which source files."**
 
----
+### Don't see AgentXL in the ribbon?
 
-## Alternative install methods
-
-### Install the Excel add-in only (if you already have the server)
-
-**Option A — Office Store (coming soon)**
-1. Open Excel → **Insert** → **Get Add-ins**
-2. Search **"AgentXL"** → click **Add**
-
-> The Office Store listing is pending review. Use the `agentxl install` command or Option B/C below.
-
-**Option B — Upload hosted manifest**
-1. Download [`manifest.xml`](https://satish860.github.io/agentxl/manifest/manifest.xml)
-2. Open Excel → **Insert** → **Get Add-ins** → **My Add-ins** → **Upload My Add-in**
-3. Browse to the downloaded `manifest.xml` → **Upload**
-
-**Option C — Shared folder catalog (persistent, Windows)**
-1. **Excel** → **File** → **Options** → **Trust Center** → **Trust Center Settings**
-2. Click **Trusted Add-in Catalogs**
-3. Add the `manifest` folder path from your release ZIP or the path printed by `agentxl start`
-4. Check **Show in Menu** → **OK** → **OK**
-5. **Restart Excel**
-6. **Insert** → **My Add-ins** → **SHARED FOLDER** → **AgentXL** → **Add**
+After `agentxl start` says "✅ Add-in registered with Excel", restart Excel and check:
+- **Home** ribbon → look for AgentXL
+- Or: **Insert** → **My Add-ins** → **SHARED FOLDER** → **AgentXL** → **Add**
 
 ---
 
@@ -269,13 +249,14 @@ agentxl --help                              Show help
 
 1. **Is the server running?** Check for `✅ Server running` in your terminal.
 2. **Does it work in the browser?** Open https://localhost:3001/taskpane/
-3. **Certificate not trusted?** Run `agentxl install` again — it handles cert trust.
+3. **Certificate not trusted?** Run `agentxl install` to re-trust certs, or: `npx office-addin-dev-certs install`
 
 ### Add-in doesn't appear in Excel
 
-Run `agentxl install` — it registers the manifest automatically. Then restart Excel.
-
-If that doesn't work, use the manual shared folder catalog method (see [Alternative install methods](#alternative-install-methods)).
+`agentxl start` registers the add-in automatically on first run. If it still doesn't show:
+1. Restart Excel
+2. Check **Insert → My Add-ins → SHARED FOLDER → AgentXL**
+3. Or run `agentxl install` manually to re-register
 
 ### Port 3001 already in use
 

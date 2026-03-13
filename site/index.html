@@ -199,74 +199,46 @@
     <div class="card">
       <h2>How it works</h2>
       <div class="flow">
-        <div class="node active">Install add-in<br><small>from Excel</small></div>
+        <div class="node active">Install<br><small>npm install -g agentxl</small></div>
         <span class="arrow">→</span>
-        <div class="node">Download server<br><small>one-time</small></div>
+        <div class="node active">Start<br><small>agentxl start</small></div>
         <span class="arrow">→</span>
-        <div class="node">Start server<br><small>double-click</small></div>
-        <span class="arrow">→</span>
-        <div class="node active">Use in Excel<br><small>ribbon button</small></div>
+        <div class="node active">Use in Excel<br><small>Home ribbon</small></div>
       </div>
-      <p>AgentXL runs as two pieces: an <strong>Excel add-in</strong> (the UI in your taskpane) and a <strong>local server</strong> (processes your documents, calls the AI model). Your documents never leave your machine.</p>
-      <p style="text-align: center; margin-top: 16px; font-size: 13px;">
-        <a href="#appsource" style="color: var(--green); text-decoration: none;">Publishing to the Office Store? See AppSource instructions ↓</a>
-      </p>
+      <p><code>agentxl start</code> handles everything automatically: sign-in, HTTPS certificates, and <strong>registering the add-in with Excel</strong>. No manual Trust Center setup. No sideloading. No manifest files.</p>
+      <p style="margin-top: 12px;">Your documents never leave your machine.</p>
     </div>
 
-    <!-- Step 1: Install the add-in -->
+    <!-- Step 1: Install & Start -->
     <div class="card">
-      <h2><span class="step-num">1</span> Install the Excel add-in</h2>
-      <p>Choose one of these methods to get AgentXL into your Excel ribbon:</p>
-
-      <h3>Option A — Office Store (recommended)</h3>
-      <ol>
-        <li>Open Excel</li>
-        <li>Go to <strong>Insert → Get Add-ins</strong> (or <strong>Office Add-ins</strong>)</li>
-        <li>Search for <strong>"AgentXL"</strong></li>
-        <li>Click <strong>Add</strong></li>
-      </ol>
-      <div class="callout info">
-        <span class="icon">ℹ️</span>
-        <span>The Office Store listing is pending review. Use Option B or C in the meantime.</span>
-      </div>
-
-      <h3>Option B — Sideload the hosted manifest</h3>
-      <ol>
-        <li>Open Excel</li>
-        <li>Go to <strong>Insert → Get Add-ins → My Add-ins</strong></li>
-        <li>Click <strong>Upload My Add-in</strong></li>
-        <li>Paste this URL or download the manifest:<br>
-          <a href="manifest/manifest.xml" class="btn secondary" style="margin-top: 8px; font-size: 13px;">⬇ Download manifest.xml</a>
-        </li>
-        <li>Click <strong>Upload</strong></li>
-      </ol>
-
-      <h3>Option C — Shared folder catalog (persistent)</h3>
-      <ol>
-        <li><strong>Excel → File → Options → Trust Center → Trust Center Settings</strong></li>
-        <li>Click <strong>Trusted Add-in Catalogs</strong></li>
-        <li>Add the <code>manifest</code> folder path from your downloaded release</li>
-        <li>Check <strong>Show in Menu</strong> → OK → OK</li>
-        <li>Restart Excel</li>
-        <li><strong>Insert → My Add-ins → SHARED FOLDER → AgentXL → Add</strong></li>
-      </ol>
-    </div>
-
-    <!-- Step 2: Download & run the server -->
-    <div class="card">
-      <h2><span class="step-num">2</span> Download &amp; run the local server</h2>
-      <p>The server handles document processing, AI model calls, and folder scanning. Everything stays on your machine.</p>
+      <h2><span class="step-num">1</span> Install &amp; start</h2>
 
       <div class="options">
         <div class="option">
-          <div class="label">📦 Windows ZIP</div>
-          <div class="desc">No install needed. Extract and run.</div>
+          <div class="label">💻 npm</div>
+          <div class="desc">Node.js 20+ required</div>
           <span class="rec">Recommended</span>
         </div>
         <div class="option">
-          <div class="label">💻 npm</div>
-          <div class="desc">For developers with Node.js</div>
+          <div class="label">📦 Windows ZIP</div>
+          <div class="desc">No install needed</div>
         </div>
+      </div>
+
+      <h3>npm (cross-platform)</h3>
+      <pre><code>npm install -g agentxl
+agentxl start</code></pre>
+      <p>On first run, <code>agentxl start</code> will:</p>
+      <ol>
+        <li>Ask you to sign in with your AI provider</li>
+        <li>Set up HTTPS certificates</li>
+        <li><strong>Automatically register the add-in with Excel</strong></li>
+        <li>Start the server</li>
+      </ol>
+
+      <div class="callout success">
+        <span class="icon">✅</span>
+        <span>After it says "Add-in registered with Excel", just open Excel — AgentXL is on the Home ribbon.</span>
       </div>
 
       <h3>Windows ZIP (no Node.js needed)</h3>
@@ -274,25 +246,19 @@
         <li>Download the latest <code>.zip</code> from <a href="https://github.com/satish860/agentxl/releases">GitHub Releases</a></li>
         <li>Extract to a folder (e.g. <code>Desktop\AgentXL</code>)</li>
         <li>Double-click <strong>AgentXL.vbs</strong></li>
-        <li>First time? It opens sign-in — choose your AI provider</li>
-        <li>Server starts silently. Excel opens with AgentXL loaded.</li>
       </ol>
 
-      <h3>npm (cross-platform)</h3>
-      <pre><code>npm install -g agentxl
-agentxl start</code></pre>
-
-      <div class="callout success">
-        <span class="icon">✅</span>
+      <div class="callout info">
+        <span class="icon">ℹ️</span>
         <span>The Windows ZIP bundles its own Node.js — no system install required.</span>
       </div>
     </div>
 
-    <!-- Step 3: Use it -->
+    <!-- Step 2: Use it -->
     <div class="card">
-      <h2><span class="step-num">3</span> Use it</h2>
+      <h2><span class="step-num">2</span> Use it</h2>
       <ol>
-        <li>Open Excel and click <strong>AgentXL</strong> on the Home ribbon</li>
+        <li>Open Excel → click <strong>AgentXL</strong> on the Home ribbon</li>
         <li>Link a <strong>local folder</strong> containing your source documents</li>
         <li>Ask a question — the agent searches the folder, reads the files, and returns grounded answers</li>
       </ol>
@@ -304,6 +270,13 @@ agentxl start</code></pre>
         <tr><td>"Compare the trial balance to the lead sheet and flag mismatches"</td></tr>
         <tr><td>"Pull lease terms from these agreements into a schedule"</td></tr>
       </table>
+
+      <h3>Don't see AgentXL in Excel?</h3>
+      <p>After <code>agentxl start</code> says "✅ Add-in registered", restart Excel and check:</p>
+      <ul>
+        <li><strong>Home</strong> ribbon → look for AgentXL</li>
+        <li>Or: <strong>Insert → My Add-ins → SHARED FOLDER → AgentXL → Add</strong></li>
+      </ul>
     </div>
 
     <!-- AI provider -->
