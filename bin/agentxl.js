@@ -331,30 +331,51 @@ async function start() {
     step("ℹ️", `Folder picker: ${pickerLabel}`);
   }
 
-  // ── Post-start guidance ────────────────────────────────────────────────
+  // ── Step 7: Auto-register add-in with Excel (first run) ─────────────
   const manifestPath = resolve(__dirname, "..", "manifest", "manifest.xml");
-  const manifestExists = existsSync(manifestPath);
 
+  if (existsSync(manifestPath)) {
+    let alreadyRegistered = false;
+    try {
+      const devSettings = await import("office-addin-dev-settings");
+      const registered = await devSettings.getRegisteredAddIns();
+      alreadyRegistered = registered.some(a => a.manifestPath === manifestPath);
+    } catch (_) {}
+
+    if (!alreadyRegistered) {
+      step("⏳", "First run — registering AgentXL with Excel...");
+      try {
+        const devSettings = await import("office-addin-dev-settings");
+        await devSettings.registerAddIn(manifestPath);
+        step("✅", "Add-in registered with Excel");
+      } catch (err) {
+        step("⚠️", `Auto-registration failed: ${err.message}`);
+        step("  ", "Run 'agentxl install' manually, or add the manifest folder to Excel Trust Center:");
+        step("  ", `  ${dirname(manifestPath)}`);
+      }
+
+      try {
+        const devSettings = await import("office-addin-dev-settings");
+        await devSettings.ensureLoopbackIsEnabled(manifestPath, false);
+      } catch (_) {}
+    } else {
+      step("✅", "Excel add-in registered");
+    }
+  }
+
+  // ── Post-start guidance ────────────────────────────────────────────────
   console.log(`
   ─────────────────────────────────────────────────
-  All systems go. Here's what to do next:
+  All systems go!
   ─────────────────────────────────────────────────
 
-  🌐 Test in browser (confirm everything works):
+  📎 Open Excel → AgentXL is on the Home ribbon
+     (If you don't see it: Insert → My Add-ins → SHARED FOLDER → AgentXL)
+
+  🌐 Or test in browser first:
      https://localhost:${port}/taskpane/
 
-  📎 Load in Excel (one-time setup):
-     1. Excel → File → Options → Trust Center → Trust Center Settings
-     2. Trusted Add-in Catalogs → add path: ${manifestExists ? dirname(manifestPath) : "[manifest folder]"}
-     3. Check "Show in Menu" → OK → OK
-     4. Restart Excel
-     5. Insert → My Add-ins → SHARED FOLDER → AgentXL → Add
-
-  After setup, just run 'agentxl start' and click
-  AgentXL on the Home ribbon. No re-sideloading needed.
-
-  💬 Try your first message:
-     "What can you help me with in this workbook?"
+  💬 Try: "What can you help me with in this workbook?"
 `);
 
   // ── Graceful shutdown ──────────────────────────────────────────────────
