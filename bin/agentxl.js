@@ -226,6 +226,7 @@ AgentXL v${VERSION} — AI agent for Microsoft Excel
 
 Usage:
   agentxl start [options]    Start the AgentXL server
+  agentxl install            Register the add-in with Excel (one-time)
   agentxl login              Set up or change API credentials
   agentxl --version          Print version
   agentxl --help             Show this help
@@ -235,7 +236,8 @@ Options:
   --verbose                  Log all HTTP requests
 
 Examples:
-  agentxl start
+  agentxl install            # one-time: register with Excel
+  agentxl start              # run the server
   agentxl start --port 3002
   agentxl login
 `);
@@ -370,6 +372,86 @@ async function start() {
   process.on("SIGTERM", shutdown);
 }
 
+async function install() {
+  console.log(`
+  ┌──────────────────────────────────────┐
+  │      AgentXL Excel Registration      │
+  └──────────────────────────────────────┘
+`);
+
+  const manifestPath = resolve(__dirname, "..", "manifest", "manifest.xml");
+  if (!existsSync(manifestPath)) {
+    step("❌", `Manifest not found: ${manifestPath}`);
+    process.exit(1);
+  }
+
+  // ── Step 1: HTTPS certificates ─────────────────────────────────────────
+  try {
+    step("⏳", "Ensuring HTTPS certificates are trusted...");
+    const devCerts = await import("office-addin-dev-certs");
+    await devCerts.ensureCertificatesAreInstalled();
+    step("✅", "HTTPS certificate trusted");
+  } catch (err) {
+    step("⚠️", `Certificate setup: ${err.message}`);
+  }
+
+  // ── Step 2: Register add-in ────────────────────────────────────────────
+  try {
+    step("⏳", "Registering AgentXL with Excel...");
+    const devSettings = await import("office-addin-dev-settings");
+    await devSettings.registerAddIn(manifestPath);
+    step("✅", "Add-in registered with Excel");
+  } catch (err) {
+    step("❌", `Registration failed: ${err.message}`);
+    console.log(`
+  Fallback: manually add this folder to Excel's Trusted Add-in Catalogs:
+  ${dirname(manifestPath)}
+
+  Steps:
+    1. Excel → File → Options → Trust Center → Trust Center Settings
+    2. Trusted Add-in Catalogs → paste the path above
+    3. Check "Show in Menu" → OK → OK
+    4. Restart Excel
+    5. Insert → My Add-ins → SHARED FOLDER → AgentXL → Add
+`);
+    process.exit(1);
+  }
+
+  // ── Step 3: Enable loopback ────────────────────────────────────────────
+  try {
+    const devSettings = await import("office-addin-dev-settings");
+    await devSettings.ensureLoopbackIsEnabled(manifestPath, false);
+    step("✅", "Localhost loopback enabled");
+  } catch (err) {
+    step("⚠️", `Loopback: ${err.message}`);
+  }
+
+  console.log(`
+  ─────────────────────────────────────────────────
+  Done! AgentXL is registered with Excel.
+  ─────────────────────────────────────────────────
+
+  Next steps:
+    1. Run: agentxl start
+    2. Open Excel → AgentXL appears on the Home ribbon
+
+  To open Excel with AgentXL right now:
+    agentxl install --open
+`);
+
+  // Optionally open Excel
+  if (hasFlag("open")) {
+    try {
+      const devSettings = await import("office-addin-dev-settings");
+      const manifestLib = await import("office-addin-manifest");
+      step("⏳", "Opening Excel with AgentXL...");
+      await devSettings.sideloadAddIn(manifestPath, manifestLib.OfficeApp.Excel, false, devSettings.AppType.Desktop);
+    } catch (err) {
+      step("⚠️", `Could not open Excel: ${err.message}`);
+    }
+  }
+}
+
 async function login() {
   console.log("");
   const authed = await runAuthFlow();
@@ -395,6 +477,11 @@ if (hasFlag("help") || command === "--help" || command === "help") {
 
 if (command === "start") {
   start().catch((err) => {
+    console.error(`\n  ❌ ${err.message || err}\n`);
+    process.exit(1);
+  });
+} else if (command === "install") {
+  install().catch((err) => {
     console.error(`\n  ❌ ${err.message || err}\n`);
     process.exit(1);
   });

@@ -33,6 +33,8 @@
   "files": [
     "bin/",
     "dist/",
+    "scripts/enable-excel-addin.mjs",
+    "scripts/setup-and-start.cmd",
     "taskpane/dist/",
     "manifest/",
     "package.json",
