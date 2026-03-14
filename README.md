@@ -42,18 +42,17 @@ Built for audit and diligence workflows first — useful anywhere document-heavy
 
 ## Quick Start
 
-### 2 commands. That's it.
+### 3 commands. That's it.
 
 ```bash
 npm install -g agentxl
+agentxl install
 agentxl start
 ```
 
-On first run, `agentxl start` will:
-1. Ask you to sign in with your AI provider
-2. Set up HTTPS certificates
-3. **Automatically register the add-in with Excel** (no manual steps)
-4. Start the server
+- `npm install -g agentxl` — installs AgentXL globally
+- `agentxl install` — sets up HTTPS certificates and registers the add-in with Excel (one-time)
+- `agentxl start` — starts the server and asks you to sign in with your AI provider
 
 Then open Excel → **AgentXL** appears on the **Home** ribbon.
 

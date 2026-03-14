@@ -29,6 +29,7 @@ Broader market:
 **Install and run:**
 ```bash
 npm install -g agentxl
+agentxl install
 agentxl start
 ```
 
