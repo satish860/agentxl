@@ -57,7 +57,7 @@ async function resolveAgentRequestContext(
     sendError(
       res,
       401,
-      "Not authenticated. Run 'agentxl login' to set up credentials."
+      "Not authenticated. Paste an API key in the AgentXL taskpane (or run 'agentxl login')."
     );
     return null;
   }

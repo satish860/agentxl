@@ -8,6 +8,17 @@
 import type { Model, Api } from "@mariozechner/pi-ai";
 import { SettingsManager, type ModelRegistry } from "@mariozechner/pi-coding-agent";
 
+/**
+ * Providers AgentXL knows how to drive end-to-end via API key.
+ * Anything else (OAuth-only providers, leftover Pi credentials, etc.) is
+ * ignored so we don't accidentally route requests through a stale token.
+ */
+export const SUPPORTED_PROVIDERS = new Set<string>([
+  "openrouter",
+  "anthropic",
+  "openai",
+]);
+
 /** Provider → preferred model ID, checked in priority order. */
 const PREFERRED_MODELS: Array<{ provider: string; modelId: string }> = [
   { provider: "openrouter", modelId: "anthropic/claude-sonnet-4.6" },
@@ -16,7 +27,6 @@ const PREFERRED_MODELS: Array<{ provider: string; modelId: string }> = [
   { provider: "anthropic", modelId: "claude-sonnet-4-6" },
   { provider: "anthropic", modelId: "claude-sonnet-4-5-20250929" },
   { provider: "anthropic", modelId: "claude-sonnet-4-20250514" },
-  { provider: "openai-codex", modelId: "gpt-5.1" },
   { provider: "openai", modelId: "gpt-4o" },
 ];
 
@@ -54,10 +64,17 @@ export function getDefaultModel(
   modelRegistry: ModelRegistry,
   cwd?: string
 ): Model<Api> | null {
-  const available = modelRegistry.getAvailable();
+  // Only consider providers AgentXL supports. Other authenticated providers
+  // (e.g., stale Pi OAuth tokens for antigravity / gemini-cli) are ignored
+  // so the user gets prompted to paste a real key instead of crashing on a
+  // 404 from a token we never intended to use.
+  const available = modelRegistry
+    .getAvailable()
+    .filter((m) => SUPPORTED_PROVIDERS.has(m.provider));
   if (available.length === 0) return null;
 
-  // First honor Pi's configured default model/provider when possible.
+  // First honor Pi's configured default model/provider when possible
+  // (still constrained to supported providers via `available`).
   const configured = getConfiguredModelPreference(cwd);
   if (configured?.provider && configured?.modelId) {
     const exact = available.find(

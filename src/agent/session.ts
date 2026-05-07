@@ -19,7 +19,7 @@ import {
   SettingsManager,
   type AgentSession,
 } from "@mariozechner/pi-coding-agent";
-import { getDefaultModel } from "./models.js";
+import { getDefaultModel, SUPPORTED_PROVIDERS } from "./models.js";
 import { excelTool } from "./tools/excel.js";
 import { AGENTXL_SYSTEM_PROMPT } from "./prompt/system-prompt.js";
 
@@ -168,12 +168,17 @@ export async function getSession(cwd?: string): Promise<AgentSession> {
 }
 
 /**
- * Check if any provider has auth configured.
+ * Check if a supported provider has auth configured.
+ *
+ * Only counts AgentXL's known providers (openrouter / anthropic / openai)
+ * — stale OAuth credentials for unsupported providers (e.g., a leftover
+ * Pi setup for antigravity or gemini-cli) are ignored so the UI keeps
+ * prompting for a real API key instead of routing through a dead token.
  */
 export function isAuthenticated(): boolean {
   modelRegistry.refresh();
   const available = modelRegistry.getAvailable();
-  return available.length > 0;
+  return available.some((m) => SUPPORTED_PROVIDERS.has(m.provider));
 }
 
 /**
