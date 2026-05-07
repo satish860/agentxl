@@ -12,7 +12,7 @@ import { MessageBubble } from "./components/MessageBubble";
 import { ChatInput } from "./components/ChatInput";
 
 export function App() {
-  const { status, connectionError, serverDown, markServerDown } =
+  const { status, connectionError, serverDown, markServerDown, refreshStatus } =
     useAgentStatus();
   const {
     workbookId,
@@ -37,6 +37,7 @@ export function App() {
   const [isEditingFolder, setIsEditingFolder] = useState(false);
   const [isPickingFolder, setIsPickingFolder] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
+  const [folderSkipped, setFolderSkipped] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
@@ -92,6 +93,7 @@ export function App() {
 
   useEffect(() => {
     setPickerError(null);
+    setFolderSkipped(false);
   }, [workbookId]);
 
   // ── Connection error (never connected) ──────────────────────────────────
@@ -110,7 +112,7 @@ export function App() {
 
   // ── Not authenticated ───────────────────────────────────────────────────
   if (!status.authenticated) {
-    return <AuthRequired />;
+    return <AuthRequired onSaved={() => void refreshStatus()} />;
   }
 
   // ── Workbook identity state ─────────────────────────────────────────────
@@ -123,7 +125,9 @@ export function App() {
   }
 
   const isFolderLinked = Boolean(folderStatus?.linked && folderStatus.folderPath);
-  const showFolderLinkFlow = !workbookId || isLoadingFolderStatus || !isFolderLinked || isEditingFolder;
+  const chatActive = isFolderLinked || folderSkipped;
+  const showFolderLinkFlow =
+    !workbookId || isLoadingFolderStatus || (!chatActive) || isEditingFolder;
 
   // ── Chat UI ─────────────────────────────────────────────────────────────
   const hasMessages = messages.length > 0;
@@ -132,7 +136,7 @@ export function App() {
     !workbookId ||
     Boolean(workbookResolveError) ||
     Boolean(folderError) ||
-    !isFolderLinked ||
+    !chatActive ||
     isEditingFolder;
 
   return (
@@ -166,6 +170,14 @@ export function App() {
               onPickFolder={handlePickFolder}
               onSave={handleSaveFolder}
               onCancel={isFolderLinked ? () => setIsEditingFolder(false) : undefined}
+              onSkip={
+                isEditingFolder
+                  ? undefined
+                  : () => {
+                      setFolderSkipped(true);
+                      setPickerError(null);
+                    }
+              }
             />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -173,15 +185,36 @@ export function App() {
             </div>
           )
         ) : !hasMessages ? (
-          <WelcomeScreen
-            status={status}
-            workbookId={workbookId}
-            linkedFolderPath={folderStatus!.folderPath!}
-            totalFiles={folderStatus!.totalFiles}
-            supportedFiles={folderStatus!.supportedFiles}
-            onQuickAction={handleQuickAction}
-            onChangeFolder={() => setIsEditingFolder(true)}
-          />
+          isFolderLinked ? (
+            <WelcomeScreen
+              status={status}
+              workbookId={workbookId}
+              linkedFolderPath={folderStatus!.folderPath!}
+              totalFiles={folderStatus!.totalFiles}
+              supportedFiles={folderStatus!.supportedFiles}
+              onQuickAction={handleQuickAction}
+              onChangeFolder={() => setIsEditingFolder(true)}
+            />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+              <p className="text-[13px] font-medium text-gray-700">
+                Chatting without a linked folder
+              </p>
+              <p className="text-[12px] leading-5 text-gray-500">
+                AgentXL won't have access to source documents. You can link a folder
+                anytime to enable grounded answers with citations.
+              </p>
+              <button
+                onClick={() => {
+                  setFolderSkipped(false);
+                  setIsEditingFolder(true);
+                }}
+                className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-[12px] font-medium text-emerald-700 transition hover:bg-emerald-50"
+              >
+                Link a folder
+              </button>
+            </div>
+          )
         ) : (
           <div className="p-4 space-y-4">
             {workbookId && (
@@ -217,7 +250,7 @@ export function App() {
       </div>
 
       {/* Input */}
-      {isFolderLinked && !isEditingFolder && (
+      {chatActive && !isEditingFolder && (
         <ChatInput
           value={input}
           onChange={setInput}

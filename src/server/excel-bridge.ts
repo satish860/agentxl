@@ -36,6 +36,7 @@ export function registerPendingExecution(
   return new Promise<string>((resolve, reject) => {
     const timeout = setTimeout(() => {
       pending.delete(toolCallId);
+      console.log(`[excel-bridge] TIMEOUT id=${toolCallId} after ${timeoutMs / 1000}s — taskpane never POSTed result`);
       reject(
         new Error(
           `Excel execution timed out after ${timeoutMs / 1000}s. ` +
@@ -45,6 +46,7 @@ export function registerPendingExecution(
     }, timeoutMs);
 
     pending.set(toolCallId, { resolve, reject, timeout });
+    console.log(`[excel-bridge] waiting for taskpane result id=${toolCallId}`);
   });
 }
 
@@ -59,11 +61,15 @@ export function resolveExecution(
   result: string
 ): boolean {
   const entry = pending.get(toolCallId);
-  if (!entry) return false;
+  if (!entry) {
+    console.log(`[excel-bridge] resolve miss id=${toolCallId} (already gone)`);
+    return false;
+  }
 
   clearTimeout(entry.timeout);
   pending.delete(toolCallId);
   entry.resolve(result);
+  console.log(`[excel-bridge] resolved id=${toolCallId} (${result.length}b)`);
   return true;
 }
 

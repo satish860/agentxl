@@ -159,6 +159,79 @@ async function withLinkedFolderCwd<T>(
 }
 
 // ---------------------------------------------------------------------------
+// Session event logging
+// ---------------------------------------------------------------------------
+
+function lastAssistantSummary(messages: unknown): string | null {
+  if (!Array.isArray(messages) || messages.length === 0) return null;
+  const last = messages[messages.length - 1] as Record<string, unknown> | undefined;
+  if (!last || last.role !== "assistant") return null;
+  const stop = last.stopReason as string | undefined;
+  const err = last.errorMessage as string | undefined;
+  if (err) return `stop=${stop ?? "?"} err="${err.slice(0, 200)}"`;
+  if (stop && stop !== "stop") return `stop=${stop}`;
+  return null;
+}
+
+function logSessionEvent(event: unknown): void {
+  if (!event || typeof event !== "object") return;
+  const e = event as Record<string, unknown>;
+  const type = e.type as string;
+
+  switch (type) {
+    case "agent_start":
+      console.log(`[agent] agent_start`);
+      return;
+
+    case "tool_execution_start":
+    case "tool_execution_end": {
+      const toolName = e.toolName as string;
+      const toolCallId = e.toolCallId as string;
+      const isError = e.isError as boolean | undefined;
+      console.log(
+        `[agent] ${type} tool=${toolName ?? "?"} id=${toolCallId ?? "?"}` +
+          (type === "tool_execution_end" && isError ? " ERROR" : "")
+      );
+      return;
+    }
+
+    case "agent_end": {
+      const messages = e.messages as unknown[] | undefined;
+      const summary = lastAssistantSummary(messages);
+      console.log(
+        `[agent] agent_end messages=${messages?.length ?? 0}` +
+          (summary ? ` ${summary}` : "")
+      );
+      return;
+    }
+
+    case "auto_compaction_start":
+      console.log(`[agent] auto_compaction_start reason=${e.reason}`);
+      return;
+
+    case "auto_compaction_end":
+      console.log(
+        `[agent] auto_compaction_end aborted=${e.aborted}` +
+          (e.errorMessage ? ` error=${e.errorMessage}` : "")
+      );
+      return;
+
+    case "auto_retry_start":
+      console.log(
+        `[agent] auto_retry_start attempt=${e.attempt}/${e.maxAttempts} err=${e.errorMessage}`
+      );
+      return;
+
+    case "error":
+      console.log(`[agent] error ${JSON.stringify(e).slice(0, 500)}`);
+      return;
+
+    default:
+      return;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // SSE stream runner
 // ---------------------------------------------------------------------------
 
@@ -192,10 +265,42 @@ async function runAgentStream(
     const session = await getSession(linkedFolderPath ?? undefined);
 
     // Subscribe to session events and stream them as SSE
+    let sawAssistantContent = false;
     unsubscribe = session.subscribe((event) => {
+      logSessionEvent(event);
+
+      // Track whether the assistant produced anything we can show
+      const e = event as Record<string, unknown>;
+      if (e.type === "message_update") {
+        const ame = e.assistantMessageEvent as Record<string, unknown> | undefined;
+        const t = ame?.type as string | undefined;
+        if (
+          t === "text_delta" ||
+          t === "text_start" ||
+          t === "thinking_delta" ||
+          t === "thinking_start" ||
+          t === "toolcall_start"
+        ) {
+          sawAssistantContent = true;
+        }
+      } else if (e.type === "tool_execution_start") {
+        sawAssistantContent = true;
+      }
+
       sendSSE(event as unknown as Record<string, unknown>);
 
       if (event.type === "agent_end") {
+        if (!sawAssistantContent) {
+          console.log(
+            "[agent] EMPTY response — model returned no text/thinking/tool calls. " +
+              "Likely causes: deprecated model id or provider quota / billing issue."
+          );
+          sendSSE({
+            type: "error",
+            error:
+              "The model returned an empty response. Check the server console — the configured model id may be deprecated or the provider returned no content.",
+          });
+        }
         completed = true;
         cleanup();
         if (!res.writableEnded) {
@@ -243,6 +348,10 @@ export async function handleAgent(
   if (!ctx) return; // Validation error already sent
 
   const fullMessage = buildAgentPrompt(ctx.contextParts, ctx.message);
+  const ctxBytes = ctx.contextParts.reduce((n, p) => n + p.length, 0);
+  console.log(
+    `[agent] prompt msg=${ctx.message.length}b context=${ctxBytes}b parts=${ctx.contextParts.length} total=${fullMessage.length}b`
+  );
 
   // SSE headers
   res.writeHead(200, {

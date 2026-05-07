@@ -34,8 +34,8 @@ const PI_AUTH_PATH = join(homedir(), ".pi", "agent", "auth.json");
 /**
  * Resolve auth file path.
  * Uses AgentXL's own auth.json if it exists, otherwise falls back to
- * Pi's auth.json. This lets users who already have Pi set up get seamless
- * auth — same subscriptions, same OAuth tokens, auto-refreshed.
+ * Pi's auth.json. This lets users who already have Pi set up reuse
+ * the same API keys without re-entering them.
  */
 function resolveAuthPath(): string {
   if (existsSync(AGENTXL_AUTH_PATH)) return AGENTXL_AUTH_PATH;
@@ -99,6 +99,9 @@ export async function initSession(cwd?: string): Promise<AgentSession> {
 
   // Track the selected provider
   selectedProvider = model.provider;
+  console.log(
+    `[session] init provider=${model.provider} model=${model.id} cwd=${effectiveCwd}`
+  );
   const readOnly = createReadOnlyTools(effectiveCwd);
   const bash = createBashTool(effectiveCwd);
   const tools = [...readOnly, bash];
@@ -150,6 +153,9 @@ export async function getSession(cwd?: string): Promise<AgentSession> {
 
   // Recreate session if the working directory changed
   if (currentSession && currentSessionCwd !== effectiveCwd) {
+    console.log(
+      `[session] cwd changed (${currentSessionCwd} → ${effectiveCwd}) — disposing session`
+    );
     currentSession.dispose();
     currentSession = null;
     currentSessionCwd = null;
@@ -163,7 +169,6 @@ export async function getSession(cwd?: string): Promise<AgentSession> {
 
 /**
  * Check if any provider has auth configured.
- * Fast check — does not refresh OAuth tokens.
  */
 export function isAuthenticated(): boolean {
   modelRegistry.refresh();
@@ -198,6 +203,30 @@ export function resetSession(): void {
     currentSessionCwd = null;
   }
   rebuildAuth();
+}
+
+/**
+ * Detect an API-key provider from the key prefix.
+ * Mirrors the auto-detection used in the CLI login flow.
+ */
+export function detectApiKeyProvider(key: string): string | null {
+  const k = key.trim();
+  if (k.startsWith("sk-ant-")) return "anthropic";
+  if (k.startsWith("sk-or-")) return "openrouter";
+  if (k.startsWith("sk-")) return "openai";
+  return null;
+}
+
+/**
+ * Save an API key for a provider and reset the session so the next
+ * request picks up the new credentials.
+ *
+ * @param provider - One of: anthropic, openrouter, openai (others passed through).
+ * @param key      - The raw API key string.
+ */
+export function saveApiKey(provider: string, key: string): void {
+  authStorage.set(provider, { type: "api_key", key });
+  resetSession();
 }
 
 /**

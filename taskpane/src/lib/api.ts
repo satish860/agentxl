@@ -129,6 +129,35 @@ export async function getConfigStatus(): Promise<ConfigStatus> {
   return res.json();
 }
 
+export interface SaveApiKeyResult {
+  provider: string;
+  saved: true;
+}
+
+/**
+ * Persist an API key. Provider is auto-detected from the key prefix
+ * (sk-ant- → anthropic, sk-or- → openrouter, sk- → openai), or pass
+ * `provider` explicitly to override.
+ */
+export async function saveApiKey(
+  key: string,
+  provider?: string
+): Promise<SaveApiKeyResult> {
+  const res = await fetch(`${BASE}/api/auth/apikey`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(provider ? { key, provider } : { key }),
+  });
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      (body as { error?: string }).error || `Save failed: HTTP ${res.status}`
+    );
+  }
+  return body as SaveApiKeyResult;
+}
+
 // ---------------------------------------------------------------------------
 // Workbook API
 // ---------------------------------------------------------------------------

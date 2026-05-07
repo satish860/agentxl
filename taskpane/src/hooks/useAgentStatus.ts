@@ -18,6 +18,8 @@ export interface AgentStatusState {
   serverDown: boolean;
   /** Call when a network failure during chat indicates server is down. */
   markServerDown: () => void;
+  /** Force an immediate auth status refresh (e.g., after saving an API key). */
+  refreshStatus: () => Promise<void>;
 }
 
 export function useAgentStatus(): AgentStatusState {
@@ -105,5 +107,9 @@ export function useAgentStatus(): AgentStatusState {
     };
   }, []);
 
-  return { status, connectionError, serverDown, markServerDown };
+  const refreshStatus = useCallback(async () => {
+    await checkStatus();
+  }, [checkStatus]);
+
+  return { status, connectionError, serverDown, markServerDown, refreshStatus };
 }

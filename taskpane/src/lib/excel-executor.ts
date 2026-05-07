@@ -9,7 +9,11 @@
  * The server-side tool is waiting for this result before returning to the agent.
  */
 
-const BASE = window.location.origin;
+const BASE =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? window.location.origin
+    : "https://localhost:3001";
 
 /**
  * Execute Office.js code in the active workbook and send the result

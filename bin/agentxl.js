@@ -97,7 +97,14 @@ async function checkAuth() {
   const authPath = existsSync(piAuthPath) ? piAuthPath : agentxlAuthPath;
   const authStorage = AuthStorage.create(authPath);
 
-  return authStorage.list().length > 0;
+  if (authStorage.list().length > 0) return true;
+
+  // Also accept env vars — Pi SDK's hasAuth() falls back to them at runtime.
+  return Boolean(
+    process.env.OPENROUTER_API_KEY ||
+      process.env.ANTHROPIC_API_KEY ||
+      process.env.OPENAI_API_KEY
+  );
 }
 
 async function runAuthFlow() {
@@ -114,106 +121,39 @@ async function runAuthFlow() {
   }
 
   console.log(`
-  No API credentials found. Let's get you set up.
+  No API credentials found. Paste an API key to get started.
 
-  How would you like to connect?
+  Key prefixes:
+    sk-or-...   → OpenRouter (recommended — 100+ models, free tier available)
+    sk-ant-...  → Anthropic (Claude)
+    sk-...      → OpenAI (GPT-4o)
 
-    Use an existing subscription (no API key needed):
-      1. Claude Pro/Max — sign in with your Anthropic account
-      2. ChatGPT Plus/Pro — sign in with your OpenAI account
-      3. GitHub Copilot — sign in with your GitHub account
-      4. Gemini — sign in with your Google account
-
-    Use an API key:
-      5. Paste an API key (Anthropic, OpenRouter, or OpenAI)
-
-    No account yet?
-      → Create a free OpenRouter account at https://openrouter.ai
-        Get an API key instantly. Free models available.
+  No account yet?
+    → Create a free OpenRouter account at https://openrouter.ai/keys
 `);
 
-  // Build choices — OAuth providers + API key
-  const oauthProviders = authStorage.getOAuthProviders();
-  const choices = [];
-  for (const p of oauthProviders) {
-    choices.push({ type: "oauth", id: p.id, name: p.name, provider: p });
-  }
-  choices.push({ type: "apikey", id: "apikey", name: "Paste an API key" });
+  const key = await promptSecret("  API key: ");
 
-  const answer = await prompt("  Enter choice (1-" + choices.length + "): ");
-  const idx = parseInt(answer, 10) - 1;
-
-  if (isNaN(idx) || idx < 0 || idx >= choices.length) {
-    console.error("\n  Invalid choice. Run 'agentxl login' to try again.\n");
+  if (!key) {
+    console.error("\n  No key entered. Run 'agentxl login' to try again.\n");
     return false;
   }
 
-  const choice = choices[idx];
-
-  if (choice.type === "oauth") {
-    console.log(`\n  Signing in with ${choice.name}...\n`);
-
-    try {
-      await authStorage.login(choice.id, {
-        onAuth: (info) => {
-          console.log(`  🌐 Opening browser for sign-in...`);
-          console.log(`     ${info.url}\n`);
-          if (info.instructions) {
-            console.log(`     ${info.instructions}\n`);
-          }
-          openUrl(info.url);
-        },
-        onPrompt: async (p) => {
-          const answer = await prompt(`  ${p.message}: `);
-          return answer;
-        },
-        onProgress: (message) => {
-          console.log(`  ${message}`);
-        },
-        onManualCodeInput: async () => {
-          const code = await prompt("  Enter the code from the browser: ");
-          return code;
-        },
-      });
-
-      console.log(`\n  ✅ Signed in with ${choice.name}\n`);
-      return true;
-    } catch (err) {
-      console.error(`\n  ❌ Sign-in failed: ${err.message}\n`);
-      return false;
-    }
-  } else {
-    // API key flow
-    console.log(`
-  Paste your API key below.
-
-  Key prefixes:
-    sk-ant-...  → Anthropic (Claude)
-    sk-or-...   → OpenRouter (100+ models)
-    sk-...      → OpenAI (GPT-4o)
-`);
-
-    const key = await promptSecret("  API key: ");
-
-    if (!key) {
-      console.error("\n  No key entered. Run 'agentxl login' to try again.\n");
-      return false;
-    }
-
-    // Auto-detect provider from key prefix
-    let provider;
-    if (key.startsWith("sk-ant-")) provider = "anthropic";
-    else if (key.startsWith("sk-or-")) provider = "openrouter";
-    else if (key.startsWith("sk-")) provider = "openai";
-    else {
-      const p = await prompt("  Could not detect provider. Enter provider name (anthropic/openrouter/openai): ");
-      provider = p.toLowerCase();
-    }
-
-    authStorage.set(provider, { type: "api_key", key });
-    console.log(`\n  ✅ API key saved for ${provider}\n`);
-    return true;
+  // Auto-detect provider from key prefix
+  let provider;
+  if (key.startsWith("sk-ant-")) provider = "anthropic";
+  else if (key.startsWith("sk-or-")) provider = "openrouter";
+  else if (key.startsWith("sk-")) provider = "openai";
+  else {
+    const p = await prompt(
+      "  Could not detect provider. Enter provider name (anthropic/openrouter/openai): "
+    );
+    provider = p.toLowerCase();
   }
+
+  authStorage.set(provider, { type: "api_key", key });
+  console.log(`\n  ✅ API key saved for ${provider}\n`);
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -281,9 +221,8 @@ async function start() {
   if (hasAuth) {
     step("✅", "Auth ready");
   } else {
-    const authed = await runAuthFlow();
-    if (!authed) process.exit(1);
-    step("✅", "Auth ready");
+    step("ℹ️", "No API key yet — you can paste one in the AgentXL taskpane");
+    step("  ", "Or run 'agentxl login' to set one in the terminal");
   }
 
   // ── Step 3: HTTPS certificates ─────────────────────────────────────────

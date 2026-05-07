@@ -10,9 +10,13 @@ import { SettingsManager, type ModelRegistry } from "@mariozechner/pi-coding-age
 
 /** Provider → preferred model ID, checked in priority order. */
 const PREFERRED_MODELS: Array<{ provider: string; modelId: string }> = [
+  { provider: "openrouter", modelId: "anthropic/claude-sonnet-4.6" },
+  { provider: "openrouter", modelId: "anthropic/claude-sonnet-4.5" },
+  { provider: "openrouter", modelId: "anthropic/claude-sonnet-4" },
+  { provider: "anthropic", modelId: "claude-sonnet-4-6" },
+  { provider: "anthropic", modelId: "claude-sonnet-4-5-20250929" },
   { provider: "anthropic", modelId: "claude-sonnet-4-20250514" },
   { provider: "openai-codex", modelId: "gpt-5.1" },
-  { provider: "openrouter", modelId: "anthropic/claude-sonnet-4" },
   { provider: "openai", modelId: "gpt-4o" },
 ];
 
@@ -41,9 +45,8 @@ function getConfiguredModelPreference(
  *
  * Priority:
  * 1. Pi settings (`defaultProvider` / `defaultModel`) if that model is available
- * 2. Subscriptions (OAuth) from AgentXL's preferred fallback list
- * 3. API keys from AgentXL's preferred fallback list
- * 4. First available authenticated model
+ * 2. AgentXL's preferred list (OpenRouter first, then Anthropic, then OpenAI)
+ * 3. Any OpenRouter model, otherwise first available authenticated model
  *
  * Returns null if no provider has auth configured.
  */
@@ -51,7 +54,6 @@ export function getDefaultModel(
   modelRegistry: ModelRegistry,
   cwd?: string
 ): Model<Api> | null {
-  // Only consider models that have auth configured
   const available = modelRegistry.getAvailable();
   if (available.length === 0) return null;
 
@@ -74,21 +76,14 @@ export function getDefaultModel(
     if (byProvider) return byProvider;
   }
 
-  // Split into OAuth (subscriptions) vs API key models
-  const oauthModels = available.filter((m) => modelRegistry.isUsingOAuth(m));
-  const apiKeyModels = available.filter((m) => !modelRegistry.isUsingOAuth(m));
-
-  // Check preferred models — subscriptions first, then API keys
-  for (const pool of [oauthModels, apiKeyModels]) {
-    for (const { provider, modelId } of PREFERRED_MODELS) {
-      const match = pool.find(
-        (m) => m.provider === provider && m.id === modelId
-      );
-      if (match) return match;
-    }
+  for (const { provider, modelId } of PREFERRED_MODELS) {
+    const match = available.find(
+      (m) => m.provider === provider && m.id === modelId
+    );
+    if (match) return match;
   }
 
-  // Fallback: first OAuth model, then first API key model
-  if (oauthModels.length > 0) return oauthModels[0];
+  const openrouterAny = available.find((m) => m.provider === "openrouter");
+  if (openrouterAny) return openrouterAny;
   return available[0];
 }

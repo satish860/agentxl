@@ -12,6 +12,7 @@ interface FolderLinkScreenProps {
   onPickFolder: () => Promise<string | null>;
   onSave: (folderPath: string) => Promise<void> | void;
   onCancel?: () => void;
+  onSkip?: () => void;
 }
 
 export function FolderLinkScreen({
@@ -24,6 +25,7 @@ export function FolderLinkScreen({
   onPickFolder,
   onSave,
   onCancel,
+  onSkip,
 }: FolderLinkScreenProps) {
   const [folderPath, setFolderPath] = useState(currentFolderPath ?? "");
 
@@ -136,6 +138,16 @@ export function FolderLinkScreen({
             </button>
           ) : null}
         </div>
+
+        {onSkip ? (
+          <button
+            onClick={onSkip}
+            disabled={isSaving}
+            className="mt-3 w-full rounded-2xl border border-dashed border-gray-300 px-4 py-2.5 text-[12px] font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-40"
+          >
+            Skip for now — chat without a folder
+          </button>
+        ) : null}
       </div>
 
       <div className="grid gap-2">
